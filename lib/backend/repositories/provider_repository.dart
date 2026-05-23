@@ -50,16 +50,78 @@ class ProviderRepository {
         createdAt: now,
         updatedAt: now,
       ),
+      ContentProviderConfig(
+        id: 'konachan',
+        name: 'Konachan',
+        baseUrl: 'https://konachan.com',
+        apiType: 'moebooru',
+        enabled: true,
+        priority: 3,
+        timeoutSeconds: 20,
+        customHeaders: const {},
+        createdAt: now,
+        updatedAt: now,
+      ),
+      ContentProviderConfig(
+        id: 'yandere',
+        name: 'Yande.re',
+        baseUrl: 'https://yande.re',
+        apiType: 'moebooru',
+        enabled: true,
+        priority: 4,
+        timeoutSeconds: 20,
+        customHeaders: const {
+          'query.api_version': '2',
+          'query.include_tags': '1',
+          'query.filter': '1',
+        },
+        createdAt: now,
+        updatedAt: now,
+      ),
+      ContentProviderConfig(
+        id: 'e621',
+        name: 'e621',
+        baseUrl: 'https://e621.net',
+        apiType: 'e621',
+        enabled: true,
+        priority: 5,
+        timeoutSeconds: 20,
+        customHeaders: const {
+          'User-Agent': 'RuleGel/0.2 Flutter local booru browser',
+        },
+        createdAt: now,
+        updatedAt: now,
+      ),
+      ContentProviderConfig(
+        id: 'e926',
+        name: 'e926',
+        baseUrl: 'https://e926.net',
+        apiType: 'e621',
+        enabled: true,
+        priority: 6,
+        timeoutSeconds: 20,
+        customHeaders: const {
+          'User-Agent': 'RuleGel/0.2 Flutter local booru browser',
+        },
+        createdAt: now,
+        updatedAt: now,
+      ),
     ];
   }
 
   Future<Result<void>> ensureSeedProviders() {
     return _databaseService.safeWrite((isar) async {
-      final count = await isar.providerConfigEntitys.count();
-      if (count > 0) return;
-      await isar.providerConfigEntitys.putAll(
-        seedProviders().map(ProviderConfigEntity.fromModel).toList(),
-      );
+      final seeds = seedProviders();
+      for (final seed in seeds) {
+        final exists = await isar.providerConfigEntitys
+            .filter()
+            .providerIdEqualTo(seed.id)
+            .findFirst();
+        if (exists == null) {
+          await isar.providerConfigEntitys
+              .put(ProviderConfigEntity.fromModel(seed));
+        }
+      }
     });
   }
 

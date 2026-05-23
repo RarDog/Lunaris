@@ -214,11 +214,10 @@ class _PostMediaViewerState extends State<PostMediaViewer> {
   }
 
   List<String> _buildImageUrls(Post post) {
-    return {
-      post.sampleUrl,
-      post.fileUrl,
-      post.previewUrl,
-    }.where((url) => url.trim().isNotEmpty).toList();
+    final urls = post.fileType.toLowerCase().contains('gif')
+        ? [post.fileUrl, post.sampleUrl, post.previewUrl]
+        : [post.sampleUrl, post.fileUrl, post.previewUrl];
+    return urls.where((url) => url.trim().isNotEmpty).toSet().toList();
   }
 
   List<String> _buildVideoUrls(Post post) {

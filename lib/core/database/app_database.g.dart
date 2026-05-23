@@ -3226,13 +3226,18 @@ const CachedPostEntitySchema = CollectionSchema(
       name: r'source',
       type: IsarType.string,
     ),
-    r'tags': PropertySchema(
+    r'tagGroupsJson': PropertySchema(
       id: 14,
+      name: r'tagGroupsJson',
+      type: IsarType.string,
+    ),
+    r'tags': PropertySchema(
+      id: 15,
       name: r'tags',
       type: IsarType.stringList,
     ),
     r'width': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'width',
       type: IsarType.long,
     )
@@ -3304,6 +3309,7 @@ int _cachedPostEntityEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  bytesCount += 3 + object.tagGroupsJson.length * 3;
   bytesCount += 3 + object.tags.length * 3;
   {
     for (var i = 0; i < object.tags.length; i++) {
@@ -3334,8 +3340,9 @@ void _cachedPostEntitySerialize(
   writer.writeString(offsets[11], object.sampleUrl);
   writer.writeLong(offsets[12], object.score);
   writer.writeString(offsets[13], object.source);
-  writer.writeStringList(offsets[14], object.tags);
-  writer.writeLong(offsets[15], object.width);
+  writer.writeString(offsets[14], object.tagGroupsJson);
+  writer.writeStringList(offsets[15], object.tags);
+  writer.writeLong(offsets[16], object.width);
 }
 
 CachedPostEntity _cachedPostEntityDeserialize(
@@ -3360,8 +3367,9 @@ CachedPostEntity _cachedPostEntityDeserialize(
   object.sampleUrl = reader.readString(offsets[11]);
   object.score = reader.readLong(offsets[12]);
   object.source = reader.readStringOrNull(offsets[13]);
-  object.tags = reader.readStringList(offsets[14]) ?? [];
-  object.width = reader.readLong(offsets[15]);
+  object.tagGroupsJson = reader.readString(offsets[14]);
+  object.tags = reader.readStringList(offsets[15]) ?? [];
+  object.width = reader.readLong(offsets[16]);
   return object;
 }
 
@@ -3401,8 +3409,10 @@ P _cachedPostEntityDeserializeProp<P>(
     case 13:
       return (reader.readStringOrNull(offset)) as P;
     case 14:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readString(offset)) as P;
     case 15:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 16:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -5354,6 +5364,142 @@ extension CachedPostEntityQueryFilter
   }
 
   QueryBuilder<CachedPostEntity, CachedPostEntity, QAfterFilterCondition>
+      tagGroupsJsonEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'tagGroupsJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CachedPostEntity, CachedPostEntity, QAfterFilterCondition>
+      tagGroupsJsonGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'tagGroupsJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CachedPostEntity, CachedPostEntity, QAfterFilterCondition>
+      tagGroupsJsonLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'tagGroupsJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CachedPostEntity, CachedPostEntity, QAfterFilterCondition>
+      tagGroupsJsonBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'tagGroupsJson',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CachedPostEntity, CachedPostEntity, QAfterFilterCondition>
+      tagGroupsJsonStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'tagGroupsJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CachedPostEntity, CachedPostEntity, QAfterFilterCondition>
+      tagGroupsJsonEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'tagGroupsJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CachedPostEntity, CachedPostEntity, QAfterFilterCondition>
+      tagGroupsJsonContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'tagGroupsJson',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CachedPostEntity, CachedPostEntity, QAfterFilterCondition>
+      tagGroupsJsonMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'tagGroupsJson',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<CachedPostEntity, CachedPostEntity, QAfterFilterCondition>
+      tagGroupsJsonIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'tagGroupsJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CachedPostEntity, CachedPostEntity, QAfterFilterCondition>
+      tagGroupsJsonIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'tagGroupsJson',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<CachedPostEntity, CachedPostEntity, QAfterFilterCondition>
       tagsElementEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -5838,6 +5984,20 @@ extension CachedPostEntityQuerySortBy
     });
   }
 
+  QueryBuilder<CachedPostEntity, CachedPostEntity, QAfterSortBy>
+      sortByTagGroupsJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tagGroupsJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CachedPostEntity, CachedPostEntity, QAfterSortBy>
+      sortByTagGroupsJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tagGroupsJson', Sort.desc);
+    });
+  }
+
   QueryBuilder<CachedPostEntity, CachedPostEntity, QAfterSortBy> sortByWidth() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'width', Sort.asc);
@@ -6063,6 +6223,20 @@ extension CachedPostEntityQuerySortThenBy
     });
   }
 
+  QueryBuilder<CachedPostEntity, CachedPostEntity, QAfterSortBy>
+      thenByTagGroupsJson() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tagGroupsJson', Sort.asc);
+    });
+  }
+
+  QueryBuilder<CachedPostEntity, CachedPostEntity, QAfterSortBy>
+      thenByTagGroupsJsonDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'tagGroupsJson', Sort.desc);
+    });
+  }
+
   QueryBuilder<CachedPostEntity, CachedPostEntity, QAfterSortBy> thenByWidth() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'width', Sort.asc);
@@ -6177,6 +6351,14 @@ extension CachedPostEntityQueryWhereDistinct
     });
   }
 
+  QueryBuilder<CachedPostEntity, CachedPostEntity, QDistinct>
+      distinctByTagGroupsJson({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'tagGroupsJson',
+          caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<CachedPostEntity, CachedPostEntity, QDistinct> distinctByTags() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'tags');
@@ -6285,6 +6467,13 @@ extension CachedPostEntityQueryProperty
   QueryBuilder<CachedPostEntity, String?, QQueryOperations> sourceProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'source');
+    });
+  }
+
+  QueryBuilder<CachedPostEntity, String, QQueryOperations>
+      tagGroupsJsonProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'tagGroupsJson');
     });
   }
 

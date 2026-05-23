@@ -325,6 +325,9 @@ class _MobilePostPagerState extends State<_MobilePostPager> {
     super.initState();
     _currentIndex = widget.initialIndex;
     _controller = PageController(initialPage: widget.initialIndex);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _prefetchAround(widget.initialIndex);
+    });
   }
 
   @override
@@ -337,6 +340,9 @@ class _MobilePostPagerState extends State<_MobilePostPager> {
       if (_controller.hasClients) {
         _controller.jumpToPage(widget.initialIndex);
       }
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _prefetchAround(widget.initialIndex);
+      });
     }
   }
 
@@ -353,6 +359,7 @@ class _MobilePostPagerState extends State<_MobilePostPager> {
       itemCount: widget.posts.length,
       onPageChanged: (index) {
         _currentIndex = index;
+        _prefetchAround(index);
         final post = widget.posts[index];
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
@@ -363,12 +370,51 @@ class _MobilePostPagerState extends State<_MobilePostPager> {
         });
       },
       itemBuilder: (context, index) {
-        return KeyedSubtree(
-          key: ValueKey(widget.posts[index].cacheKey),
-          child: widget.buildDetails(context, widget.posts[index]),
+        return _KeepAlivePostPage(
+          child: KeyedSubtree(
+            key: ValueKey(widget.posts[index].cacheKey),
+            child: widget.buildDetails(context, widget.posts[index]),
+          ),
         );
       },
     );
+  }
+
+  void _prefetchAround(int index) {
+    for (final offset in [-1, 0, 1]) {
+      final target = index + offset;
+      if (target < 0 || target >= widget.posts.length) continue;
+      final post = widget.posts[target];
+      final urls = [
+        post.previewUrl,
+        post.sampleUrl,
+        if (post.fileType.toLowerCase().contains('gif')) post.fileUrl,
+      ].where((url) => url.trim().isNotEmpty).toSet();
+      for (final url in urls) {
+        precacheImage(NetworkImage(url), context);
+      }
+    }
+  }
+}
+
+class _KeepAlivePostPage extends StatefulWidget {
+  const _KeepAlivePostPage({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_KeepAlivePostPage> createState() => _KeepAlivePostPageState();
+}
+
+class _KeepAlivePostPageState extends State<_KeepAlivePostPage>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return widget.child;
   }
 }
 

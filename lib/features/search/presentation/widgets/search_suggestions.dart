@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../../backend/backend.dart';
+
 class SearchSuggestions extends StatelessWidget {
   const SearchSuggestions(
       {required this.suggestions, required this.onTap, super.key});
 
-  final List<String> suggestions;
+  final List<TagSuggestion> suggestions;
   final ValueChanged<String> onTap;
 
   @override
@@ -16,8 +18,8 @@ class SearchSuggestions extends StatelessWidget {
       children: [
         for (final suggestion in suggestions)
           ActionChip(
-            label: Text(suggestion),
-            onPressed: () => onTap(suggestion),
+            label: Text('${suggestion.name} · ${suggestion.categoryLabel}'),
+            onPressed: () => onTap(suggestion.name),
           ),
       ],
     );

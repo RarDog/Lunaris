@@ -17,11 +17,12 @@ class SearchController extends AsyncNotifier<SearchState> {
   Future<void> updateQuery(String query) async {
     final lastToken =
         query.trim().isEmpty ? '' : query.trim().split(RegExp(r'\s+')).last;
-    final suggestionsResult =
-        await ref.read(searchServiceProvider).autocomplete(lastToken);
-    final suggestions = suggestionsResult is Success<List<String>>
+    final suggestionsResult = await ref
+        .read(searchServiceProvider)
+        .autocompleteDetailed(lastToken, limit: 16);
+    final suggestions = suggestionsResult is Success<List<TagSuggestion>>
         ? suggestionsResult.data
-        : <String>[];
+        : <TagSuggestion>[];
     state = AsyncData(
       (state.value ?? const SearchState()).copyWith(
         query: query,

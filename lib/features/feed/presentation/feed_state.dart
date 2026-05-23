@@ -19,7 +19,7 @@ class FeedState {
   final List<String> selectedProviderIds;
   final String? ratingFilter;
   final TopPeriodFilter topPeriodFilter;
-  final List<String> tagSuggestions;
+  final List<TagSuggestion> tagSuggestions;
   final List<ContentProviderConfig> providers;
   final bool isLoadingMore;
   final bool hasMore;
@@ -31,7 +31,7 @@ class FeedState {
     List<String>? selectedProviderIds,
     String? ratingFilter,
     TopPeriodFilter? topPeriodFilter,
-    List<String>? tagSuggestions,
+    List<TagSuggestion>? tagSuggestions,
     bool clearRating = false,
     List<ContentProviderConfig>? providers,
     bool? isLoadingMore,

@@ -52,12 +52,13 @@ void main() {
     expect((result as Success<List<SearchHistory>>).data.first.query, 'new');
   });
 
-  test('autocomplete uses history tags', () async {
+  test('autocomplete is provider-only and returns empty without manager',
+      () async {
     await service.saveSearch('cat cute', 2);
     await service.saveSearch('car', 1);
 
     final result = await service.autocomplete('ca');
-    expect((result as Success<List<String>>).data, containsAll(['cat', 'car']));
+    expect((result as Success<List<String>>).data, isEmpty);
   });
 
   test('clear history removes all searches', () async {

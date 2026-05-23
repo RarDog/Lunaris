@@ -8,12 +8,12 @@ class SearchState {
   });
 
   final List<SearchHistory> recent;
-  final List<String> suggestions;
+  final List<TagSuggestion> suggestions;
   final String query;
 
   SearchState copyWith({
     List<SearchHistory>? recent,
-    List<String>? suggestions,
+    List<TagSuggestion>? suggestions,
     String? query,
   }) {
     return SearchState(

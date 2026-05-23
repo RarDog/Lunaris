@@ -65,6 +65,10 @@ void main() {
       'gelbooru',
       'rule34',
       'safebooru',
+      'konachan',
+      'yandere',
+      'e621',
+      'e926',
     ]);
   });
 

@@ -155,8 +155,7 @@ void main() {
     expect(result.data.map((provider) => provider.id), ['a', 'b']);
   });
 
-  test('saved offline health does not block enabled provider retry',
-      () async {
+  test('saved offline health does not block enabled provider retry', () async {
     final repository = FakeProviderRepository()
       ..configs['a'] = config('a', 0)
       ..configs['b'] = config('b', 1)

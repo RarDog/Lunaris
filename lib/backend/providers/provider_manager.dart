@@ -6,6 +6,7 @@ import '../models/content_provider_config.dart';
 import '../models/post.dart';
 import '../models/post_comment.dart';
 import '../models/provider_health.dart';
+import '../models/tag_suggestion.dart';
 import '../models/top_period_filter.dart';
 import '../repositories/provider_repository.dart';
 import 'content_provider.dart';
@@ -173,6 +174,36 @@ class ProviderManager {
         ),
       );
     }
+  }
+
+  Future<Result<List<TagSuggestion>>> suggestTags(
+    String query, {
+    int limit = 20,
+  }) async {
+    final providersResult = await activeProviders();
+    if (providersResult is Error<List<ContentProvider>>) {
+      return Error(providersResult.failure);
+    }
+    final providers = (providersResult as Success<List<ContentProvider>>)
+        .data
+        .whereType<TagSuggestionProvider>()
+        .toList();
+    final suggestions = <String, TagSuggestion>{};
+    for (final provider in providers) {
+      try {
+        final items = await provider.suggestTags(query, limit: limit);
+        for (final item in items) {
+          suggestions.putIfAbsent(
+              '${item.providerId}:${item.name}', () => item);
+        }
+      } catch (_) {
+        // Suggestions are non-critical; a failed provider should not affect UI.
+      }
+      if (suggestions.length >= limit) break;
+    }
+    final values = suggestions.values.toList()
+      ..sort((a, b) => b.postCount.compareTo(a.postCount));
+    return Success(values.take(limit).toList());
   }
 
   Future<List<R>> _runLimited<T, R>(

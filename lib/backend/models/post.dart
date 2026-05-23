@@ -14,6 +14,7 @@ class Post {
     required this.createdAt,
     required this.fileType,
     required this.score,
+    this.tagGroups = const {},
   });
 
   final String id;
@@ -30,6 +31,7 @@ class Post {
   final DateTime createdAt;
   final String fileType;
   final int score;
+  final Map<String, List<String>> tagGroups;
 
   String get cacheKey => '$providerId:$id';
 
@@ -48,6 +50,7 @@ class Post {
         'createdAt': createdAt.toIso8601String(),
         'fileType': fileType,
         'score': score,
+        'tagGroups': tagGroups,
       };
 
   factory Post.fromJson(Map<String, dynamic> json) => Post(
@@ -66,5 +69,12 @@ class Post {
             DateTime.fromMillisecondsSinceEpoch(0),
         fileType: (json['fileType'] as String?) ?? 'unknown',
         score: (json['score'] as num?)?.toInt() ?? 0,
+        tagGroups: (json['tagGroups'] as Map?)?.map(
+              (key, value) => MapEntry(
+                key.toString(),
+                List<String>.from((value as List?) ?? const []),
+              ),
+            ) ??
+            const {},
       );
 }

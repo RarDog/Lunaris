@@ -1,6 +1,7 @@
 import '../models/post.dart';
 import '../models/post_comment.dart';
 import '../models/provider_health.dart';
+import '../models/tag_suggestion.dart';
 import '../models/top_period_filter.dart';
 
 abstract class ContentProvider {
@@ -23,4 +24,8 @@ abstract class ContentProvider {
 
 abstract class CommentProvider {
   Future<List<PostComment>> getComments(String postId);
+}
+
+abstract class TagSuggestionProvider {
+  Future<List<TagSuggestion>> suggestTags(String query, {int limit = 20});
 }

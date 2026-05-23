@@ -30,6 +30,7 @@ class GelbooruMapper {
         fileUrl);
     final previewUrl =
         _string(json['preview_url'] ?? json['previewUrl'] ?? sampleUrl);
+    final tags = _tags(json['tags'] ?? json['tag_string']);
     return Post(
       id: id,
       providerId: providerId,
@@ -37,14 +38,15 @@ class GelbooruMapper {
       previewUrl: previewUrl,
       sampleUrl: sampleUrl,
       fileUrl: fileUrl,
-      tags: _tags(json['tags'] ?? json['tag_string']),
+      tags: tags,
       rating: _string(json['rating'], fallback: 'unknown'),
       width: _int(json['width']),
       height: _int(json['height']),
       source: _nullableString(json['source']),
       createdAt: _date(json['created_at'] ?? json['createdAt']),
-      fileType: _fileType(fileUrl),
+      fileType: _fileType(fileUrl, json['file_ext']),
       score: _int(json['score']),
+      tagGroups: _tagGroups(tags),
     );
   }
 
@@ -89,11 +91,21 @@ class GelbooruMapper {
     return DateTime.tryParse(value?.toString() ?? '') ?? DateTime.now();
   }
 
-  static String _fileType(String url) {
-    final lower = url.toLowerCase();
-    if (lower.endsWith('.webm') || lower.endsWith('.mp4')) return 'video';
-    if (lower.endsWith('.gif')) return 'gif';
+  static String _fileType(String url, dynamic fileExt) {
+    final lower = url.toLowerCase().split('?').first;
+    final ext = _string(fileExt).toLowerCase();
+    if (lower.endsWith('.webm') ||
+        lower.endsWith('.mp4') ||
+        ext == 'webm' ||
+        ext == 'mp4') {
+      return 'video';
+    }
+    if (lower.endsWith('.gif') || ext == 'gif') return 'gif';
     if (lower.isEmpty) return 'unknown';
     return 'image';
+  }
+
+  static Map<String, List<String>> _tagGroups(List<String> tags) {
+    return tags.isEmpty ? const {} : {'general': tags};
   }
 }

@@ -6,6 +6,7 @@ export 'models/post.dart';
 export 'models/post_comment.dart';
 export 'models/provider_health.dart';
 export 'models/search_history.dart';
+export 'models/tag_suggestion.dart';
 export 'models/top_period_filter.dart';
 export 'providers/content_provider.dart';
 export 'providers/provider_manager.dart';

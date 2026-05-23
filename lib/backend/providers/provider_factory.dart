@@ -3,7 +3,9 @@ import '../models/content_provider_config.dart';
 import 'content_provider.dart';
 import 'custom_provider.dart';
 import 'danbooru_provider.dart';
+import 'e621_provider.dart';
 import 'gelbooru_provider.dart';
+import 'moebooru_provider.dart';
 import 'rule34_provider.dart';
 
 class ProviderFactory {
@@ -39,6 +41,22 @@ class ProviderFactory {
         );
       case 'danbooru':
         return DanbooruProvider(
+          id: config.id,
+          name: config.name,
+          baseUrl: config.baseUrl,
+          dioClient: client,
+          queryParameters: queryParameters,
+        );
+      case 'moebooru':
+        return MoebooruProvider(
+          id: config.id,
+          name: config.name,
+          baseUrl: config.baseUrl,
+          dioClient: client,
+          queryParameters: queryParameters,
+        );
+      case 'e621':
+        return E621Provider(
           id: config.id,
           name: config.name,
           baseUrl: config.baseUrl,

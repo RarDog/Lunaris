@@ -33,7 +33,7 @@ class FeedToolbar extends StatefulWidget {
   final List<String> selectedTags;
   final List<String> selectedProviderIds;
   final TopPeriodFilter topPeriodFilter;
-  final List<String> tagSuggestions;
+  final List<TagSuggestion> tagSuggestions;
   final String? rating;
   final ValueChanged<String> onQuickProviderToggle;
   final ValueChanged<String> onSearchChanged;
@@ -154,9 +154,9 @@ class _FeedToolbarState extends State<FeedToolbar> {
                 separatorBuilder: (_, __) => const SizedBox(width: 8),
                 itemBuilder: (context, index) => ActionChip(
                   avatar: const Icon(Icons.tag_rounded, size: 15),
-                  label: Text(widget.tagSuggestions[index]),
+                  label: _SuggestionLabel(widget.tagSuggestions[index]),
                   onPressed: () =>
-                      _applySuggestion(widget.tagSuggestions[index]),
+                      _applySuggestion(widget.tagSuggestions[index].name),
                 ),
               ),
             ),
@@ -255,9 +255,9 @@ class _FeedToolbarState extends State<FeedToolbar> {
                 itemCount: widget.tagSuggestions.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 6),
                 itemBuilder: (context, index) => ActionChip(
-                  label: Text(widget.tagSuggestions[index]),
+                  label: _SuggestionLabel(widget.tagSuggestions[index]),
                   onPressed: () =>
-                      _applySuggestion(widget.tagSuggestions[index]),
+                      _applySuggestion(widget.tagSuggestions[index].name),
                 ),
               ),
             ),
@@ -279,6 +279,27 @@ class _FeedToolbarState extends State<FeedToolbar> {
     final next = tokens.toSet().join(' ');
     setState(() => _query = next);
     widget.onSuggestionTap(next);
+  }
+}
+
+class _SuggestionLabel extends StatelessWidget {
+  const _SuggestionLabel(this.suggestion);
+
+  final TagSuggestion suggestion;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(suggestion.name),
+        const SizedBox(width: 6),
+        Text(
+          suggestion.categoryLabel,
+          style: Theme.of(context).textTheme.labelSmall,
+        ),
+      ],
+    );
   }
 }
 

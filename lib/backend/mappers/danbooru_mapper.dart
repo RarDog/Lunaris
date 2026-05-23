@@ -26,6 +26,10 @@ class DanbooruMapper {
     final sampleUrl =
         _string(json['large_file_url'] ?? json['sample_file_url'] ?? fileUrl);
     final previewUrl = _string(json['preview_file_url'] ?? sampleUrl);
+    final tagGroups = _tagGroups(json);
+    final tags = tagGroups.isEmpty
+        ? _tags(json['tag_string'] ?? json['tags'])
+        : tagGroups.values.expand((items) => items).toSet().toList();
     return Post(
       id: _string(json['id']),
       providerId: providerId,
@@ -33,15 +37,16 @@ class DanbooruMapper {
       previewUrl: previewUrl,
       sampleUrl: sampleUrl,
       fileUrl: fileUrl,
-      tags: _tags(json['tag_string'] ?? json['tags']),
+      tags: tags,
       rating: _string(json['rating'], fallback: 'unknown'),
       width: _int(json['image_width'] ?? json['width']),
       height: _int(json['image_height'] ?? json['height']),
       source: _nullableString(json['source']),
       createdAt:
           DateTime.tryParse(_string(json['created_at'])) ?? DateTime.now(),
-      fileType: _fileType(fileUrl),
+      fileType: _fileType(fileUrl, json['file_ext']),
       score: _int(json['score']),
+      tagGroups: tagGroups.isEmpty ? {'general': tags} : tagGroups,
     );
   }
 
@@ -70,11 +75,32 @@ class DanbooruMapper {
     return text == null || text.isEmpty ? null : text;
   }
 
-  static String _fileType(String url) {
-    final lower = url.toLowerCase();
-    if (lower.endsWith('.webm') || lower.endsWith('.mp4')) return 'video';
-    if (lower.endsWith('.gif')) return 'gif';
+  static String _fileType(String url, dynamic fileExt) {
+    final lower = url.toLowerCase().split('?').first;
+    final ext = _string(fileExt).toLowerCase();
+    if (lower.endsWith('.webm') ||
+        lower.endsWith('.mp4') ||
+        ext == 'webm' ||
+        ext == 'mp4') {
+      return 'video';
+    }
+    if (lower.endsWith('.gif') || ext == 'gif') return 'gif';
     if (lower.isEmpty) return 'unknown';
     return 'image';
+  }
+
+  static Map<String, List<String>> _tagGroups(Map<String, dynamic> json) {
+    final groups = <String, List<String>>{};
+    void add(String key, dynamic value) {
+      final tags = _tags(value);
+      if (tags.isNotEmpty) groups[key] = tags;
+    }
+
+    add('general', json['tag_string_general']);
+    add('artist', json['tag_string_artist']);
+    add('copyright', json['tag_string_copyright']);
+    add('character', json['tag_string_character']);
+    add('meta', json['tag_string_meta']);
+    return groups;
   }
 }

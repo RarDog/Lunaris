@@ -73,10 +73,12 @@ class FeedController extends AsyncNotifier<FeedState> {
       return;
     }
     final lastToken = query.trim().split(RegExp(r'\s+')).last;
-    final result =
-        await ref.read(searchServiceProvider).autocomplete(lastToken);
-    final suggestions =
-        result is Success<List<String>> ? result.data : const <String>[];
+    final result = await ref
+        .read(searchServiceProvider)
+        .autocompleteDetailed(lastToken, limit: 16);
+    final suggestions = result is Success<List<TagSuggestion>>
+        ? result.data
+        : const <TagSuggestion>[];
     state = AsyncData(current.copyWith(tagSuggestions: suggestions));
   }
 

@@ -132,6 +132,7 @@ class CachedPostEntity {
   late String sampleUrl;
   late String fileUrl;
   late List<String> tags;
+  late String tagGroupsJson;
   late String rating;
   late int width;
   late int height;
@@ -149,6 +150,7 @@ class CachedPostEntity {
         sampleUrl: sampleUrl,
         fileUrl: fileUrl,
         tags: tags,
+        tagGroups: _decodeTagGroups(tagGroupsJson),
         rating: rating,
         width: width,
         height: height,
@@ -168,6 +170,7 @@ class CachedPostEntity {
       ..sampleUrl = model.sampleUrl
       ..fileUrl = model.fileUrl
       ..tags = model.tags
+      ..tagGroupsJson = jsonEncode(model.tagGroups)
       ..rating = model.rating
       ..width = model.width
       ..height = model.height
@@ -176,6 +179,17 @@ class CachedPostEntity {
       ..fileType = model.fileType
       ..score = model.score
       ..cachedAt = cachedAt ?? DateTime.now();
+  }
+
+  static Map<String, List<String>> _decodeTagGroups(String value) {
+    if (value.isEmpty) return const {};
+    final decoded = jsonDecode(value) as Map;
+    return decoded.map(
+      (key, value) => MapEntry(
+        key.toString(),
+        List<String>.from((value as List?) ?? const []),
+      ),
+    );
   }
 }
 

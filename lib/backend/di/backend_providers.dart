@@ -92,7 +92,10 @@ final feedServiceProvider = Provider<FeedService>((ref) {
 });
 
 final searchServiceProvider = Provider<SearchService>((ref) {
-  return SearchService(ref.watch(searchRepositoryProvider));
+  return SearchService(
+    ref.watch(searchRepositoryProvider),
+    ref.watch(providerManagerProvider),
+  );
 });
 
 final providerCheckServiceProvider = Provider<ProviderCheckService>((ref) {
