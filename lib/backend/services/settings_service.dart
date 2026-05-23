@@ -1,0 +1,254 @@
+import 'dart:convert';
+
+import 'package:isar/isar.dart';
+
+import '../../core/database/app_database.dart';
+import '../../core/database/database_service.dart';
+import '../../core/errors/failure.dart';
+import '../../core/utils/result.dart';
+import '../models/content_provider_config.dart';
+import '../repositories/provider_repository.dart';
+
+class AppSettings {
+  const AppSettings({
+    required this.enabledProviderIds,
+    required this.nsfwEnabled,
+    required this.cacheTtlHours,
+    required this.cacheMaxItems,
+    required this.providerPriority,
+    required this.themeMode,
+    required this.desktopColumns,
+    required this.mobileColumns,
+    required this.blurExplicitContent,
+    required this.allowDownloads,
+    required this.selectedFeedProviderIds,
+    required this.showPostBadges,
+    required this.defaultTopPeriodFilter,
+    this.defaultRatingFilter,
+  });
+
+  final List<String> enabledProviderIds;
+  final bool nsfwEnabled;
+  final int cacheTtlHours;
+  final int cacheMaxItems;
+  final Map<String, int> providerPriority;
+  final String themeMode;
+  final int desktopColumns;
+  final int mobileColumns;
+  final bool blurExplicitContent;
+  final bool allowDownloads;
+  final List<String> selectedFeedProviderIds;
+  final bool showPostBadges;
+  final String defaultTopPeriodFilter;
+  final String? defaultRatingFilter;
+
+  static const defaults = AppSettings(
+    enabledProviderIds: ['gelbooru', 'rule34', 'safebooru'],
+    nsfwEnabled: true,
+    cacheTtlHours: 24,
+    cacheMaxItems: 2000,
+    providerPriority: {'gelbooru': 0, 'rule34': 1, 'safebooru': 2},
+    themeMode: 'dark',
+    desktopColumns: 5,
+    mobileColumns: 2,
+    blurExplicitContent: true,
+    allowDownloads: true,
+    selectedFeedProviderIds: [],
+    showPostBadges: true,
+    defaultTopPeriodFilter: 'none',
+    defaultRatingFilter: null,
+  );
+
+  AppSettings copyWith({
+    List<String>? enabledProviderIds,
+    bool? nsfwEnabled,
+    int? cacheTtlHours,
+    int? cacheMaxItems,
+    Map<String, int>? providerPriority,
+    String? themeMode,
+    int? desktopColumns,
+    int? mobileColumns,
+    bool? blurExplicitContent,
+    bool? allowDownloads,
+    List<String>? selectedFeedProviderIds,
+    bool? showPostBadges,
+    String? defaultTopPeriodFilter,
+    String? defaultRatingFilter,
+  }) {
+    return AppSettings(
+      enabledProviderIds: enabledProviderIds ?? this.enabledProviderIds,
+      nsfwEnabled: nsfwEnabled ?? this.nsfwEnabled,
+      cacheTtlHours: cacheTtlHours ?? this.cacheTtlHours,
+      cacheMaxItems: cacheMaxItems ?? this.cacheMaxItems,
+      providerPriority: providerPriority ?? this.providerPriority,
+      themeMode: themeMode ?? this.themeMode,
+      desktopColumns: desktopColumns ?? this.desktopColumns,
+      mobileColumns: mobileColumns ?? this.mobileColumns,
+      blurExplicitContent: blurExplicitContent ?? this.blurExplicitContent,
+      allowDownloads: allowDownloads ?? this.allowDownloads,
+      selectedFeedProviderIds:
+          selectedFeedProviderIds ?? this.selectedFeedProviderIds,
+      showPostBadges: showPostBadges ?? this.showPostBadges,
+      defaultTopPeriodFilter:
+          defaultTopPeriodFilter ?? this.defaultTopPeriodFilter,
+      defaultRatingFilter: defaultRatingFilter ?? this.defaultRatingFilter,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'enabledProviderIds': enabledProviderIds,
+        'nsfwEnabled': nsfwEnabled,
+        'cacheTtlHours': cacheTtlHours,
+        'cacheMaxItems': cacheMaxItems,
+        'providerPriority': providerPriority,
+        'themeMode': themeMode,
+        'desktopColumns': desktopColumns,
+        'mobileColumns': mobileColumns,
+        'blurExplicitContent': blurExplicitContent,
+        'allowDownloads': allowDownloads,
+        'selectedFeedProviderIds': selectedFeedProviderIds,
+        'showPostBadges': showPostBadges,
+        'defaultTopPeriodFilter': defaultTopPeriodFilter,
+        'defaultRatingFilter': defaultRatingFilter,
+      };
+
+  factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
+        enabledProviderIds: List<String>.from(
+          (json['enabledProviderIds'] as List?) ?? defaults.enabledProviderIds,
+        ),
+        nsfwEnabled: (json['nsfwEnabled'] as bool?) ?? defaults.nsfwEnabled,
+        cacheTtlHours:
+            (json['cacheTtlHours'] as num?)?.toInt() ?? defaults.cacheTtlHours,
+        cacheMaxItems:
+            (json['cacheMaxItems'] as num?)?.toInt() ?? defaults.cacheMaxItems,
+        providerPriority: Map<String, int>.from(
+          (json['providerPriority'] as Map?) ?? defaults.providerPriority,
+        ),
+        themeMode: (json['themeMode'] as String?) ?? defaults.themeMode,
+        desktopColumns: (json['desktopColumns'] as num?)?.toInt() ??
+            defaults.desktopColumns,
+        mobileColumns:
+            (json['mobileColumns'] as num?)?.toInt() ?? defaults.mobileColumns,
+        blurExplicitContent: (json['blurExplicitContent'] as bool?) ??
+            defaults.blurExplicitContent,
+        allowDownloads:
+            (json['allowDownloads'] as bool?) ?? defaults.allowDownloads,
+        selectedFeedProviderIds: List<String>.from(
+          (json['selectedFeedProviderIds'] as List?) ??
+              defaults.selectedFeedProviderIds,
+        ),
+        showPostBadges:
+            (json['showPostBadges'] as bool?) ?? defaults.showPostBadges,
+        defaultTopPeriodFilter: (json['defaultTopPeriodFilter'] as String?) ??
+            defaults.defaultTopPeriodFilter,
+        defaultRatingFilter: json['defaultRatingFilter'] as String?,
+      );
+}
+
+class SettingsService {
+  SettingsService(
+    this._databaseService, {
+    ProviderRepository? providerRepository,
+  }) : _providerRepository = providerRepository;
+
+  final DatabaseService _databaseService;
+  final ProviderRepository? _providerRepository;
+  static const _settingsKey = 'app_settings';
+
+  Future<Result<AppSettings>> getSettings() {
+    return _databaseService.safeRead((isar) async {
+      final entity = await isar.appSettingEntitys
+          .filter()
+          .keyEqualTo(_settingsKey)
+          .findFirst();
+      if (entity == null) return AppSettings.defaults;
+      return AppSettings.fromJson(
+          jsonDecode(entity.jsonValue) as Map<String, dynamic>);
+    });
+  }
+
+  Future<Result<void>> updateSettings(AppSettings settings) {
+    return _databaseService.safeWrite((isar) async {
+      await isar.appSettingEntitys.put(
+        AppSettingEntity()
+          ..key = _settingsKey
+          ..jsonValue = jsonEncode(settings.toJson())
+          ..updatedAt = DateTime.now(),
+      );
+    });
+  }
+
+  Future<Result<void>> saveEnabledProviders(List<String> providerIds) async {
+    final result = await getSettings();
+    if (result is Error<AppSettings>) return Error(result.failure);
+    final settings = (result as Success<AppSettings>).data;
+    final updateResult = await updateSettings(
+        settings.copyWith(enabledProviderIds: providerIds));
+    if (updateResult is Error<void>) return updateResult;
+
+    final repository = _providerRepository;
+    if (repository == null) return updateResult;
+
+    final providersResult = await repository.getProviders();
+    if (providersResult is Error<List<ContentProviderConfig>>) {
+      return Error(providersResult.failure);
+    }
+    final enabled = providerIds.toSet();
+    for (final provider
+        in (providersResult as Success<List<ContentProviderConfig>>).data) {
+      await repository.saveProvider(
+        provider.copyWith(
+          enabled: enabled.contains(provider.id),
+          updatedAt: DateTime.now(),
+        ),
+      );
+    }
+    return updateResult;
+  }
+
+  Future<Result<void>> saveNsfwFilter(bool enabled) async {
+    final result = await getSettings();
+    if (result is Error<AppSettings>) return Error(result.failure);
+    final settings = (result as Success<AppSettings>).data;
+    return updateSettings(settings.copyWith(nsfwEnabled: enabled));
+  }
+
+  Future<Result<void>> saveCacheSettings({
+    required int ttlHours,
+    required int maxItems,
+  }) async {
+    final result = await getSettings();
+    if (result is Error<AppSettings>) return Error(result.failure);
+    final settings = (result as Success<AppSettings>).data;
+    return updateSettings(
+      settings.copyWith(cacheTtlHours: ttlHours, cacheMaxItems: maxItems),
+    );
+  }
+
+  Future<Result<String>> exportSettingsToJson() async {
+    final result = await getSettings();
+    return result.fold(
+      onSuccess: (settings) => Success(jsonEncode(settings.toJson())),
+      onError: Error<String>.new,
+    );
+  }
+
+  Future<Result<void>> importSettingsFromJson(String json) async {
+    try {
+      final settings =
+          AppSettings.fromJson(jsonDecode(json) as Map<String, dynamic>);
+      final result = await updateSettings(settings);
+      if (result is Error<void>) return result;
+      await saveEnabledProviders(settings.enabledProviderIds);
+      return result;
+    } catch (error) {
+      return Error(
+        Failure(
+          code: 'settings_import',
+          message: 'Invalid settings JSON',
+          details: error,
+        ),
+      );
+    }
+  }
+}

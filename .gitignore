@@ -1,0 +1,10 @@
+.dart_tool/
+.packages
+build/
+/isar.dll
+.idea/
+*.iml
+.flutter-plugins
+.flutter-plugins-dependencies
+android/local.properties
+*.log
