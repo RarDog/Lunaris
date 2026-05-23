@@ -14,6 +14,9 @@ class PostMediaViewer extends StatefulWidget {
     this.fullscreen = false,
     this.initialPosition = Duration.zero,
     this.autoplay = false,
+    this.initialLoop = false,
+    this.initialMuted = false,
+    this.initialCoverVideo = false,
     super.key,
   });
 
@@ -21,6 +24,9 @@ class PostMediaViewer extends StatefulWidget {
   final bool fullscreen;
   final Duration initialPosition;
   final bool autoplay;
+  final bool initialLoop;
+  final bool initialMuted;
+  final bool initialCoverVideo;
 
   @override
   State<PostMediaViewer> createState() => _PostMediaViewerState();
@@ -34,8 +40,9 @@ class _PostMediaViewerState extends State<PostMediaViewer> {
   int _imageIndex = 0;
   int _videoIndex = 0;
   bool _controlsVisible = true;
-  bool _coverVideo = false;
-  bool _muted = false;
+  late bool _coverVideo;
+  late bool _muted;
+  late bool _loopVideo;
   String? _videoError;
   Timer? _hideTimer;
   StreamSubscription<String>? _errorSubscription;
@@ -43,6 +50,9 @@ class _PostMediaViewerState extends State<PostMediaViewer> {
   @override
   void initState() {
     super.initState();
+    _coverVideo = widget.initialCoverVideo;
+    _muted = widget.initialMuted;
+    _loopVideo = widget.initialLoop;
     _imageUrls = _buildImageUrls(widget.post);
     _videoUrls = _buildVideoUrls(widget.post);
     if (_isVideo(widget.post) && _videoUrls.isNotEmpty) {
@@ -84,6 +94,7 @@ class _PostMediaViewerState extends State<PostMediaViewer> {
         controlsVisible: _controlsVisible,
         coverVideo: _coverVideo,
         muted: _muted,
+        loopVideo: _loopVideo,
         fullscreen: widget.fullscreen,
         errorMessage: _videoError,
         onInteract: _showControls,
@@ -96,6 +107,19 @@ class _PostMediaViewerState extends State<PostMediaViewer> {
           final nextMuted = !_muted;
           setState(() => _muted = nextMuted);
           await _player!.setVolume(nextMuted ? 0 : 100);
+          _showControls();
+        },
+        onToggleLoop: () async {
+          final nextLoop = !_loopVideo;
+          setState(() => _loopVideo = nextLoop);
+          await _player!.setPlaylistMode(
+            nextLoop ? PlaylistMode.single : PlaylistMode.none,
+          );
+          _showControls();
+        },
+        onVolumeChanged: (value) async {
+          setState(() => _muted = value <= 0);
+          await _player!.setVolume(value);
           _showControls();
         },
         onFullscreen: widget.fullscreen
@@ -139,6 +163,10 @@ class _PostMediaViewerState extends State<PostMediaViewer> {
     MediaKit.ensureInitialized();
     _player = Player();
     _controller = VideoController(_player!);
+    _player!.setVolume(_muted ? 0 : 100);
+    _player!.setPlaylistMode(
+      _loopVideo ? PlaylistMode.single : PlaylistMode.none,
+    );
     _errorSubscription = _player!.stream.error.listen((message) {
       if (!mounted) return;
       if (_videoIndex < _videoUrls.length - 1) {
@@ -255,12 +283,19 @@ class _PostMediaViewerState extends State<PostMediaViewer> {
     if (wasPlaying) await player?.pause();
     if (!context.mounted) return;
     await Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) => _FullscreenVideoPage(
+      PageRouteBuilder(
+        opaque: true,
+        pageBuilder: (_, __, ___) => _FullscreenVideoPage(
           post: widget.post,
           startAt: position,
           autoplay: wasPlaying,
+          loopVideo: _loopVideo,
+          muted: _muted,
+          coverVideo: _coverVideo,
+        ),
+        transitionsBuilder: (_, animation, __, child) => FadeTransition(
+          opacity: animation,
+          child: child,
         ),
       ),
     );
@@ -273,11 +308,17 @@ class _FullscreenVideoPage extends StatefulWidget {
     required this.post,
     required this.startAt,
     required this.autoplay,
+    required this.loopVideo,
+    required this.muted,
+    required this.coverVideo,
   });
 
   final Post post;
   final Duration startAt;
   final bool autoplay;
+  final bool loopVideo;
+  final bool muted;
+  final bool coverVideo;
 
   @override
   State<_FullscreenVideoPage> createState() => _FullscreenVideoPageState();
@@ -288,11 +329,17 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+      DeviceOrientation.portraitUp,
+    ]);
   }
 
   @override
   void dispose() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     super.dispose();
   }
 
@@ -300,28 +347,31 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Center(
-              child: PostMediaViewer(
-                post: widget.post,
-                fullscreen: true,
-                initialPosition: widget.startAt,
-                autoplay: widget.autoplay,
-              ),
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: PostMediaViewer(
+              post: widget.post,
+              fullscreen: true,
+              initialPosition: widget.startAt,
+              autoplay: widget.autoplay,
+              initialLoop: widget.loopVideo,
+              initialMuted: widget.muted,
+              initialCoverVideo: widget.coverVideo,
             ),
-            Positioned(
-              top: 8,
-              right: 8,
+          ),
+          Positioned(
+            top: 12,
+            right: 12,
+            child: SafeArea(
               child: IconButton.filledTonal(
                 tooltip: 'Close fullscreen',
                 onPressed: () => Navigator.of(context).maybePop(),
                 icon: const Icon(Icons.close_rounded),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -335,12 +385,15 @@ class _VideoSurface extends StatelessWidget {
     required this.controlsVisible,
     required this.coverVideo,
     required this.muted,
+    required this.loopVideo,
     required this.fullscreen,
     required this.errorMessage,
     required this.onInteract,
     required this.onRetry,
     required this.onToggleFit,
     required this.onToggleMute,
+    required this.onToggleLoop,
+    required this.onVolumeChanged,
     required this.onFullscreen,
   });
 
@@ -350,12 +403,15 @@ class _VideoSurface extends StatelessWidget {
   final bool controlsVisible;
   final bool coverVideo;
   final bool muted;
+  final bool loopVideo;
   final bool fullscreen;
   final String? errorMessage;
   final VoidCallback onInteract;
   final VoidCallback onRetry;
   final VoidCallback onToggleFit;
   final VoidCallback onToggleMute;
+  final VoidCallback onToggleLoop;
+  final ValueChanged<double> onVolumeChanged;
   final VoidCallback onFullscreen;
 
   @override
@@ -389,10 +445,13 @@ class _VideoSurface extends StatelessWidget {
           child: _VideoControls(
             player: player,
             muted: muted,
+            loopVideo: loopVideo,
             coverVideo: coverVideo,
             fullscreen: fullscreen,
             onToggleFit: onToggleFit,
             onToggleMute: onToggleMute,
+            onToggleLoop: onToggleLoop,
+            onVolumeChanged: onVolumeChanged,
             onFullscreen: onFullscreen,
           ),
         ),
@@ -473,19 +532,25 @@ class _VideoControls extends StatelessWidget {
   const _VideoControls({
     required this.player,
     required this.muted,
+    required this.loopVideo,
     required this.coverVideo,
     required this.fullscreen,
     required this.onToggleFit,
     required this.onToggleMute,
+    required this.onToggleLoop,
+    required this.onVolumeChanged,
     required this.onFullscreen,
   });
 
   final Player player;
   final bool muted;
+  final bool loopVideo;
   final bool coverVideo;
   final bool fullscreen;
   final VoidCallback onToggleFit;
   final VoidCallback onToggleMute;
+  final VoidCallback onToggleLoop;
+  final ValueChanged<double> onVolumeChanged;
   final VoidCallback onFullscreen;
 
   @override
@@ -532,6 +597,45 @@ class _VideoControls extends StatelessWidget {
                           return Column(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
+                              if (fullscreen)
+                                StreamBuilder<double>(
+                                  stream: player.stream.volume,
+                                  initialData: player.state.volume,
+                                  builder: (context, snapshot) {
+                                    final volume =
+                                        (snapshot.data ?? 100).clamp(0, 100);
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 2),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            muted || volume <= 0
+                                                ? Icons.volume_off_rounded
+                                                : Icons.volume_up_rounded,
+                                            color: Colors.white,
+                                          ),
+                                          Expanded(
+                                            child: Slider(
+                                              value: volume.toDouble(),
+                                              max: 100,
+                                              onChanged: onVolumeChanged,
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            width: 42,
+                                            child: Text(
+                                              '${volume.round()}%',
+                                              textAlign: TextAlign.right,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
                               SliderTheme(
                                 data: SliderTheme.of(context).copyWith(
                                   trackHeight: 4,
@@ -602,6 +706,18 @@ class _VideoControls extends StatelessWidget {
                                     ),
                                     const SizedBox(width: 6),
                                   ],
+                                  IconButton.filledTonal(
+                                    tooltip: loopVideo
+                                        ? 'Disable repeat'
+                                        : 'Repeat video',
+                                    onPressed: onToggleLoop,
+                                    icon: Icon(
+                                      loopVideo
+                                          ? Icons.repeat_one_on_rounded
+                                          : Icons.repeat_one_rounded,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
                                   IconButton.filledTonal(
                                     tooltip: muted ? 'Unmute' : 'Mute',
                                     onPressed: onToggleMute,
