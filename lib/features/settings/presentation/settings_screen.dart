@@ -107,13 +107,13 @@ class SettingsScreen extends ConsumerWidget {
                 }
               },
               icon: const Icon(Icons.upload_file_rounded),
-              label: const Text('Export settings JSON'),
+              label: const Text('Export settings and providers JSON'),
             ),
             const SizedBox(height: 12),
             FilledButton.tonalIcon(
               onPressed: () => _importDialog(context, ref),
               icon: const Icon(Icons.download_for_offline_rounded),
-              label: const Text('Import settings JSON'),
+              label: const Text('Import settings and providers JSON'),
             ),
             const SizedBox(height: 24),
             const Text('Version 0.1.0'),

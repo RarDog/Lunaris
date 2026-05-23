@@ -227,18 +227,44 @@ class SettingsService {
 
   Future<Result<String>> exportSettingsToJson() async {
     final result = await getSettings();
-    return result.fold(
-      onSuccess: (settings) => Success(jsonEncode(settings.toJson())),
-      onError: Error<String>.new,
+    if (result is Error<AppSettings>) return Error(result.failure);
+    final settings = (result as Success<AppSettings>).data;
+    final providers = <ContentProviderConfig>[];
+    final repository = _providerRepository;
+    if (repository != null) {
+      final providersResult = await repository.getProviders(enabledOnly: false);
+      if (providersResult is Success<List<ContentProviderConfig>>) {
+        providers.addAll(providersResult.data);
+      }
+    }
+    return Success(
+      const JsonEncoder.withIndent('  ').convert({
+        'schemaVersion': 2,
+        'settings': settings.toJson(),
+        'providers': providers.map((provider) => provider.toJson()).toList(),
+      }),
     );
   }
 
   Future<Result<void>> importSettingsFromJson(String json) async {
     try {
-      final settings =
-          AppSettings.fromJson(jsonDecode(json) as Map<String, dynamic>);
+      final decoded = jsonDecode(json) as Map<String, dynamic>;
+      final settingsJson =
+          (decoded['settings'] as Map?)?.cast<String, dynamic>() ?? decoded;
+      final settings = AppSettings.fromJson(settingsJson);
       final result = await updateSettings(settings);
       if (result is Error<void>) return result;
+      final repository = _providerRepository;
+      final providerItems = decoded['providers'];
+      if (repository != null && providerItems is List) {
+        for (final item in providerItems.whereType<Map>()) {
+          await repository.saveProvider(
+            ContentProviderConfig.fromJson(
+              Map<String, dynamic>.from(item),
+            ).copyWith(updatedAt: DateTime.now()),
+          );
+        }
+      }
       await saveEnabledProviders(settings.enabledProviderIds);
       return result;
     } catch (error) {

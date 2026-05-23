@@ -79,15 +79,13 @@ class PostDetailsScreen extends ConsumerWidget {
               : null;
           if (Responsive.isMobile(context)) {
             if (currentIndex >= 0 && feedPosts.length > 1) {
-              return PageView.builder(
-                controller: PageController(initialPage: currentIndex),
-                itemCount: feedPosts.length,
-                onPageChanged: (index) =>
-                    _replacePost(context, feedPosts[index]),
-                itemBuilder: (context, index) => _buildMobileDetails(
+              return _MobilePostPager(
+                posts: feedPosts,
+                initialIndex: currentIndex,
+                buildDetails: (context, post) => _buildMobileDetails(
                   context,
                   ref,
-                  feedPosts[index],
+                  post,
                   settings,
                   favoriteKeys,
                 ),
@@ -300,6 +298,77 @@ class PostDetailsScreen extends ConsumerWidget {
       return;
     }
     context.go('/');
+  }
+}
+
+class _MobilePostPager extends StatefulWidget {
+  const _MobilePostPager({
+    required this.posts,
+    required this.initialIndex,
+    required this.buildDetails,
+  });
+
+  final List<Post> posts;
+  final int initialIndex;
+  final Widget Function(BuildContext context, Post post) buildDetails;
+
+  @override
+  State<_MobilePostPager> createState() => _MobilePostPagerState();
+}
+
+class _MobilePostPagerState extends State<_MobilePostPager> {
+  late final PageController _controller;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _controller = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void didUpdateWidget(covariant _MobilePostPager oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialIndex != _currentIndex &&
+        widget.initialIndex >= 0 &&
+        widget.initialIndex < widget.posts.length) {
+      _currentIndex = widget.initialIndex;
+      if (_controller.hasClients) {
+        _controller.jumpToPage(widget.initialIndex);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PageView.builder(
+      controller: _controller,
+      itemCount: widget.posts.length,
+      onPageChanged: (index) {
+        _currentIndex = index;
+        final post = widget.posts[index];
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          GoRouter.of(context).replace(
+            '/post/${post.providerId}/${post.id}',
+            extra: post,
+          );
+        });
+      },
+      itemBuilder: (context, index) {
+        return KeyedSubtree(
+          key: ValueKey(widget.posts[index].cacheKey),
+          child: widget.buildDetails(context, widget.posts[index]),
+        );
+      },
+    );
   }
 }
 
