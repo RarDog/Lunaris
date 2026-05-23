@@ -36,6 +36,7 @@ class FavoritesScreen extends ConsumerWidget {
                 blurExplicit: settings.blurExplicitContent,
                 showBadges: settings.showPostBadges,
                 nsfwEnabled: settings.nsfwEnabled,
+                favoriteKeys: data.posts.map((post) => post.cacheKey).toSet(),
                 onOpen: (post) => context.push(
                   '/post/${post.providerId}/${post.id}',
                   extra: post,

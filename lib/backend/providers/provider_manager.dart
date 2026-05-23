@@ -4,6 +4,7 @@ import '../../core/errors/failure.dart';
 import '../../core/utils/result.dart';
 import '../models/content_provider_config.dart';
 import '../models/post.dart';
+import '../models/post_comment.dart';
 import '../models/provider_health.dart';
 import '../models/top_period_filter.dart';
 import '../repositories/provider_repository.dart';
@@ -96,11 +97,6 @@ class ProviderManager {
 
     final posts = <Post>[];
     for (final provider in providers) {
-      final health = await _repository.getHealth(provider.id);
-      final offline = health is Success<ProviderHealth?> &&
-          health.data?.status == ProviderStatus.offline;
-      if (offline) continue;
-
       try {
         final providerPosts = await provider.searchPosts(
           tags: tags,
@@ -123,6 +119,36 @@ class ProviderManager {
       }
     }
     return Success(posts);
+  }
+
+  Future<Result<List<PostComment>>> getComments(
+    String providerId,
+    String postId,
+  ) async {
+    final providersResult = await activeProviders();
+    if (providersResult is Error<List<ContentProvider>>) {
+      return Error(providersResult.failure);
+    }
+    final providers = (providersResult as Success<List<ContentProvider>>).data;
+    final matches = providers.where((provider) => provider.id == providerId);
+    if (matches.isEmpty) {
+      return const Error(
+        Failure(code: 'not_found', message: 'Provider not found'),
+      );
+    }
+    final provider = matches.first;
+    if (provider is! CommentProvider) return const Success([]);
+    try {
+      return Success(await (provider as CommentProvider).getComments(postId));
+    } catch (error) {
+      return Error(
+        Failure(
+          code: 'comments_unavailable',
+          message: 'Comments unavailable',
+          details: error,
+        ),
+      );
+    }
   }
 
   Future<Result<Post?>> getPost(String providerId, String postId) async {

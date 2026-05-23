@@ -1,6 +1,6 @@
-# GelRuleApp
+# RuleGel
 
-GelRuleApp is a single Flutter monolith for browsing booru/gelbooru/rule34-like providers with a Pinterest-style feed. It does not start or require a separate backend server. Provider access, caching, favorites, collections, search history, settings, and health checks all run locally inside the Flutter app.
+RuleGel is a single Flutter monolith for browsing booru/gelbooru/rule34-like providers with a Pinterest-style feed. It does not start or require a separate backend server. Provider access, caching, favorites, collections, search history, settings, downloads, read-only comments where APIs allow them, and health checks all run locally inside the Flutter app.
 
 ## Stack
 
@@ -118,8 +118,8 @@ Unsupported types return `ProviderUnavailableException` instead of crashing the 
 
 Search behavior:
 
-- Offline providers are skipped based on saved health.
-- A failed provider marks itself offline.
+- Enabled providers are tried even if an older health check marked them offline.
+- A failed provider marks itself offline for diagnostics.
 - Other providers continue returning posts.
 - Results are combined into a single list.
 

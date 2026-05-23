@@ -6,6 +6,7 @@ class PostActionBar extends StatelessWidget {
     required this.onCollection,
     required this.onOpen,
     required this.onCopy,
+    required this.isFavorite,
     this.onDownload,
     super.key,
   });
@@ -14,6 +15,7 @@ class PostActionBar extends StatelessWidget {
   final VoidCallback onCollection;
   final VoidCallback onOpen;
   final VoidCallback onCopy;
+  final bool isFavorite;
   final VoidCallback? onDownload;
 
   @override
@@ -24,8 +26,10 @@ class PostActionBar extends StatelessWidget {
       children: [
         FilledButton.icon(
           onPressed: onFavorite,
-          icon: const Icon(Icons.favorite_rounded),
-          label: const Text('Favorite'),
+          icon: Icon(
+            isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+          ),
+          label: Text(isFavorite ? 'Unfavorite' : 'Favorite'),
         ),
         FilledButton.tonalIcon(
           onPressed: onCollection,

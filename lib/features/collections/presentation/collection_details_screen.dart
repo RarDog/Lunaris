@@ -9,6 +9,7 @@ import '../../../shared/widgets/adaptive_scaffold.dart';
 import '../../../shared/widgets/empty_view.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/post_masonry_grid.dart';
+import '../../favorites/presentation/favorites_controller.dart';
 import 'collections_controller.dart';
 
 class CollectionDetailsScreen extends ConsumerWidget {
@@ -21,6 +22,7 @@ class CollectionDetailsScreen extends ConsumerWidget {
     final posts = ref.watch(collectionPostsProvider(collectionId));
     final settings =
         ref.watch(appSettingsProvider).value ?? AppSettings.defaults;
+    final favoriteKeys = ref.watch(favoriteKeysProvider).value ?? <String>{};
     return AdaptiveScaffold(
       title: 'Collection',
       body: posts.when(
@@ -38,12 +40,22 @@ class CollectionDetailsScreen extends ConsumerWidget {
                 blurExplicit: settings.blurExplicitContent,
                 showBadges: settings.showPostBadges,
                 nsfwEnabled: settings.nsfwEnabled,
+                favoriteKeys: favoriteKeys,
                 onOpen: (post) => context.push(
                   '/post/${post.providerId}/${post.id}',
                   extra: post,
                 ),
-                onFavorite: (post) =>
-                    ref.read(favoriteServiceProvider).addFavorite(post),
+                onFavorite: (post) async {
+                  if (favoriteKeys.contains(post.cacheKey)) {
+                    await ref
+                        .read(favoriteServiceProvider)
+                        .removeFavorite(post.id, post.providerId);
+                  } else {
+                    await ref.read(favoriteServiceProvider).addFavorite(post);
+                  }
+                  ref.invalidate(favoriteKeysProvider);
+                  ref.invalidate(favoritesControllerProvider);
+                },
               ),
       ),
     );

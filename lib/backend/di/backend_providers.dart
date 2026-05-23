@@ -14,6 +14,7 @@ import '../repositories/post_repository.dart';
 import '../repositories/provider_repository.dart';
 import '../repositories/search_repository.dart';
 import '../services/collection_service.dart';
+import '../services/download_service.dart';
 import '../services/favorite_service.dart';
 import '../services/feed_service.dart';
 import '../services/provider_check_service.dart';
@@ -118,4 +119,8 @@ final settingsServiceProvider = Provider<SettingsService>((ref) {
     ref.watch(databaseServiceProvider),
     providerRepository: ref.watch(providerRepositoryProvider),
   );
+});
+
+final downloadServiceProvider = Provider<DownloadService>((ref) {
+  return DownloadService();
 });

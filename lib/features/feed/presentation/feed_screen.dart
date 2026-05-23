@@ -13,6 +13,7 @@ import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/post_card.dart';
 import '../../../shared/widgets/post_masonry_grid.dart';
 import '../../collections/presentation/collection_form_dialog.dart';
+import '../../favorites/presentation/favorites_controller.dart';
 import 'feed_controller.dart';
 import 'widgets/feed_toolbar.dart';
 
@@ -50,6 +51,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final feed = ref.watch(feedControllerProvider);
     final settings =
         ref.watch(appSettingsProvider).value ?? AppSettings.defaults;
+    final favoriteKeys = ref.watch(favoriteKeysProvider).value ?? <String>{};
 
     if (!_usedInitialQuery && (widget.initialQuery?.isNotEmpty ?? false)) {
       _usedInitialQuery = true;
@@ -162,13 +164,13 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                             showBadges: settings.showPostBadges,
                             nsfwEnabled: settings.nsfwEnabled,
                             loading: state.isLoadingMore,
+                            favoriteKeys: favoriteKeys,
                             onOpen: (post) => context.push(
                               '/post/${post.providerId}/${post.id}',
                               extra: post,
                             ),
-                            onFavorite: (post) => ref
-                                .read(favoriteServiceProvider)
-                                .addFavorite(post),
+                            onFavorite: (post) =>
+                                _toggleFavorite(ref, post, favoriteKeys),
                             onAddToCollection: (post) =>
                                 _addToCollection(context, ref, post),
                           ),
@@ -201,6 +203,22 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       },
       onCreate: () => showCollectionFormDialog(context, ref),
     );
+  }
+
+  Future<void> _toggleFavorite(
+    WidgetRef ref,
+    Post post,
+    Set<String> favoriteKeys,
+  ) async {
+    if (favoriteKeys.contains(post.cacheKey)) {
+      await ref
+          .read(favoriteServiceProvider)
+          .removeFavorite(post.id, post.providerId);
+    } else {
+      await ref.read(favoriteServiceProvider).addFavorite(post);
+    }
+    ref.invalidate(favoriteKeysProvider);
+    ref.invalidate(favoritesControllerProvider);
   }
 }
 

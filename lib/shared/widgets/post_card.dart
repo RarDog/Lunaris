@@ -11,6 +11,7 @@ class PostCard extends StatefulWidget {
     required this.post,
     required this.blurExplicit,
     required this.showBadges,
+    required this.isFavorite,
     required this.onOpen,
     required this.onFavorite,
     this.onAddToCollection,
@@ -20,6 +21,7 @@ class PostCard extends StatefulWidget {
   final Post post;
   final bool blurExplicit;
   final bool showBadges;
+  final bool isFavorite;
   final VoidCallback onOpen;
   final VoidCallback onFavorite;
   final VoidCallback? onAddToCollection;
@@ -37,6 +39,7 @@ class _PostCardState extends State<PostCard> {
     final sensitive = _isSensitive(post.rating);
     final aspect =
         post.width > 0 && post.height > 0 ? post.width / post.height : 0.72;
+    final mobile = MediaQuery.sizeOf(context).width < 700;
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
@@ -108,11 +111,20 @@ class _PostCardState extends State<PostCard> {
                   child: _MediaBadge(fileType: post.fileType),
                 ),
               ],
+              if (mobile)
+                Positioned(
+                  right: 8,
+                  bottom: 8,
+                  child: _FavoriteButton(
+                    isFavorite: widget.isFavorite,
+                    onPressed: widget.onFavorite,
+                  ),
+                ),
               Positioned.fill(
                 child: IgnorePointer(
-                  ignoring: !_hovered,
+                  ignoring: !_hovered || mobile,
                   child: AnimatedOpacity(
-                    opacity: _hovered ? 1 : 0,
+                    opacity: _hovered && !mobile ? 1 : 0,
                     duration: const Duration(milliseconds: 140),
                     child: DecoratedBox(
                       decoration: BoxDecoration(
@@ -133,9 +145,15 @@ class _PostCardState extends State<PostCard> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton.filledTonal(
-                                tooltip: 'Favorite',
+                                tooltip: widget.isFavorite
+                                    ? 'Remove favorite'
+                                    : 'Favorite',
                                 onPressed: widget.onFavorite,
-                                icon: const Icon(Icons.favorite_rounded),
+                                icon: Icon(
+                                  widget.isFavorite
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                ),
                               ),
                               const SizedBox(width: 6),
                               IconButton.filledTonal(
@@ -164,6 +182,29 @@ class _PostCardState extends State<PostCard> {
         normalized.startsWith('q') ||
         normalized.contains('explicit') ||
         normalized.contains('questionable');
+  }
+}
+
+class _FavoriteButton extends StatelessWidget {
+  const _FavoriteButton({
+    required this.isFavorite,
+    required this.onPressed,
+  });
+
+  final bool isFavorite;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton.filledTonal(
+      visualDensity: VisualDensity.compact,
+      tooltip: isFavorite ? 'Remove favorite' : 'Favorite',
+      onPressed: onPressed,
+      icon: Icon(
+        isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+        size: 18,
+      ),
+    );
   }
 }
 

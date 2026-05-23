@@ -27,7 +27,7 @@ class GelRuleApp extends ConsumerWidget {
         home: _StartupErrorScreen(error: error),
       ),
       data: (_) => MaterialApp.router(
-        title: 'GelRule',
+        title: 'RuleGel',
         debugShowCheckedModeBanner: false,
         theme: buildTheme(Brightness.light),
         darkTheme: buildTheme(Brightness.dark),

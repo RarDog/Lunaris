@@ -1,4 +1,5 @@
 import '../models/post.dart';
+import '../models/post_comment.dart';
 import '../models/provider_health.dart';
 import '../models/top_period_filter.dart';
 
@@ -18,4 +19,8 @@ abstract class ContentProvider {
   Future<Post?> getPost(String id);
 
   Future<ProviderHealth> checkHealth();
+}
+
+abstract class CommentProvider {
+  Future<List<PostComment>> getComments(String postId);
 }

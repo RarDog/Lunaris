@@ -20,34 +20,38 @@ class ProviderFactory {
       timeout: Duration(seconds: config.timeoutSeconds),
       headers: headers,
     );
-    return switch (config.apiType.toLowerCase()) {
-      'gelbooru' => GelbooruProvider(
+    switch (config.apiType.toLowerCase()) {
+      case 'gelbooru':
+        return GelbooruProvider(
           id: config.id,
           name: config.name,
           baseUrl: config.baseUrl,
           dioClient: client,
           queryParameters: queryParameters,
-        ),
-      'rule34' => Rule34Provider(
+        );
+      case 'rule34':
+        return Rule34Provider(
           id: config.id,
           name: config.name,
           baseUrl: config.baseUrl,
           dioClient: client,
           queryParameters: queryParameters,
-        ),
-      'danbooru' => DanbooruProvider(
+        );
+      case 'danbooru':
+        return DanbooruProvider(
           id: config.id,
           name: config.name,
           baseUrl: config.baseUrl,
           dioClient: client,
           queryParameters: queryParameters,
-        ),
-      _ => UnsupportedCustomProvider(
+        );
+      default:
+        return UnsupportedCustomProvider(
           id: config.id,
           name: config.name,
           baseUrl: config.baseUrl,
           apiType: config.apiType,
-        ),
-    };
+        );
+    }
   }
 }

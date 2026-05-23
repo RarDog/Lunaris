@@ -9,6 +9,16 @@ final favoritesControllerProvider =
   FavoritesController.new,
 );
 
+final favoriteKeysProvider = FutureProvider<Set<String>>((ref) async {
+  final result = await ref.watch(favoriteServiceProvider).getFavorites();
+  return result.fold(
+    onSuccess: (favorites) => favorites
+        .map((favorite) => '${favorite.providerId}:${favorite.postId}')
+        .toSet(),
+    onError: (_) => <String>{},
+  );
+});
+
 class FavoritesController extends AsyncNotifier<FavoritesState> {
   @override
   Future<FavoritesState> build() async => FavoritesState(posts: await _load());
@@ -17,6 +27,7 @@ class FavoritesController extends AsyncNotifier<FavoritesState> {
     await ref
         .read(favoriteServiceProvider)
         .removeFavorite(post.id, post.providerId);
+    ref.invalidate(favoriteKeysProvider);
     state = AsyncData(FavoritesState(posts: await _load()));
   }
 

@@ -3,11 +3,12 @@ import 'package:dio/dio.dart';
 import '../../core/http/dio_client.dart';
 import '../mappers/danbooru_mapper.dart';
 import '../models/post.dart';
+import '../models/post_comment.dart';
 import '../models/provider_health.dart';
 import '../models/top_period_filter.dart';
 import 'content_provider.dart';
 
-class DanbooruProvider implements ContentProvider {
+class DanbooruProvider implements ContentProvider, CommentProvider {
   DanbooruProvider({
     required this.id,
     required this.name,
@@ -94,6 +95,38 @@ class DanbooruProvider implements ContentProvider {
         apiVersion: 'danbooru',
       );
     }
+  }
+
+  @override
+  Future<List<PostComment>> getComments(String postId) async {
+    final response = await _dio.get<dynamic>(
+      '/comments.json',
+      queryParameters: {
+        'search[post_id]': postId,
+        'limit': 50,
+        ..._queryParameters,
+      },
+    );
+    final data = response.data;
+    final items = data is List ? data : const [];
+    return items
+        .whereType<Map>()
+        .map((item) {
+          final json = Map<String, dynamic>.from(item);
+          return PostComment(
+            id: (json['id'] ?? '').toString(),
+            postId: (json['post_id'] ?? postId).toString(),
+            providerId: id,
+            authorName: (json['creator_name'] ?? json['creator_id'] ?? 'user')
+                .toString(),
+            body: (json['body'] ?? '').toString(),
+            createdAt:
+                DateTime.tryParse((json['created_at'] ?? '').toString()) ??
+                    DateTime.fromMillisecondsSinceEpoch(0),
+          );
+        })
+        .where((comment) => comment.body.trim().isNotEmpty)
+        .toList();
   }
 
   List<String> _topTags(TopPeriodFilter period) {

@@ -1,10 +1,11 @@
 import '../../core/errors/app_exception.dart';
 import '../models/post.dart';
+import '../models/post_comment.dart';
 import '../models/provider_health.dart';
 import '../models/top_period_filter.dart';
 import 'content_provider.dart';
 
-class CustomProvider implements ContentProvider {
+class CustomProvider implements ContentProvider, CommentProvider {
   CustomProvider(this._delegate);
 
   final ContentProvider _delegate;
@@ -37,6 +38,15 @@ class CustomProvider implements ContentProvider {
 
   @override
   Future<ProviderHealth> checkHealth() => _delegate.checkHealth();
+
+  @override
+  Future<List<PostComment>> getComments(String postId) {
+    final delegate = _delegate;
+    if (delegate is CommentProvider) {
+      return (delegate as CommentProvider).getComments(postId);
+    }
+    return Future.value(const []);
+  }
 }
 
 class UnsupportedCustomProvider implements ContentProvider {

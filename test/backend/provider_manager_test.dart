@@ -155,7 +155,7 @@ void main() {
     expect(result.data.map((provider) => provider.id), ['a', 'b']);
   });
 
-  test('offline provider is skipped and partial failures do not break feed',
+  test('saved offline health does not block enabled provider retry',
       () async {
     final repository = FakeProviderRepository()
       ..configs['a'] = config('a', 0)
@@ -178,7 +178,7 @@ void main() {
 
     final result = await manager.searchAcrossProviders(tags: [], page: 0)
         as Success<List<Post>>;
-    expect(result.data.map((item) => item.providerId), ['a']);
+    expect(result.data.map((item) => item.providerId), ['a', 'b']);
     expect(repository.health['c']?.status, ProviderStatus.offline);
   });
 
