@@ -36,6 +36,7 @@ class CollectionsController extends AsyncNotifier<List<Collection>> {
 
   Future<void> delete(String id) async {
     await ref.read(collectionServiceProvider).deleteCollection(id);
+    ref.invalidate(collectionPostsProvider(id));
     state = AsyncData(await _load());
   }
 

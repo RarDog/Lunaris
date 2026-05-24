@@ -279,7 +279,14 @@ class _PostMediaViewerState extends State<PostMediaViewer>
   }
 
   Future<void> _retryVideo() async {
-    _videoIndex = 0;
+    final player = _player;
+    if (player == null) return;
+    setState(() {
+      _videoError = null;
+      _videoIndex = 0;
+      _controlsVisible = true;
+    });
+    await player.stop();
     await _openVideo(play: true);
     _showControls();
   }
@@ -994,7 +1001,7 @@ class _VideoSurface extends StatelessWidget {
           },
         ),
         if (errorMessage != null)
-          _VideoErrorOverlay(message: errorMessage!, onRetry: onRetry),
+          VideoErrorOverlay(message: errorMessage!, onRetry: onRetry),
         if (errorMessage == null)
           StreamBuilder<bool>(
             stream: player.stream.playing,
@@ -1040,21 +1047,24 @@ class _VideoSurface extends StatelessWidget {
               );
             },
           ),
-        AnimatedOpacity(
-          opacity: controlsVisible || errorMessage != null ? 1 : 0,
-          duration: const Duration(milliseconds: 180),
-          child: _VideoControls(
-            player: player,
-            muted: muted,
-            halfVolume: halfVolume,
-            loopVideo: loopVideo,
-            coverVideo: coverVideo,
-            fullscreen: fullscreen,
-            onToggleFit: onToggleFit,
-            onToggleMute: onToggleMute,
-            onToggleHalfVolume: onToggleHalfVolume,
-            onToggleLoop: onToggleLoop,
-            onFullscreen: onFullscreen,
+        IgnorePointer(
+          ignoring: !controlsVisible || errorMessage != null,
+          child: AnimatedOpacity(
+            opacity: controlsVisible || errorMessage != null ? 1 : 0,
+            duration: const Duration(milliseconds: 180),
+            child: _VideoControls(
+              player: player,
+              muted: muted,
+              halfVolume: halfVolume,
+              loopVideo: loopVideo,
+              coverVideo: coverVideo,
+              fullscreen: fullscreen,
+              onToggleFit: onToggleFit,
+              onToggleMute: onToggleMute,
+              onToggleHalfVolume: onToggleHalfVolume,
+              onToggleLoop: onToggleLoop,
+              onFullscreen: onFullscreen,
+            ),
           ),
         ),
       ],
@@ -1080,10 +1090,11 @@ class _VideoSurface extends StatelessWidget {
   }
 }
 
-class _VideoErrorOverlay extends StatelessWidget {
-  const _VideoErrorOverlay({
+class VideoErrorOverlay extends StatelessWidget {
+  const VideoErrorOverlay({
     required this.message,
     required this.onRetry,
+    super.key,
   });
 
   final String message;
@@ -1210,186 +1221,184 @@ class _VideoControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.bottomCenter,
-          end: Alignment.topCenter,
-          colors: [
-            Colors.black.withValues(alpha: 0.72),
-            Colors.black.withValues(alpha: 0.12),
-            Colors.transparent,
-          ],
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: SafeArea(
+        minimum: EdgeInsets.fromLTRB(
+          fullscreen ? 14 : 8,
+          0,
+          fullscreen ? 14 : 8,
+          fullscreen ? 10 : 8,
         ),
-      ),
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: SafeArea(
-          minimum: EdgeInsets.fromLTRB(
-            fullscreen ? 14 : 8,
-            0,
-            fullscreen ? 14 : 8,
-            fullscreen ? 10 : 8,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.58),
+            borderRadius: BorderRadius.circular(fullscreen ? 18 : 14),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
           ),
-          child: StreamBuilder<bool>(
-            stream: player.stream.playing,
-            initialData: player.state.playing,
-            builder: (context, playingSnapshot) {
-              final playing = playingSnapshot.data ?? false;
-              return StreamBuilder<Duration>(
-                stream: player.stream.duration,
-                initialData: player.state.duration,
-                builder: (context, durationSnapshot) {
-                  final duration = durationSnapshot.data ?? Duration.zero;
-                  return StreamBuilder<Duration>(
-                    stream: player.stream.position,
-                    initialData: player.state.position,
-                    builder: (context, positionSnapshot) {
-                      final position = positionSnapshot.data ?? Duration.zero;
-                      final maxMs =
-                          duration.inMilliseconds.clamp(1, 1 << 31).toDouble();
-                      final valueMs = position.inMilliseconds
-                          .clamp(0, maxMs.toInt())
-                          .toDouble();
-                      return LayoutBuilder(
-                        builder: (context, constraints) {
-                          final compact = constraints.maxWidth < 560;
-                          final tiny = constraints.maxWidth < 390;
-                          return Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              SliderTheme(
-                                data: SliderTheme.of(context).copyWith(
-                                  activeTrackColor: scheme.primary,
-                                  inactiveTrackColor:
-                                      Colors.white.withValues(alpha: 0.24),
-                                  trackHeight: 3,
-                                  thumbColor: scheme.primary,
-                                  overlayColor:
-                                      scheme.primary.withValues(alpha: 0.18),
-                                  thumbShape: const RoundSliderThumbShape(
-                                    enabledThumbRadius: 5,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(10, 4, 10, 8),
+            child: StreamBuilder<bool>(
+              stream: player.stream.playing,
+              initialData: player.state.playing,
+              builder: (context, playingSnapshot) {
+                final playing = playingSnapshot.data ?? false;
+                return StreamBuilder<Duration>(
+                  stream: player.stream.duration,
+                  initialData: player.state.duration,
+                  builder: (context, durationSnapshot) {
+                    final duration = durationSnapshot.data ?? Duration.zero;
+                    return StreamBuilder<Duration>(
+                      stream: player.stream.position,
+                      initialData: player.state.position,
+                      builder: (context, positionSnapshot) {
+                        final position = positionSnapshot.data ?? Duration.zero;
+                        final maxMs = duration.inMilliseconds
+                            .clamp(1, 1 << 31)
+                            .toDouble();
+                        final valueMs = position.inMilliseconds
+                            .clamp(0, maxMs.toInt())
+                            .toDouble();
+                        return LayoutBuilder(
+                          builder: (context, constraints) {
+                            final compact = constraints.maxWidth < 560;
+                            final tiny = constraints.maxWidth < 390;
+                            return Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SliderTheme(
+                                  data: SliderTheme.of(context).copyWith(
+                                    activeTrackColor: scheme.primary,
+                                    inactiveTrackColor:
+                                        Colors.white.withValues(alpha: 0.24),
+                                    trackHeight: 3,
+                                    thumbColor: scheme.primary,
+                                    overlayColor:
+                                        scheme.primary.withValues(alpha: 0.18),
+                                    thumbShape: const RoundSliderThumbShape(
+                                      enabledThumbRadius: 5,
+                                    ),
                                   ),
-                                ),
-                                child: Slider(
-                                  value: valueMs,
-                                  max: maxMs,
-                                  onChanged: duration == Duration.zero
-                                      ? null
-                                      : (value) => player.seek(
-                                            Duration(
-                                              milliseconds: value.round(),
+                                  child: Slider(
+                                    value: valueMs,
+                                    max: maxMs,
+                                    onChanged: duration == Duration.zero
+                                        ? null
+                                        : (value) => player.seek(
+                                              Duration(
+                                                milliseconds: value.round(),
+                                              ),
                                             ),
-                                          ),
+                                  ),
                                 ),
-                              ),
-                              Row(
-                                children: [
-                                  _RoundControlButton(
-                                    tooltip: playing ? 'Pause' : 'Play',
-                                    emphasized: true,
-                                    onPressed: player.playOrPause,
-                                    icon: playing
-                                        ? Icons.pause_rounded
-                                        : Icons.play_arrow_rounded,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    tiny
-                                        ? _format(position)
-                                        : '${_format(position)} / ${_format(duration)}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  if (!compact) ...[
+                                Row(
+                                  children: [
                                     _RoundControlButton(
-                                      tooltip: 'Back 10s',
-                                      onPressed: () => player.seek(
-                                        _clampSeek(
-                                          position -
-                                              const Duration(seconds: 10),
-                                          duration,
-                                        ),
+                                      tooltip: playing ? 'Pause' : 'Play',
+                                      emphasized: true,
+                                      onPressed: player.playOrPause,
+                                      icon: playing
+                                          ? Icons.pause_rounded
+                                          : Icons.play_arrow_rounded,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      tiny
+                                          ? _format(position)
+                                          : '${_format(position)} / ${_format(duration)}',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
                                       ),
-                                      icon: Icons.replay_10_rounded,
                                     ),
-                                    const SizedBox(width: 5),
-                                    _RoundControlButton(
-                                      tooltip: 'Forward 10s',
-                                      onPressed: () => player.seek(
-                                        _clampSeek(
-                                          position +
-                                              const Duration(seconds: 10),
-                                          duration,
+                                    const Spacer(),
+                                    if (!compact) ...[
+                                      _RoundControlButton(
+                                        tooltip: 'Back 10s',
+                                        onPressed: () => player.seek(
+                                          _clampSeek(
+                                            position -
+                                                const Duration(seconds: 10),
+                                            duration,
+                                          ),
                                         ),
+                                        icon: Icons.replay_10_rounded,
                                       ),
-                                      icon: Icons.forward_10_rounded,
-                                    ),
-                                    const SizedBox(width: 5),
-                                  ],
-                                  _RoundControlButton(
-                                    tooltip: muted ? 'Unmute' : 'Mute',
-                                    onPressed: onToggleMute,
-                                    icon: muted
-                                        ? Icons.volume_off_rounded
-                                        : Icons.volume_up_rounded,
-                                  ),
-                                  const SizedBox(width: 5),
-                                  _RoundControlButton(
-                                    tooltip: halfVolume
-                                        ? 'Normal app volume'
-                                        : 'Half app volume',
-                                    selected: halfVolume,
-                                    onPressed: onToggleHalfVolume,
-                                    icon: Icons.volume_down_rounded,
-                                  ),
-                                  const SizedBox(width: 5),
-                                  _RoundControlButton(
-                                    tooltip: loopVideo
-                                        ? 'Disable repeat'
-                                        : 'Repeat video',
-                                    selected: loopVideo,
-                                    onPressed: onToggleLoop,
-                                    icon: loopVideo
-                                        ? Icons.repeat_one_on_rounded
-                                        : Icons.repeat_one_rounded,
-                                  ),
-                                  const SizedBox(width: 5),
-                                  if (!compact) ...[
+                                      const SizedBox(width: 5),
+                                      _RoundControlButton(
+                                        tooltip: 'Forward 10s',
+                                        onPressed: () => player.seek(
+                                          _clampSeek(
+                                            position +
+                                                const Duration(seconds: 10),
+                                            duration,
+                                          ),
+                                        ),
+                                        icon: Icons.forward_10_rounded,
+                                      ),
+                                      const SizedBox(width: 5),
+                                    ],
                                     _RoundControlButton(
-                                      tooltip: coverVideo ? 'Fit' : 'Fill',
-                                      selected: coverVideo,
-                                      onPressed: onToggleFit,
-                                      icon: coverVideo
-                                          ? Icons.fit_screen_rounded
-                                          : Icons.crop_free_rounded,
+                                      tooltip: muted ? 'Unmute' : 'Mute',
+                                      onPressed: onToggleMute,
+                                      icon: muted
+                                          ? Icons.volume_off_rounded
+                                          : Icons.volume_up_rounded,
                                     ),
                                     const SizedBox(width: 5),
+                                    _RoundControlButton(
+                                      tooltip: halfVolume
+                                          ? 'Normal app volume'
+                                          : 'Half app volume',
+                                      selected: halfVolume,
+                                      onPressed: onToggleHalfVolume,
+                                      icon: Icons.volume_down_rounded,
+                                    ),
+                                    const SizedBox(width: 5),
+                                    _RoundControlButton(
+                                      tooltip: loopVideo
+                                          ? 'Disable repeat'
+                                          : 'Repeat video',
+                                      selected: loopVideo,
+                                      onPressed: onToggleLoop,
+                                      icon: loopVideo
+                                          ? Icons.repeat_one_on_rounded
+                                          : Icons.repeat_one_rounded,
+                                    ),
+                                    const SizedBox(width: 5),
+                                    if (!compact) ...[
+                                      _RoundControlButton(
+                                        tooltip: coverVideo ? 'Fit' : 'Fill',
+                                        selected: coverVideo,
+                                        onPressed: onToggleFit,
+                                        icon: coverVideo
+                                            ? Icons.fit_screen_rounded
+                                            : Icons.crop_free_rounded,
+                                      ),
+                                      const SizedBox(width: 5),
+                                    ],
+                                    _RoundControlButton(
+                                      tooltip: fullscreen
+                                          ? 'Exit fullscreen'
+                                          : 'Fullscreen',
+                                      onPressed: onFullscreen,
+                                      icon: fullscreen
+                                          ? Icons.fullscreen_exit_rounded
+                                          : Icons.fullscreen_rounded,
+                                    ),
                                   ],
-                                  _RoundControlButton(
-                                    tooltip: fullscreen
-                                        ? 'Exit fullscreen'
-                                        : 'Fullscreen',
-                                    onPressed: onFullscreen,
-                                    icon: fullscreen
-                                        ? Icons.fullscreen_exit_rounded
-                                        : Icons.fullscreen_rounded,
-                                  ),
-                                ],
-                              ),
-                            ],
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
-              );
-            },
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+            ),
           ),
         ),
       ),

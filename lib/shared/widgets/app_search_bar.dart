@@ -133,11 +133,8 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
                               autocorrect: false,
                               enableSuggestions: false,
                               textInputAction: TextInputAction.search,
-                              inputFormatters: [
-                                _TagCommitFormatter(onCommit: _commitDraft),
-                              ],
                               onSubmitted: (_) => _submit(),
-                              onChanged: (_) => _notifyChangedDebounced(),
+                              onChanged: _handleDraftChanged,
                               decoration: InputDecoration(
                                 isDense: true,
                                 border: InputBorder.none,
@@ -200,6 +197,12 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey == LogicalKeyboardKey.enter ||
+        event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+      _commitDraft(_controller.text);
+      _submit();
+      return KeyEventResult.handled;
+    }
     if (event.logicalKey != LogicalKeyboardKey.backspace) {
       return KeyEventResult.ignored;
     }
@@ -214,6 +217,17 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
     setState(() {});
     _notifyChanged();
     return KeyEventResult.handled;
+  }
+
+  void _handleDraftChanged(String value) {
+    final composing = _controller.value.composing;
+    if (!composing.isValid &&
+        value.isNotEmpty &&
+        RegExp(r'\s$').hasMatch(value)) {
+      _commitDraft(value);
+      return;
+    }
+    _notifyChangedDebounced();
   }
 
   void _setFromQuery(String query) {
@@ -307,25 +321,6 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
     final draft = _controller.text.trim();
     final all = [..._tags, if (draft.isNotEmpty) draft];
     return all.join(' ');
-  }
-}
-
-class _TagCommitFormatter extends TextInputFormatter {
-  _TagCommitFormatter({required this.onCommit});
-
-  final ValueChanged<String> onCommit;
-
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    if (newValue.text.endsWith(' ') || newValue.text.endsWith('\n')) {
-      final value = newValue.text.trim();
-      WidgetsBinding.instance.addPostFrameCallback((_) => onCommit(value));
-      return const TextEditingValue();
-    }
-    return newValue;
   }
 }
 

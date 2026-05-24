@@ -139,6 +139,47 @@ void main() {
         '2');
   });
 
+  test('deleted collection stays deleted after repository reload', () async {
+    final repository = CollectionRepository(databaseService, postRepository);
+    final service = CollectionService(repository);
+    final created = await service.createCollection('Temp', null) as Success;
+    final item = post('collection-delete');
+
+    await service.addPostToCollection(created.data.id, item);
+    await service.deleteCollection(created.data.id);
+
+    final reloadedService = CollectionService(
+      CollectionRepository(databaseService, postRepository),
+    );
+
+    expect((await reloadedService.getCollections() as Success).data, isEmpty);
+    expect(
+      (await reloadedService.getCollectionPosts(created.data.id) as Success)
+          .data,
+      isEmpty,
+    );
+  });
+
+  test('settings export keeps blacklist whitelist and smart rules', () async {
+    final service = SettingsService(databaseService);
+    await service.updateSettings(
+      AppSettings.defaults.copyWith(
+        blacklistedTags: ['blocked'],
+        whitelistedTags: ['allowed'],
+        smartBlacklistRules: ['provider:e621 score:<10'],
+      ),
+    );
+
+    final exported = await service.exportSettingsToJson() as Success<String>;
+
+    expect(exported.data, contains('"blacklistedTags"'));
+    expect(exported.data, contains('"blocked"'));
+    expect(exported.data, contains('"whitelistedTags"'));
+    expect(exported.data, contains('"allowed"'));
+    expect(exported.data, contains('"smartBlacklistRules"'));
+    expect(exported.data, contains('provider:e621 score:<10'));
+  });
+
   test('cache service prunes to max item count', () async {
     final service = CacheService(databaseService);
 

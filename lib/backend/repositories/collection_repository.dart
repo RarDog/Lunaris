@@ -34,7 +34,7 @@ class CollectionRepository {
           .filter()
           .collectionIdEqualTo(id)
           .deleteAll();
-      await isar.collectionEntitys.filter().collectionIdEqualTo(id).deleteAll();
+      await isar.collectionEntitys.deleteByCollectionId(id);
     });
   }
 

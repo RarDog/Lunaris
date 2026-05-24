@@ -347,6 +347,11 @@ class SettingsService {
       const JsonEncoder.withIndent('  ').convert({
         'schemaVersion': 2,
         'settings': settings.toJson(),
+        'filters': {
+          'blacklistedTags': settings.blacklistedTags,
+          'whitelistedTags': settings.whitelistedTags,
+          'smartBlacklistRules': settings.smartBlacklistRules,
+        },
         'providers': providers.map((provider) => provider.toJson()).toList(),
       }),
     );
@@ -357,6 +362,15 @@ class SettingsService {
       final decoded = jsonDecode(json) as Map<String, dynamic>;
       final settingsJson =
           (decoded['settings'] as Map?)?.cast<String, dynamic>() ?? decoded;
+      final filtersJson =
+          (decoded['filters'] as Map?)?.cast<String, dynamic>() ?? const {};
+      for (final key in [
+        'blacklistedTags',
+        'whitelistedTags',
+        'smartBlacklistRules',
+      ]) {
+        settingsJson.putIfAbsent(key, () => filtersJson[key]);
+      }
       final settings = AppSettings.fromJson(settingsJson);
       final result = await updateSettings(settings);
       if (result is Error<void>) return result;

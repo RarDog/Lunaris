@@ -64,6 +64,21 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   }
 
   @override
+  void didUpdateWidget(covariant FeedScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextQuery = widget.initialQuery;
+    if (nextQuery != null &&
+        nextQuery.isNotEmpty &&
+        nextQuery != oldWidget.initialQuery) {
+      _usedInitialQuery = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref.read(feedControllerProvider.notifier).search(nextQuery);
+      });
+    }
+  }
+
+  @override
   void dispose() {
     _scrollSaveDebounce?.cancel();
     _scrollController.dispose();
