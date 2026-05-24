@@ -15,13 +15,14 @@ class FeedController extends AsyncNotifier<FeedState> {
     final providerIds = providers.map((provider) => provider.id).toSet();
     final initial = FeedState(
       providers: providers,
-      ratingFilter: settings.defaultRatingFilter,
       topPeriodFilter: TopPeriodFilter.values.firstWhere(
-        (value) => value.name == settings.defaultTopPeriodFilter,
+        (value) => value.name == settings.lastFeedTopPeriod,
         orElse: () => TopPeriodFilter.none,
       ),
+      selectedTags: settings.lastFeedTags,
       selectedProviderIds:
-          settings.selectedFeedProviderIds.where(providerIds.contains).toList(),
+          settings.lastFeedProviderIds.where(providerIds.contains).toList(),
+      ratingFilter: settings.lastFeedRating ?? settings.defaultRatingFilter,
     );
     state = AsyncData(initial);
     await loadInitial();
@@ -66,6 +67,7 @@ class FeedController extends AsyncNotifier<FeedState> {
     state = AsyncData(
       current.copyWith(selectedTags: tags, posts: [], tagSuggestions: []),
     );
+    await saveSession(scrollOffset: 0);
     await ref.read(searchServiceProvider).saveSearch(query, 0);
     await refresh();
     final count = state.value?.posts.length ?? 0;
@@ -99,7 +101,11 @@ class FeedController extends AsyncNotifier<FeedState> {
         current.copyWith(selectedProviderIds: providerIds, posts: []));
     final settings = await _settings();
     await ref.read(settingsServiceProvider).updateSettings(
-        settings.copyWith(selectedFeedProviderIds: providerIds));
+          settings.copyWith(
+            selectedFeedProviderIds: providerIds,
+            lastFeedProviderIds: providerIds,
+          ),
+        );
     await refresh();
   }
 
@@ -110,6 +116,7 @@ class FeedController extends AsyncNotifier<FeedState> {
     await ref.read(settingsServiceProvider).updateSettings(
           settings.copyWith(defaultTopPeriodFilter: period.name),
         );
+    await saveSession(scrollOffset: 0);
     await refresh();
   }
 
@@ -120,6 +127,7 @@ class FeedController extends AsyncNotifier<FeedState> {
           ratingFilter: rating, clearRating: rating == null, posts: []),
     );
     await refresh();
+    await saveSession(scrollOffset: 0);
   }
 
   Future<void> clearFilters() async {
@@ -134,10 +142,30 @@ class FeedController extends AsyncNotifier<FeedState> {
       ),
     );
     final settings = await _settings();
-    await ref
-        .read(settingsServiceProvider)
-        .updateSettings(settings.copyWith(selectedFeedProviderIds: []));
+    await ref.read(settingsServiceProvider).updateSettings(settings.copyWith(
+          selectedFeedProviderIds: [],
+          lastFeedTags: [],
+          lastFeedProviderIds: [],
+          clearLastFeedRating: true,
+          lastFeedTopPeriod: TopPeriodFilter.none.name,
+          lastFeedScrollOffset: 0,
+        ));
     await refresh();
+  }
+
+  Future<void> saveSession({double? scrollOffset}) async {
+    final current = state.value;
+    if (current == null) return;
+    final settings = await _settings();
+    await ref.read(settingsServiceProvider).updateSettings(
+          settings.copyWith(
+            lastFeedTags: current.selectedTags,
+            lastFeedProviderIds: current.selectedProviderIds,
+            lastFeedRating: current.ratingFilter,
+            lastFeedTopPeriod: current.topPeriodFilter.name,
+            lastFeedScrollOffset: scrollOffset ?? settings.lastFeedScrollOffset,
+          ),
+        );
   }
 
   Future<List<Post>> _load({

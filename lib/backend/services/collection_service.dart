@@ -56,6 +56,13 @@ class CollectionService {
     return _repository.addPost(collectionId, post);
   }
 
+  Future<Result<void>> addPostsToCollection(
+    String collectionId,
+    List<Post> posts,
+  ) {
+    return _repository.addPosts(collectionId, posts);
+  }
+
   Future<Result<void>> removePostFromCollection(
     String collectionId,
     String postId,

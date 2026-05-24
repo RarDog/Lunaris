@@ -78,7 +78,7 @@ class FeedService {
     final viewedKeys = viewedKeysResult is Success<Set<String>>
         ? viewedKeysResult.data
         : <String>{};
-    final filteredPosts = posts
+    final filteredPosts = _applyTopPeriod(posts, topPeriod)
         .where((post) => postMatchesRequestedTags(post, tags))
         .where((post) => postPassesTagFilters(post, settings))
         .where((post) =>
@@ -89,6 +89,25 @@ class FeedService {
       maxItems: settings.cacheMaxItems,
     );
     return Success(filteredPosts);
+  }
+
+  List<Post> _applyTopPeriod(List<Post> posts, TopPeriodFilter period) {
+    if (period == TopPeriodFilter.none) return posts;
+
+    final sorted = [...posts]..sort((a, b) => b.score.compareTo(a.score));
+    if (period == TopPeriodFilter.allTime) return sorted;
+
+    final now = DateTime.now();
+    final minDate = period == TopPeriodFilter.month
+        ? now.subtract(const Duration(days: 31))
+        : DateTime(now.year - 1, now.month, now.day);
+    final inPeriod = sorted
+        .where((post) =>
+            post.createdAt.isAfter(minDate) &&
+            post.createdAt.isBefore(now.add(const Duration(days: 1))))
+        .toList(growable: false);
+
+    return inPeriod.isEmpty ? sorted : inPeriod;
   }
 }
 

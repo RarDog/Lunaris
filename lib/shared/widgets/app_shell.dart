@@ -27,6 +27,19 @@ class AppShell extends StatelessWidget {
         LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyF):
             const _NavigateIntent('/search'),
         LogicalKeySet(LogicalKeyboardKey.escape): const _BackIntent(),
+        LogicalKeySet(LogicalKeyboardKey.digit1): const _NavigateIntent('/'),
+        LogicalKeySet(LogicalKeyboardKey.digit2):
+            const _NavigateIntent('/search'),
+        LogicalKeySet(LogicalKeyboardKey.digit3):
+            const _NavigateIntent('/favorites'),
+        LogicalKeySet(LogicalKeyboardKey.digit4):
+            const _NavigateIntent('/viewed'),
+        LogicalKeySet(LogicalKeyboardKey.digit5):
+            const _NavigateIntent('/collections'),
+        LogicalKeySet(LogicalKeyboardKey.digit6):
+            const _NavigateIntent('/providers'),
+        LogicalKeySet(LogicalKeyboardKey.digit7):
+            const _NavigateIntent('/settings'),
       },
       child: Actions(
         actions: {

@@ -168,11 +168,25 @@ class E621Provider
   }
 
   List<String> _topTags(TopPeriodFilter period) {
+    final now = DateTime.now();
     return switch (period) {
       TopPeriodFilter.none => const [],
-      TopPeriodFilter.month => const ['order:rank'],
-      TopPeriodFilter.year || TopPeriodFilter.allTime => const ['order:score'],
+      TopPeriodFilter.month => [
+          'order:score',
+          'date:>${_date(now.subtract(const Duration(days: 31)))}',
+        ],
+      TopPeriodFilter.year => [
+          'order:score',
+          'date:>${_date(DateTime(now.year - 1, now.month, now.day))}',
+        ],
+      TopPeriodFilter.allTime => const ['order:score'],
     };
+  }
+
+  String _date(DateTime value) {
+    return '${value.year.toString().padLeft(4, '0')}-'
+        '${value.month.toString().padLeft(2, '0')}-'
+        '${value.day.toString().padLeft(2, '0')}';
   }
 
   int _int(dynamic value) {

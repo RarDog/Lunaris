@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../models/post.dart';
+import '../utils/media_quality.dart';
 
 class DownloadService {
   DownloadService({Dio? dio}) : _dio = dio ?? Dio();
@@ -43,10 +44,7 @@ class DownloadService {
   }
 
   String? _downloadUrl(Post post) {
-    for (final url in [post.sampleUrl, post.fileUrl, post.previewUrl]) {
-      if (url.trim().isNotEmpty) return url;
-    }
-    return null;
+    return MediaUrlSelector.download(post);
   }
 
   String _fileName(Post post, String url) {

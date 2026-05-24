@@ -70,6 +70,23 @@ class CollectionRepository {
     });
   }
 
+  Future<Result<void>> addPosts(String collectionId, List<Post> posts) async {
+    if (posts.isEmpty) return const Success(null);
+    await _postRepository.cachePosts(posts);
+    return _databaseService.safeWrite((isar) async {
+      final now = DateTime.now();
+      await isar.collectionPostEntitys.putAll([
+        for (final post in posts)
+          CollectionPostEntity()
+            ..linkKey = '$collectionId:${post.providerId}:${post.id}'
+            ..collectionId = collectionId
+            ..postId = post.id
+            ..providerId = post.providerId
+            ..addedAt = now,
+      ]);
+    });
+  }
+
   Future<Result<void>> removePost(
     String collectionId,
     String postId,

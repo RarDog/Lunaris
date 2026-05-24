@@ -28,7 +28,13 @@ class AppSettings {
     required this.whitelistedTags,
     required this.smartBlacklistRules,
     required this.hideViewedPosts,
+    required this.mediaQualityMode,
+    required this.lastFeedTags,
+    required this.lastFeedProviderIds,
+    required this.lastFeedTopPeriod,
+    required this.lastFeedScrollOffset,
     this.defaultRatingFilter,
+    this.lastFeedRating,
   });
 
   final List<String> enabledProviderIds;
@@ -48,7 +54,13 @@ class AppSettings {
   final List<String> whitelistedTags;
   final List<String> smartBlacklistRules;
   final bool hideViewedPosts;
+  final String mediaQualityMode;
+  final List<String> lastFeedTags;
+  final List<String> lastFeedProviderIds;
+  final String lastFeedTopPeriod;
+  final double lastFeedScrollOffset;
   final String? defaultRatingFilter;
+  final String? lastFeedRating;
 
   static const defaults = AppSettings(
     enabledProviderIds: ['gelbooru', 'rule34', 'safebooru'],
@@ -68,7 +80,13 @@ class AppSettings {
     whitelistedTags: [],
     smartBlacklistRules: [],
     hideViewedPosts: false,
+    mediaQualityMode: 'auto',
+    lastFeedTags: [],
+    lastFeedProviderIds: [],
+    lastFeedTopPeriod: 'none',
+    lastFeedScrollOffset: 0,
     defaultRatingFilter: null,
+    lastFeedRating: null,
   );
 
   AppSettings copyWith({
@@ -89,7 +107,14 @@ class AppSettings {
     List<String>? whitelistedTags,
     List<String>? smartBlacklistRules,
     bool? hideViewedPosts,
+    String? mediaQualityMode,
+    List<String>? lastFeedTags,
+    List<String>? lastFeedProviderIds,
+    String? lastFeedTopPeriod,
+    double? lastFeedScrollOffset,
     String? defaultRatingFilter,
+    String? lastFeedRating,
+    bool clearLastFeedRating = false,
   }) {
     return AppSettings(
       enabledProviderIds: enabledProviderIds ?? this.enabledProviderIds,
@@ -111,7 +136,14 @@ class AppSettings {
       whitelistedTags: whitelistedTags ?? this.whitelistedTags,
       smartBlacklistRules: smartBlacklistRules ?? this.smartBlacklistRules,
       hideViewedPosts: hideViewedPosts ?? this.hideViewedPosts,
+      mediaQualityMode: mediaQualityMode ?? this.mediaQualityMode,
+      lastFeedTags: lastFeedTags ?? this.lastFeedTags,
+      lastFeedProviderIds: lastFeedProviderIds ?? this.lastFeedProviderIds,
+      lastFeedTopPeriod: lastFeedTopPeriod ?? this.lastFeedTopPeriod,
+      lastFeedScrollOffset: lastFeedScrollOffset ?? this.lastFeedScrollOffset,
       defaultRatingFilter: defaultRatingFilter ?? this.defaultRatingFilter,
+      lastFeedRating:
+          clearLastFeedRating ? null : lastFeedRating ?? this.lastFeedRating,
     );
   }
 
@@ -133,7 +165,13 @@ class AppSettings {
         'whitelistedTags': whitelistedTags,
         'smartBlacklistRules': smartBlacklistRules,
         'hideViewedPosts': hideViewedPosts,
+        'mediaQualityMode': mediaQualityMode,
+        'lastFeedTags': lastFeedTags,
+        'lastFeedProviderIds': lastFeedProviderIds,
+        'lastFeedTopPeriod': lastFeedTopPeriod,
+        'lastFeedScrollOffset': lastFeedScrollOffset,
         'defaultRatingFilter': defaultRatingFilter,
+        'lastFeedRating': lastFeedRating,
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
@@ -178,7 +216,24 @@ class AppSettings {
         ),
         hideViewedPosts:
             (json['hideViewedPosts'] as bool?) ?? defaults.hideViewedPosts,
+        mediaQualityMode:
+            (json['mediaQualityMode'] as String?) ?? defaults.mediaQualityMode,
+        lastFeedTags: List<String>.from(
+          (json['lastFeedTags'] as List?) ?? defaults.lastFeedTags,
+        ),
+        lastFeedProviderIds: List<String>.from(
+          (json['lastFeedProviderIds'] as List?) ??
+              (json['selectedFeedProviderIds'] as List?) ??
+              defaults.lastFeedProviderIds,
+        ),
+        lastFeedTopPeriod: (json['lastFeedTopPeriod'] as String?) ??
+            (json['defaultTopPeriodFilter'] as String?) ??
+            defaults.lastFeedTopPeriod,
+        lastFeedScrollOffset:
+            (json['lastFeedScrollOffset'] as num?)?.toDouble() ??
+                defaults.lastFeedScrollOffset,
         defaultRatingFilter: json['defaultRatingFilter'] as String?,
+        lastFeedRating: json['lastFeedRating'] as String?,
       );
 }
 

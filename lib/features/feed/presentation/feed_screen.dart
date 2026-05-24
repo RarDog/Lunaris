@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:async';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../app/app.dart';
 import '../../../app/responsive.dart';
@@ -28,7 +30,10 @@ class FeedScreen extends ConsumerStatefulWidget {
 
 class _FeedScreenState extends ConsumerState<FeedScreen> {
   final _scrollController = ScrollController();
+  final Set<String> _selectedKeys = {};
+  bool _selectionMode = false;
   bool _usedInitialQuery = false;
+  Timer? _scrollSaveDebounce;
 
   @override
   void initState() {
@@ -37,11 +42,30 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       if (_scrollController.position.extentAfter < 800) {
         ref.read(feedControllerProvider.notifier).loadNextPage();
       }
+      _scrollSaveDebounce?.cancel();
+      _scrollSaveDebounce = Timer(const Duration(milliseconds: 600), () {
+        ref
+            .read(feedControllerProvider.notifier)
+            .saveSession(scrollOffset: _scrollController.offset);
+      });
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final settings =
+          ref.read(appSettingsProvider).value ?? AppSettings.defaults;
+      if (settings.lastFeedScrollOffset > 0 && _scrollController.hasClients) {
+        _scrollController.jumpTo(
+          settings.lastFeedScrollOffset.clamp(
+            0.0,
+            _scrollController.position.maxScrollExtent,
+          ),
+        );
+      }
     });
   }
 
   @override
   void dispose() {
+    _scrollSaveDebounce?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -64,12 +88,36 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     return Shortcuts(
       shortcuts: {
         LogicalKeySet(LogicalKeyboardKey.keyR): const _RefreshIntent(),
+        LogicalKeySet(LogicalKeyboardKey.escape): const _ClearSelectionIntent(),
+        LogicalKeySet(LogicalKeyboardKey.delete): const _ClearSelectionIntent(),
+        LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyA):
+            const _SelectVisibleIntent(),
       },
       child: Actions(
         actions: {
           _RefreshIntent: CallbackAction<_RefreshIntent>(
             onInvoke: (_) {
               ref.read(feedControllerProvider.notifier).refresh();
+              return null;
+            },
+          ),
+          _ClearSelectionIntent: CallbackAction<_ClearSelectionIntent>(
+            onInvoke: (_) {
+              _clearSelection();
+              return null;
+            },
+          ),
+          _SelectVisibleIntent: CallbackAction<_SelectVisibleIntent>(
+            onInvoke: (_) {
+              final state = feed.value;
+              if (state != null) {
+                setState(() {
+                  _selectionMode = true;
+                  _selectedKeys
+                    ..clear()
+                    ..addAll(state.posts.map((post) => post.cacheKey));
+                });
+              }
               return null;
             },
           ),
@@ -106,6 +154,13 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                       ref.read(feedControllerProvider.notifier).refresh(),
                   onClearFilters: () =>
                       ref.read(feedControllerProvider.notifier).clearFilters(),
+                  selectionMode: _selectionMode,
+                  onToggleSelectionMode: () {
+                    setState(() {
+                      _selectionMode = !_selectionMode;
+                      if (!_selectionMode) _selectedKeys.clear();
+                    });
+                  },
                   onQuickProviderToggle: (providerId) {
                     if (providerId == '__all__') {
                       ref
@@ -167,10 +222,14 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                             loading: state.isLoadingMore,
                             favoriteKeys: favoriteKeys,
                             viewedKeys: viewedKeys,
+                            selectionMode: _selectionMode,
+                            selectedKeys: _selectedKeys,
                             onOpen: (post) => context.push(
                               '/post/${post.providerId}/${post.id}',
                               extra: post,
                             ),
+                            onPreview: (post) => _showPreview(context, post),
+                            onToggleSelected: (post) => _toggleSelected(post),
                             onFavorite: (post) =>
                                 _toggleFavorite(ref, post, favoriteKeys),
                             onAddToCollection: (post) =>
@@ -178,9 +237,113 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                           ),
                         ),
                 ),
+                if (_selectionMode && _selectedKeys.isNotEmpty)
+                  _BatchActionBar(
+                    count: _selectedKeys.length,
+                    onFavorite: () => _favoriteSelected(
+                      ref,
+                      state.posts,
+                      favoriteKeys,
+                    ),
+                    onCollection: () => _addSelectedToCollection(
+                      context,
+                      ref,
+                      state.posts,
+                    ),
+                    onClear: _clearSelection,
+                  ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  void _toggleSelected(Post post) {
+    setState(() {
+      _selectionMode = true;
+      if (!_selectedKeys.add(post.cacheKey)) {
+        _selectedKeys.remove(post.cacheKey);
+      }
+      if (_selectedKeys.isEmpty) _selectionMode = false;
+    });
+  }
+
+  void _clearSelection() {
+    if (!_selectionMode && _selectedKeys.isEmpty) return;
+    setState(() {
+      _selectionMode = false;
+      _selectedKeys.clear();
+    });
+  }
+
+  List<Post> _selectedPosts(List<Post> posts) {
+    return posts
+        .where((post) => _selectedKeys.contains(post.cacheKey))
+        .toList();
+  }
+
+  Future<void> _favoriteSelected(
+    WidgetRef ref,
+    List<Post> posts,
+    Set<String> favoriteKeys,
+  ) async {
+    for (final post in _selectedPosts(posts)) {
+      if (!favoriteKeys.contains(post.cacheKey)) {
+        await ref.read(favoriteServiceProvider).addFavorite(post);
+      }
+    }
+    ref.invalidate(favoriteKeysProvider);
+    ref.invalidate(favoritesControllerProvider);
+    _clearSelection();
+  }
+
+  Future<void> _addSelectedToCollection(
+    BuildContext context,
+    WidgetRef ref,
+    List<Post> posts,
+  ) async {
+    final selectedPosts = _selectedPosts(posts);
+    final result = await ref.read(collectionServiceProvider).getCollections();
+    final collections =
+        result is Success<List<Collection>> ? result.data : <Collection>[];
+    if (!context.mounted) return;
+    await showAddToCollectionPicker(
+      context,
+      collections: collections,
+      onSelected: (collection) async {
+        await ref
+            .read(collectionServiceProvider)
+            .addPostsToCollection(collection.id, selectedPosts);
+        _clearSelection();
+      },
+      onCreate: () => showCollectionFormDialog(context, ref),
+    );
+  }
+
+  Future<void> _showPreview(BuildContext context, Post post) {
+    final imageUrl = MediaUrlSelector.preview(post).firstOrNull;
+    final child = imageUrl == null
+        ? const Center(child: Icon(Icons.broken_image_rounded, size: 48))
+        : CachedNetworkImage(imageUrl: imageUrl, fit: BoxFit.contain);
+    if (Responsive.isMobile(context)) {
+      return showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        builder: (context) => SizedBox(
+          height: MediaQuery.sizeOf(context).height * 0.72,
+          child: Padding(padding: const EdgeInsets.all(8), child: child),
+        ),
+      );
+    }
+    return showDialog<void>(
+      context: context,
+      builder: (context) => Dialog(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900, maxHeight: 760),
+          child: Padding(padding: const EdgeInsets.all(8), child: child),
         ),
       ),
     );
@@ -226,4 +389,71 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
 class _RefreshIntent extends Intent {
   const _RefreshIntent();
+}
+
+class _ClearSelectionIntent extends Intent {
+  const _ClearSelectionIntent();
+}
+
+class _SelectVisibleIntent extends Intent {
+  const _SelectVisibleIntent();
+}
+
+class _BatchActionBar extends StatelessWidget {
+  const _BatchActionBar({
+    required this.count,
+    required this.onFavorite,
+    required this.onCollection,
+    required this.onClear,
+  });
+
+  final int count;
+  final VoidCallback onFavorite;
+  final VoidCallback onCollection;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [
+              BoxShadow(color: Colors.black26, blurRadius: 16),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                Text('$count selected',
+                    style: Theme.of(context).textTheme.titleMedium),
+                const Spacer(),
+                IconButton.filledTonal(
+                  tooltip: 'Favorite selected',
+                  onPressed: onFavorite,
+                  icon: const Icon(Icons.favorite_rounded),
+                ),
+                const SizedBox(width: 8),
+                FilledButton.tonalIcon(
+                  onPressed: onCollection,
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Collection'),
+                ),
+                IconButton(
+                  tooltip: 'Clear',
+                  onPressed: onClear,
+                  icon: const Icon(Icons.close_rounded),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

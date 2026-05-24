@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../backend/backend.dart';
 import '../../../shared/widgets/adaptive_scaffold.dart';
@@ -56,6 +57,30 @@ class SettingsScreen extends ConsumerWidget {
               title: const Text('Allow manual downloads'),
               onChanged: (value) =>
                   _update(ref, settings.copyWith(allowDownloads: value)),
+            ),
+            DropdownButtonFormField<String>(
+              initialValue: settings.mediaQualityMode,
+              decoration: const InputDecoration(labelText: 'Media quality'),
+              items: [
+                for (final mode in MediaQualityMode.values)
+                  DropdownMenuItem(value: mode.name, child: Text(mode.label)),
+              ],
+              onChanged: (value) => _update(
+                ref,
+                settings.copyWith(mediaQualityMode: value ?? 'auto'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            FilledButton.tonalIcon(
+              onPressed: () => context.go('/providers'),
+              icon: const Icon(Icons.hub_rounded),
+              label: const Text('Providers'),
+            ),
+            const SizedBox(height: 8),
+            FilledButton.tonalIcon(
+              onPressed: () => context.go('/providers/check'),
+              icon: const Icon(Icons.network_check_rounded),
+              label: const Text('Provider diagnostics'),
             ),
             SwitchListTile(
               value: settings.hideViewedPosts,

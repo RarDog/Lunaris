@@ -9,6 +9,7 @@ import '../../core/http/network_info.dart';
 import '../../core/utils/result.dart';
 import '../providers/provider_factory.dart';
 import '../providers/provider_manager.dart';
+import '../models/download_task.dart';
 import '../repositories/collection_repository.dart';
 import '../repositories/favorite_repository.dart';
 import '../repositories/post_repository.dart';
@@ -17,6 +18,7 @@ import '../repositories/search_repository.dart';
 import '../repositories/viewed_post_repository.dart';
 import '../services/collection_service.dart';
 import '../services/download_service.dart';
+import '../services/download_manager_service.dart';
 import '../services/favorite_service.dart';
 import '../services/feed_service.dart';
 import '../services/provider_check_service.dart';
@@ -146,4 +148,13 @@ final settingsServiceProvider = Provider<SettingsService>((ref) {
 
 final downloadServiceProvider = Provider<DownloadService>((ref) {
   return DownloadService();
+});
+
+final downloadManagerServiceProvider = Provider<DownloadManagerService>((ref) {
+  return DownloadManagerService(ref.watch(downloadServiceProvider));
+});
+
+final downloadTasksProvider = StreamProvider<List<DownloadTask>>((ref) {
+  final manager = ref.watch(downloadManagerServiceProvider);
+  return manager.stream;
 });

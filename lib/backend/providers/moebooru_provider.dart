@@ -166,10 +166,8 @@ class MoebooruProvider
   List<String> _topTags(TopPeriodFilter period) {
     return switch (period) {
       TopPeriodFilter.none => const [],
-      TopPeriodFilter.month ||
-      TopPeriodFilter.year ||
-      TopPeriodFilter.allTime =>
-        const ['order:score'],
+      TopPeriodFilter.month || TopPeriodFilter.year => const [],
+      TopPeriodFilter.allTime => const ['order:score'],
     };
   }
 

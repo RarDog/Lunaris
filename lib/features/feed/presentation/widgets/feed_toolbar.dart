@@ -22,6 +22,8 @@ class FeedToolbar extends StatefulWidget {
     required this.onSearchChanged,
     required this.onSuggestionTap,
     required this.onTopPeriodChanged,
+    this.onToggleSelectionMode,
+    this.selectionMode = false,
     super.key,
   });
 
@@ -40,6 +42,8 @@ class FeedToolbar extends StatefulWidget {
   final ValueChanged<String> onSearchChanged;
   final ValueChanged<String> onSuggestionTap;
   final ValueChanged<TopPeriodFilter> onTopPeriodChanged;
+  final VoidCallback? onToggleSelectionMode;
+  final bool selectionMode;
 
   @override
   State<FeedToolbar> createState() => _FeedToolbarState();
@@ -91,6 +95,13 @@ class _FeedToolbarState extends State<FeedToolbar> {
                 ),
               ),
               const SizedBox(width: 8),
+              IconButton.filledTonal(
+                tooltip: widget.selectionMode ? 'Exit select' : 'Select posts',
+                onPressed: widget.onToggleSelectionMode,
+                icon: Icon(widget.selectionMode
+                    ? Icons.check_box_rounded
+                    : Icons.check_box_outline_blank_rounded),
+              ),
               IconButton.filledTonal(
                 tooltip: 'Providers',
                 onPressed: widget.onProviderFilter,
@@ -184,9 +195,12 @@ class _FeedToolbarState extends State<FeedToolbar> {
               primary: false,
               children: [
                 IconButton.filledTonal(
-                  tooltip: 'Providers',
-                  onPressed: widget.onProviderFilter,
-                  icon: const Icon(Icons.hub_rounded),
+                  tooltip:
+                      widget.selectionMode ? 'Exit select' : 'Select posts',
+                  onPressed: widget.onToggleSelectionMode,
+                  icon: Icon(widget.selectionMode
+                      ? Icons.check_box_rounded
+                      : Icons.check_box_outline_blank_rounded),
                 ),
                 const SizedBox(width: 6),
                 IconButton.filledTonal(

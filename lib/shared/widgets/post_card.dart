@@ -16,6 +16,10 @@ class PostCard extends StatefulWidget {
     required this.onOpen,
     required this.onFavorite,
     this.onAddToCollection,
+    this.onPreview,
+    this.onToggleSelected,
+    this.selectionMode = false,
+    this.selected = false,
     super.key,
   });
 
@@ -27,6 +31,10 @@ class PostCard extends StatefulWidget {
   final VoidCallback onOpen;
   final VoidCallback onFavorite;
   final VoidCallback? onAddToCollection;
+  final VoidCallback? onPreview;
+  final VoidCallback? onToggleSelected;
+  final bool selectionMode;
+  final bool selected;
 
   @override
   State<PostCard> createState() => _PostCardState();
@@ -46,7 +54,24 @@ class _PostCardState extends State<PostCard> {
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       child: GestureDetector(
-        onTap: widget.onOpen,
+        onTap: () {
+          if (widget.selectionMode) {
+            widget.onToggleSelected?.call();
+            return;
+          }
+          widget.onOpen();
+        },
+        onLongPress: () {
+          if (widget.selectionMode && widget.onToggleSelected != null) {
+            widget.onToggleSelected!();
+            return;
+          }
+          if (widget.onPreview != null) {
+            widget.onPreview!();
+            return;
+          }
+          widget.onToggleSelected?.call();
+        },
         onSecondaryTapDown: (details) {
           showMenu<void>(
             context: context,
@@ -119,6 +144,29 @@ class _PostCardState extends State<PostCard> {
                     child: _SeenBadge(),
                   ),
               ],
+              if (widget.selected)
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withValues(alpha: 0.24),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.primary,
+                        width: 3,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Align(
+                      alignment: Alignment.topRight,
+                      child: Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Icon(Icons.check_circle_rounded),
+                      ),
+                    ),
+                  ),
+                ),
               if (mobile)
                 Positioned(
                   right: 8,

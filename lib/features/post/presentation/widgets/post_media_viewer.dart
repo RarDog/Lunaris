@@ -24,6 +24,7 @@ class PostMediaViewer extends StatefulWidget {
     this.initialMuted = false,
     this.initialCoverVideo = false,
     this.initialHalfVolume = false,
+    this.qualityMode = MediaQualityMode.auto,
     this.onPlaybackSnapshot,
     super.key,
   });
@@ -36,6 +37,7 @@ class PostMediaViewer extends StatefulWidget {
   final bool initialMuted;
   final bool initialCoverVideo;
   final bool initialHalfVolume;
+  final MediaQualityMode qualityMode;
   final ValueChanged<VideoPlaybackSnapshot>? onPlaybackSnapshot;
 
   @override
@@ -281,18 +283,11 @@ class _PostMediaViewerState extends State<PostMediaViewer> {
   }
 
   List<String> _buildImageUrls(Post post) {
-    final urls = post.fileType.toLowerCase().contains('gif')
-        ? [post.fileUrl, post.sampleUrl, post.previewUrl]
-        : [post.sampleUrl, post.fileUrl, post.previewUrl];
-    return urls.where((url) => url.trim().isNotEmpty).toSet().toList();
+    return MediaUrlSelector.details(post, mode: widget.qualityMode);
   }
 
   List<String> _buildVideoUrls(Post post) {
-    return {
-      post.fileUrl,
-      if (_looksLikeVideoUrl(post.sampleUrl)) post.sampleUrl,
-      if (_looksLikeVideoUrl(post.previewUrl)) post.previewUrl,
-    }.where((url) => url.trim().isNotEmpty).toList();
+    return MediaUrlSelector.video(post);
   }
 
   bool _isVideo(Post post) {
@@ -316,13 +311,6 @@ class _PostMediaViewerState extends State<PostMediaViewer> {
       if (value.toLowerCase().contains('.swf')) return value;
     }
     return post.fileUrl.trim();
-  }
-
-  bool _looksLikeVideoUrl(String url) {
-    final value = url.toLowerCase();
-    return value.contains('.webm') ||
-        value.contains('.mp4') ||
-        value.contains('.mov');
   }
 
   Map<String, String> _headersFor(Post post) {
@@ -796,6 +784,7 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
                 initialMuted: widget.muted,
                 initialHalfVolume: widget.halfVolume,
                 initialCoverVideo: widget.coverVideo,
+                qualityMode: MediaQualityMode.highQuality,
                 onPlaybackSnapshot: (snapshot) => _snapshot = snapshot,
               ),
             ),

@@ -84,6 +84,8 @@ class PostDetailsScreen extends ConsumerWidget {
           final next = currentIndex >= 0 && currentIndex < feedPosts.length - 1
               ? feedPosts[currentIndex + 1]
               : null;
+          final qualityMode =
+              MediaQualityMode.fromName(settings.mediaQualityMode);
           if (Responsive.isMobile(context)) {
             if (currentIndex >= 0 && feedPosts.length > 1) {
               return _MobilePostPager(
@@ -95,6 +97,7 @@ class PostDetailsScreen extends ConsumerWidget {
                   post,
                   settings,
                   favoriteKeys,
+                  qualityMode,
                 ),
               );
             }
@@ -104,6 +107,7 @@ class PostDetailsScreen extends ConsumerWidget {
               post,
               settings,
               favoriteKeys,
+              qualityMode,
             );
           }
           return Shortcuts(
@@ -116,6 +120,7 @@ class PostDetailsScreen extends ConsumerWidget {
                   const _ToggleFavoriteIntent(),
               LogicalKeySet(LogicalKeyboardKey.keyC):
                   const _AddCollectionIntent(),
+              LogicalKeySet(LogicalKeyboardKey.keyS): const _DownloadIntent(),
               LogicalKeySet(LogicalKeyboardKey.escape): const _CloseIntent(),
             },
             child: Actions(
@@ -150,6 +155,14 @@ class PostDetailsScreen extends ConsumerWidget {
                     return null;
                   },
                 ),
+                _DownloadIntent: CallbackAction<_DownloadIntent>(
+                  onInvoke: (_) {
+                    if (settings.allowDownloads) {
+                      _download(context, ref, post);
+                    }
+                    return null;
+                  },
+                ),
               },
               child: Focus(
                 autofocus: true,
@@ -170,7 +183,10 @@ class PostDetailsScreen extends ConsumerWidget {
                           child: Center(
                             child: ConstrainedBox(
                               constraints: const BoxConstraints(maxHeight: 760),
-                              child: PostMediaViewer(post: post),
+                              child: PostMediaViewer(
+                                post: post,
+                                qualityMode: qualityMode,
+                              ),
                             ),
                           ),
                         ),
@@ -243,6 +259,7 @@ class PostDetailsScreen extends ConsumerWidget {
     Post post,
     AppSettings settings,
     Set<String> favoriteKeys,
+    MediaQualityMode qualityMode,
   ) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
@@ -251,7 +268,12 @@ class PostDetailsScreen extends ConsumerWidget {
           constraints: BoxConstraints(
             maxHeight: MediaQuery.sizeOf(context).height * 0.62,
           ),
-          child: Center(child: PostMediaViewer(post: post)),
+          child: Center(
+            child: PostMediaViewer(
+              post: post,
+              qualityMode: qualityMode,
+            ),
+          ),
         ),
         const SizedBox(height: 12),
         PostActionBar(
@@ -320,21 +342,11 @@ class PostDetailsScreen extends ConsumerWidget {
 
   Future<void> _download(BuildContext context, WidgetRef ref, Post post) async {
     if (!context.mounted) return;
+    await ref.read(downloadManagerServiceProvider).start(post);
+    if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Downloading...')),
+      const SnackBar(content: Text('Download started')),
     );
-    try {
-      final saved = await ref.read(downloadServiceProvider).downloadPost(post);
-      if (!context.mounted || saved == null) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Download complete: $saved')),
-      );
-    } catch (error) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Download failed: $error')),
-      );
-    }
   }
 
   Future<void> _toggleFavorite(
@@ -581,6 +593,10 @@ class _AddCollectionIntent extends Intent {
 
 class _CloseIntent extends Intent {
   const _CloseIntent();
+}
+
+class _DownloadIntent extends Intent {
+  const _DownloadIntent();
 }
 
 class _CommentsSection extends ConsumerStatefulWidget {

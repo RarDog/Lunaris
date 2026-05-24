@@ -140,10 +140,8 @@ class GelbooruProvider implements ContentProvider, CommentProvider {
   List<String> _topTags(TopPeriodFilter period) {
     return switch (period) {
       TopPeriodFilter.none => const [],
-      TopPeriodFilter.month ||
-      TopPeriodFilter.year ||
-      TopPeriodFilter.allTime =>
-        const ['sort:score:desc'],
+      TopPeriodFilter.month || TopPeriodFilter.year => const [],
+      TopPeriodFilter.allTime => const ['sort:score:desc'],
     };
   }
 

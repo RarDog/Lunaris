@@ -36,8 +36,118 @@ class GelRuleApp extends ConsumerWidget {
           orElse: () => ThemeMode.dark,
         ),
         routerConfig: router,
+        builder: (context, child) => _DownloadOverlay(child: child),
       ),
     );
+  }
+}
+
+class _DownloadOverlay extends ConsumerWidget {
+  const _DownloadOverlay({required this.child});
+
+  final Widget? child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tasks = ref.watch(downloadTasksProvider).value ?? const [];
+    final visible = tasks
+        .where((task) =>
+            task.status == DownloadTaskStatus.running ||
+            task.status == DownloadTaskStatus.queued ||
+            task.status == DownloadTaskStatus.failed ||
+            task.status == DownloadTaskStatus.completed)
+        .toList();
+    return Stack(
+      children: [
+        if (child != null) child!,
+        if (visible.isNotEmpty)
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: SafeArea(
+              child: _DownloadPanel(tasks: visible.take(3).toList()),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _DownloadPanel extends ConsumerWidget {
+  const _DownloadPanel({required this.tasks});
+
+  final List<DownloadTask> tasks;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      elevation: 12,
+      borderRadius: BorderRadius.circular(16),
+      color: scheme.surface,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final task in tasks) ...[
+                Row(
+                  children: [
+                    Icon(_icon(task.status), size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        task.fileName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (task.status == DownloadTaskStatus.failed)
+                      IconButton(
+                        tooltip: 'Retry',
+                        onPressed: () => ref
+                            .read(downloadManagerServiceProvider)
+                            .retry(task.id),
+                        icon: const Icon(Icons.refresh_rounded),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                LinearProgressIndicator(
+                  value: task.status == DownloadTaskStatus.running
+                      ? task.progress.clamp(0, 1)
+                      : task.status == DownloadTaskStatus.completed
+                          ? 1
+                          : null,
+                ),
+                if (task.error != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      task.error!,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: scheme.error),
+                    ),
+                  ),
+                if (task != tasks.last) const SizedBox(height: 10),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  IconData _icon(DownloadTaskStatus status) {
+    return switch (status) {
+      DownloadTaskStatus.completed => Icons.download_done_rounded,
+      DownloadTaskStatus.failed => Icons.error_outline_rounded,
+      DownloadTaskStatus.canceled => Icons.cancel_rounded,
+      _ => Icons.download_rounded,
+    };
   }
 }
 
