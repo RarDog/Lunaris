@@ -33,6 +33,8 @@ class AppSettings {
     required this.lastFeedProviderIds,
     required this.lastFeedTopPeriod,
     required this.lastFeedScrollOffset,
+    this.skippedUpdateVersion,
+    this.lastUpdateCheckAt,
     this.defaultRatingFilter,
     this.lastFeedRating,
   });
@@ -59,6 +61,8 @@ class AppSettings {
   final List<String> lastFeedProviderIds;
   final String lastFeedTopPeriod;
   final double lastFeedScrollOffset;
+  final String? skippedUpdateVersion;
+  final String? lastUpdateCheckAt;
   final String? defaultRatingFilter;
   final String? lastFeedRating;
 
@@ -85,6 +89,8 @@ class AppSettings {
     lastFeedProviderIds: [],
     lastFeedTopPeriod: 'none',
     lastFeedScrollOffset: 0,
+    skippedUpdateVersion: null,
+    lastUpdateCheckAt: null,
     defaultRatingFilter: null,
     lastFeedRating: null,
   );
@@ -112,6 +118,8 @@ class AppSettings {
     List<String>? lastFeedProviderIds,
     String? lastFeedTopPeriod,
     double? lastFeedScrollOffset,
+    String? skippedUpdateVersion,
+    String? lastUpdateCheckAt,
     String? defaultRatingFilter,
     String? lastFeedRating,
     bool clearLastFeedRating = false,
@@ -141,6 +149,8 @@ class AppSettings {
       lastFeedProviderIds: lastFeedProviderIds ?? this.lastFeedProviderIds,
       lastFeedTopPeriod: lastFeedTopPeriod ?? this.lastFeedTopPeriod,
       lastFeedScrollOffset: lastFeedScrollOffset ?? this.lastFeedScrollOffset,
+      skippedUpdateVersion: skippedUpdateVersion ?? this.skippedUpdateVersion,
+      lastUpdateCheckAt: lastUpdateCheckAt ?? this.lastUpdateCheckAt,
       defaultRatingFilter: defaultRatingFilter ?? this.defaultRatingFilter,
       lastFeedRating:
           clearLastFeedRating ? null : lastFeedRating ?? this.lastFeedRating,
@@ -170,6 +180,8 @@ class AppSettings {
         'lastFeedProviderIds': lastFeedProviderIds,
         'lastFeedTopPeriod': lastFeedTopPeriod,
         'lastFeedScrollOffset': lastFeedScrollOffset,
+        'skippedUpdateVersion': skippedUpdateVersion,
+        'lastUpdateCheckAt': lastUpdateCheckAt,
         'defaultRatingFilter': defaultRatingFilter,
         'lastFeedRating': lastFeedRating,
       };
@@ -232,6 +244,8 @@ class AppSettings {
         lastFeedScrollOffset:
             (json['lastFeedScrollOffset'] as num?)?.toDouble() ??
                 defaults.lastFeedScrollOffset,
+        skippedUpdateVersion: json['skippedUpdateVersion'] as String?,
+        lastUpdateCheckAt: json['lastUpdateCheckAt'] as String?,
         defaultRatingFilter: json['defaultRatingFilter'] as String?,
         lastFeedRating: json['lastFeedRating'] as String?,
       );

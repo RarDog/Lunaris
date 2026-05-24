@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../../app/app_version.dart';
 import '../../../backend/backend.dart';
+import '../../../core/utils/result.dart';
 import '../../../shared/widgets/adaptive_scaffold.dart';
 import '../../../shared/widgets/error_view.dart';
 import 'settings_controller.dart';
@@ -177,8 +180,14 @@ class SettingsScreen extends ConsumerWidget {
               icon: const Icon(Icons.download_for_offline_rounded),
               label: const Text('Import settings and providers JSON'),
             ),
+            const SizedBox(height: 12),
+            FilledButton.tonalIcon(
+              onPressed: () => _checkUpdates(context, ref),
+              icon: const Icon(Icons.system_update_alt_rounded),
+              label: const Text('Check for updates'),
+            ),
             const SizedBox(height: 24),
-            const Text('Version 0.1.0'),
+            const Text('Version $appDisplayVersion'),
           ],
         ),
       ),
@@ -219,6 +228,82 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
     controller.dispose();
+  }
+
+  Future<void> _checkUpdates(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      const SnackBar(content: Text('Checking for updates...')),
+    );
+    final result =
+        await ref.read(updateServiceProvider).checkForUpdates(force: true);
+    if (!context.mounted) return;
+    messenger.hideCurrentSnackBar();
+    if (result is Error<AppUpdateInfo?>) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(result.failure.message)),
+      );
+      return;
+    }
+    final update = (result as Success<AppUpdateInfo?>).data;
+    if (update == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('RuleGel is up to date')),
+      );
+      return;
+    }
+    await _updateDialog(context, ref, update);
+  }
+
+  Future<void> _updateDialog(
+    BuildContext context,
+    WidgetRef ref,
+    AppUpdateInfo info,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('RuleGel ${info.version} is available'),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: SingleChildScrollView(
+            child: Text(
+              info.body.trim().isEmpty ? info.name : info.body.trim(),
+              maxLines: 14,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await ref.read(updateServiceProvider).skipVersion(info);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Skip this version'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await ref.read(updateServiceProvider).remindLater();
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Later'),
+          ),
+          FilledButton.icon(
+            onPressed: () async {
+              final url = Uri.tryParse(info.htmlUrl);
+              if (url != null) {
+                await launchUrl(url, mode: LaunchMode.externalApplication);
+              }
+              if (context.mounted) Navigator.pop(context);
+            },
+            icon: const Icon(Icons.open_in_new_rounded),
+            label: const Text('Update'),
+          ),
+        ],
+      ),
+    );
+    ref.invalidate(settingsControllerProvider);
   }
 }
 

@@ -1,4 +1,5 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/cache/cache_service.dart';
@@ -24,6 +25,7 @@ import '../services/feed_service.dart';
 import '../services/provider_check_service.dart';
 import '../services/search_service.dart';
 import '../services/settings_service.dart';
+import '../services/update_service.dart';
 import '../services/viewed_history_service.dart';
 
 final appDatabaseProvider = FutureProvider<AppDatabase>((ref) async {
@@ -157,4 +159,20 @@ final downloadManagerServiceProvider = Provider<DownloadManagerService>((ref) {
 final downloadTasksProvider = StreamProvider<List<DownloadTask>>((ref) {
   final manager = ref.watch(downloadManagerServiceProvider);
   return manager.stream;
+});
+
+final updateServiceProvider = Provider<UpdateService>((ref) {
+  return UpdateService(
+    Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 12),
+        receiveTimeout: const Duration(seconds: 12),
+        headers: const {
+          'User-Agent': 'RuleGel/0.4 Flutter local booru browser',
+          'Accept': 'application/json',
+        },
+      ),
+    ),
+    ref.watch(settingsServiceProvider),
+  );
 });

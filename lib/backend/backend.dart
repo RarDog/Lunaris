@@ -1,6 +1,7 @@
 export 'di/backend_providers.dart';
 export 'models/collection.dart';
 export 'models/content_provider_config.dart';
+export 'models/app_update_info.dart';
 export 'models/download_task.dart';
 export 'models/favorite.dart';
 export 'models/post.dart';
@@ -21,6 +22,7 @@ export 'services/feed_service.dart';
 export 'services/provider_check_service.dart';
 export 'services/search_service.dart';
 export 'services/settings_service.dart';
+export 'services/update_service.dart';
 export 'services/viewed_history_service.dart';
 export 'utils/smart_blacklist.dart';
 export 'utils/media_quality.dart';

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../backend/backend.dart';
+import '../core/utils/result.dart';
 import 'router.dart';
 import 'theme.dart';
 
@@ -36,9 +38,100 @@ class GelRuleApp extends ConsumerWidget {
           orElse: () => ThemeMode.dark,
         ),
         routerConfig: router,
-        builder: (context, child) => _DownloadOverlay(child: child),
+        builder: (context, child) => _AppOverlay(child: child),
       ),
     );
+  }
+}
+
+class _AppOverlay extends ConsumerStatefulWidget {
+  const _AppOverlay({required this.child});
+
+  final Widget? child;
+
+  @override
+  ConsumerState<_AppOverlay> createState() => _AppOverlayState();
+}
+
+class _AppOverlayState extends ConsumerState<_AppOverlay> {
+  bool _checkedUpdates = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_checkedUpdates) return;
+    _checkedUpdates = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkUpdates());
+  }
+
+  Future<void> _checkUpdates() async {
+    final result = await ref.read(updateServiceProvider).checkForUpdates();
+    if (!mounted || result is! Success<AppUpdateInfo?> || result.data == null) {
+      return;
+    }
+    await _showUpdateDialog(result.data!);
+  }
+
+  Future<void> _showUpdateDialog(AppUpdateInfo info) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('RuleGel ${info.version} is available'),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(info.name),
+                if (info.body.trim().isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    info.body.trim(),
+                    maxLines: 12,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await ref.read(updateServiceProvider).skipVersion(info);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Skip this version'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await ref.read(updateServiceProvider).remindLater();
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Later'),
+          ),
+          FilledButton.icon(
+            onPressed: () async {
+              final url = Uri.tryParse(info.htmlUrl);
+              if (url != null) {
+                await launchUrl(url, mode: LaunchMode.externalApplication);
+              }
+              if (context.mounted) Navigator.pop(context);
+            },
+            icon: const Icon(Icons.open_in_new_rounded),
+            label: const Text('Update'),
+          ),
+        ],
+      ),
+    );
+    ref.invalidate(appSettingsProvider);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _DownloadOverlay(child: widget.child);
   }
 }
 
