@@ -47,9 +47,13 @@ class FeedController extends AsyncNotifier<FeedState> {
     if (current == null || current.isLoadingMore || !current.hasMore) return;
     state = AsyncData(current.copyWith(isLoadingMore: true, clearError: true));
     final posts = await _load(refresh: false, current: current);
+    final existingKeys = current.posts.map((post) => post.cacheKey).toSet();
+    final newPosts = posts
+        .where((post) => existingKeys.add(post.cacheKey))
+        .toList(growable: false);
     state = AsyncData(
       current.copyWith(
-        posts: [...current.posts, ...posts],
+        posts: [...current.posts, ...newPosts],
         isLoadingMore: false,
         hasMore: posts.isNotEmpty,
       ),
@@ -59,7 +63,9 @@ class FeedController extends AsyncNotifier<FeedState> {
   Future<void> search(String query) async {
     final tags = ref.read(searchServiceProvider).parseTags(query);
     final current = state.value ?? const FeedState();
-    state = AsyncData(current.copyWith(selectedTags: tags, posts: []));
+    state = AsyncData(
+      current.copyWith(selectedTags: tags, posts: [], tagSuggestions: []),
+    );
     await ref.read(searchServiceProvider).saveSearch(query, 0);
     await refresh();
     final count = state.value?.posts.length ?? 0;
@@ -76,8 +82,13 @@ class FeedController extends AsyncNotifier<FeedState> {
     final result = await ref
         .read(searchServiceProvider)
         .autocompleteDetailed(lastToken, limit: 16);
+    final normalizedToken = lastToken.trim().toLowerCase();
     final suggestions = result is Success<List<TagSuggestion>>
         ? result.data
+            .where((item) => item.name.toLowerCase().startsWith(
+                  normalizedToken,
+                ))
+            .toList(growable: false)
         : const <TagSuggestion>[];
     state = AsyncData(current.copyWith(tagSuggestions: suggestions));
   }
@@ -138,6 +149,7 @@ class FeedController extends AsyncNotifier<FeedState> {
         ? <String?>[null]
         : current.selectedProviderIds;
     final posts = <Post>[];
+    final seen = <String>{};
     for (final providerId in providerIds) {
       final result = refresh
           ? await service.refresh(
@@ -152,7 +164,11 @@ class FeedController extends AsyncNotifier<FeedState> {
               providerId: providerId,
               topPeriod: current.topPeriodFilter,
             );
-      if (result is Success<List<Post>>) posts.addAll(result.data);
+      if (result is Success<List<Post>>) {
+        for (final post in result.data) {
+          if (seen.add(post.cacheKey)) posts.add(post);
+        }
+      }
     }
     return posts;
   }

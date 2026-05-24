@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gel_rule_app/backend/models/content_provider_config.dart';
 import 'package:gel_rule_app/backend/models/post.dart';
+import 'package:gel_rule_app/backend/models/provider_diagnostics.dart';
 import 'package:gel_rule_app/backend/models/provider_health.dart';
 import 'package:gel_rule_app/backend/models/top_period_filter.dart';
 import 'package:gel_rule_app/backend/providers/content_provider.dart';
@@ -12,6 +13,7 @@ import 'package:gel_rule_app/core/utils/result.dart';
 class FakeProviderRepository implements ProviderRepository {
   final configs = <String, ContentProviderConfig>{};
   final health = <String, ProviderHealth>{};
+  final diagnostics = <String, ProviderDiagnostics>{};
 
   @override
   Future<Result<void>> ensureSeedProviders() async => const Success(null);
@@ -53,6 +55,12 @@ class FakeProviderRepository implements ProviderRepository {
   @override
   Future<Result<ProviderHealth?>> getHealth(String providerId) async {
     return Success(health[providerId]);
+  }
+
+  @override
+  Future<Result<void>> saveDiagnostics(ProviderDiagnostics value) async {
+    diagnostics[value.providerId] = value;
+    return const Success(null);
   }
 
   @override
@@ -179,6 +187,8 @@ void main() {
         as Success<List<Post>>;
     expect(result.data.map((item) => item.providerId), ['a', 'b']);
     expect(repository.health['c']?.status, ProviderStatus.offline);
+    expect(repository.diagnostics['a']?.lastResultCount, 1);
+    expect(repository.diagnostics['c']?.lastErrorMessage, 'Search failed');
   });
 
   test('enable disable provider persists config', () async {

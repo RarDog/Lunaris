@@ -38,3 +38,14 @@ class ProvidersController extends AsyncNotifier<List<ContentProviderConfig>> {
 
 final providerHealthProvider =
     StateProvider<Map<String, ProviderHealth>>((ref) => {});
+
+final providerDiagnosticsProvider =
+    FutureProvider<Map<String, ProviderDiagnostics>>((ref) async {
+  final result = await ref.watch(providerRepositoryProvider).getDiagnostics();
+  if (result is Success<List<ProviderDiagnostics>>) {
+    return {
+      for (final item in result.data) item.providerId: item,
+    };
+  }
+  return {};
+});

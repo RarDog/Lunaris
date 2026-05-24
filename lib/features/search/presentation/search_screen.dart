@@ -7,7 +7,6 @@ import '../../../shared/widgets/app_search_bar.dart';
 import '../../../shared/widgets/error_view.dart';
 import 'search_controller.dart';
 import 'widgets/recent_searches.dart';
-import 'widgets/search_suggestions.dart';
 
 class SearchScreen extends ConsumerWidget {
   const SearchScreen({super.key});
@@ -31,22 +30,20 @@ class SearchScreen extends ConsumerWidget {
         data: (data) => ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            AppSearchBar(
+            TagInputSearchBar(
+              initialValue: data.query,
+              suggestions: data.suggestions,
               onSubmitted: (query) =>
                   context.go('/?q=${Uri.encodeQueryComponent(query)}'),
               onChanged: (query) => ref
                   .read(searchControllerProvider.notifier)
                   .updateQuery(query),
+              onSuggestionApplied: (query) => ref
+                  .read(searchControllerProvider.notifier)
+                  .updateQuery(query),
             ),
             const SizedBox(height: 16),
-            SearchSuggestions(
-              suggestions: data.suggestions,
-              onTap: (suggestion) {
-                final query = _applySuggestion(data.query, suggestion);
-                context.go('/?q=${Uri.encodeQueryComponent(query)}');
-              },
-            ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 8),
             Text('Recent', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             RecentSearches(
@@ -58,16 +55,5 @@ class SearchScreen extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  String _applySuggestion(String query, String suggestion) {
-    final tokens =
-        query.trim().isEmpty ? <String>[] : query.trim().split(RegExp(r'\s+'));
-    if (tokens.isEmpty) {
-      tokens.add(suggestion);
-    } else {
-      tokens[tokens.length - 1] = suggestion;
-    }
-    return tokens.toSet().join(' ');
   }
 }

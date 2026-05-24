@@ -3,12 +3,14 @@ import 'package:dio/dio.dart';
 import '../../core/http/dio_client.dart';
 import '../mappers/moebooru_mapper.dart';
 import '../models/post.dart';
+import '../models/post_comment.dart';
 import '../models/provider_health.dart';
 import '../models/tag_suggestion.dart';
 import '../models/top_period_filter.dart';
 import 'content_provider.dart';
 
-class MoebooruProvider implements ContentProvider, TagSuggestionProvider {
+class MoebooruProvider
+    implements ContentProvider, TagSuggestionProvider, CommentProvider {
   MoebooruProvider({
     required this.id,
     required this.name,
@@ -38,7 +40,7 @@ class MoebooruProvider implements ContentProvider, TagSuggestionProvider {
     final response = await _dio.get<dynamic>(
       '/post.json',
       queryParameters: {
-        'page': page <= 0 ? 1 : page,
+        'page': page + 1,
         'limit': limit.clamp(1, 100),
         'tags': [
           ...tags,
@@ -124,6 +126,40 @@ class MoebooruProvider implements ContentProvider, TagSuggestionProvider {
           );
         })
         .where((tag) => tag.name.isNotEmpty)
+        .toList();
+  }
+
+  @override
+  Future<List<PostComment>> getComments(String postId) async {
+    final response = await _dio.get<dynamic>(
+      '/comment.json',
+      queryParameters: {
+        'post_id': postId,
+        'limit': 50,
+        ..._queryParameters,
+      },
+    );
+    final items = response.data is List ? response.data as List : const [];
+    return items
+        .whereType<Map>()
+        .map((item) {
+          final json = Map<String, dynamic>.from(item);
+          return PostComment(
+            id: (json['id'] ?? '').toString(),
+            postId: (json['post_id'] ?? postId).toString(),
+            providerId: id,
+            authorName:
+                (json['creator'] ?? json['author'] ?? json['user'] ?? 'user')
+                    .toString(),
+            body: (json['body'] ?? json['comment'] ?? json['text'] ?? '')
+                .toString(),
+            createdAt: DateTime.tryParse(
+                  (json['created_at'] ?? json['created_on'] ?? '').toString(),
+                ) ??
+                DateTime.fromMillisecondsSinceEpoch(0),
+          );
+        })
+        .where((comment) => comment.body.trim().isNotEmpty)
         .toList();
   }
 

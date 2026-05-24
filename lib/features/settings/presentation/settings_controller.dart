@@ -25,6 +25,11 @@ class SettingsController extends AsyncNotifier<AppSettings> {
     await ref.read(cacheServiceProvider).clear();
   }
 
+  Future<void> clearViewedHistory() async {
+    await ref.read(viewedHistoryServiceProvider).clearHistory();
+    ref.invalidate(viewedKeysProvider);
+  }
+
   Future<String> exportJson() async {
     final result =
         await ref.read(settingsServiceProvider).exportSettingsToJson();

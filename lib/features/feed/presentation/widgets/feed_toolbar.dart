@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 
 import '../../../../app/responsive.dart';
 import '../../../../backend/backend.dart';
@@ -75,13 +76,18 @@ class _FeedToolbarState extends State<FeedToolbar> {
           Row(
             children: [
               Expanded(
-                child: AppSearchBar(
+                child: TagInputSearchBar(
                   initialValue: _query,
+                  suggestions: widget.tagSuggestions,
                   onChanged: (value) {
                     _query = value;
                     widget.onSearchChanged(value);
                   },
                   onSubmitted: widget.onSearch,
+                  onSuggestionApplied: (value) {
+                    _query = value;
+                    widget.onSuggestionTap(value);
+                  },
                 ),
               ),
               const SizedBox(width: 8),
@@ -108,10 +114,12 @@ class _FeedToolbarState extends State<FeedToolbar> {
             ],
           ),
           const SizedBox(height: 8),
-          SizedBox(
+          _HorizontalWheelScroller(
             height: 36,
-            child: ListView(
+            builder: (controller) => ListView(
+              controller: controller,
               scrollDirection: Axis.horizontal,
+              primary: false,
               children: [
                 if (widget.providers.isNotEmpty) ...[
                   FilterChip(
@@ -144,23 +152,6 @@ class _FeedToolbarState extends State<FeedToolbar> {
               ],
             ),
           ),
-          if (widget.tagSuggestions.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            SizedBox(
-              height: 34,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: widget.tagSuggestions.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (context, index) => ActionChip(
-                  avatar: const Icon(Icons.tag_rounded, size: 15),
-                  label: _SuggestionLabel(widget.tagSuggestions[index]),
-                  onPressed: () =>
-                      _applySuggestion(widget.tagSuggestions[index].name),
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -171,19 +162,26 @@ class _FeedToolbarState extends State<FeedToolbar> {
       padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
       child: Column(
         children: [
-          AppSearchBar(
+          TagInputSearchBar(
             initialValue: _query,
+            suggestions: widget.tagSuggestions,
             onChanged: (value) {
               _query = value;
               widget.onSearchChanged(value);
             },
             onSubmitted: widget.onSearch,
+            onSuggestionApplied: (value) {
+              _query = value;
+              widget.onSuggestionTap(value);
+            },
           ),
           const SizedBox(height: 8),
-          SizedBox(
+          _HorizontalWheelScroller(
             height: 40,
-            child: ListView(
+            builder: (controller) => ListView(
+              controller: controller,
               scrollDirection: Axis.horizontal,
+              primary: false,
               children: [
                 IconButton.filledTonal(
                   tooltip: 'Providers',
@@ -230,10 +228,12 @@ class _FeedToolbarState extends State<FeedToolbar> {
             ),
           ),
           const SizedBox(height: 6),
-          SizedBox(
+          _HorizontalWheelScroller(
             height: 36,
-            child: ListView(
+            builder: (controller) => ListView(
+              controller: controller,
               scrollDirection: Axis.horizontal,
+              primary: false,
               children: [
                 for (final period in TopPeriodFilter.values) ...[
                   ChoiceChip(
@@ -246,59 +246,53 @@ class _FeedToolbarState extends State<FeedToolbar> {
               ],
             ),
           ),
-          if (widget.tagSuggestions.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            SizedBox(
-              height: 34,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: widget.tagSuggestions.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 6),
-                itemBuilder: (context, index) => ActionChip(
-                  label: _SuggestionLabel(widget.tagSuggestions[index]),
-                  onPressed: () =>
-                      _applySuggestion(widget.tagSuggestions[index].name),
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
   }
-
-  void _applySuggestion(String suggestion) {
-    final tokens = _query.trim().isEmpty
-        ? <String>[]
-        : _query.trim().split(RegExp(r'\s+'));
-    if (tokens.isEmpty) {
-      tokens.add(suggestion);
-    } else {
-      tokens[tokens.length - 1] = suggestion;
-    }
-    final next = tokens.toSet().join(' ');
-    setState(() => _query = next);
-    widget.onSuggestionTap(next);
-  }
 }
 
-class _SuggestionLabel extends StatelessWidget {
-  const _SuggestionLabel(this.suggestion);
+class _HorizontalWheelScroller extends StatefulWidget {
+  const _HorizontalWheelScroller({
+    required this.builder,
+    required this.height,
+  });
 
-  final TagSuggestion suggestion;
+  final Widget Function(ScrollController controller) builder;
+  final double height;
+
+  @override
+  State<_HorizontalWheelScroller> createState() =>
+      _HorizontalWheelScrollerState();
+}
+
+class _HorizontalWheelScrollerState extends State<_HorizontalWheelScroller> {
+  final _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(suggestion.name),
-        const SizedBox(width: 6),
-        Text(
-          suggestion.categoryLabel,
-          style: Theme.of(context).textTheme.labelSmall,
+    return SizedBox(
+      height: widget.height,
+      child: Listener(
+        onPointerSignal: (event) {
+          if (event is! PointerScrollEvent || !_controller.hasClients) return;
+          final target = (_controller.offset + event.scrollDelta.dy)
+              .clamp(0.0, _controller.position.maxScrollExtent)
+              .toDouble();
+          _controller.jumpTo(target);
+        },
+        child: Scrollbar(
+          controller: _controller,
+          thumbVisibility: false,
+          child: widget.builder(_controller),
         ),
-      ],
+      ),
     );
   }
 }

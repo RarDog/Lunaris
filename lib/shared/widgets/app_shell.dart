@@ -13,6 +13,7 @@ class AppShell extends StatelessWidget {
     _Destination('Feed', Icons.dashboard_rounded, '/'),
     _Destination('Search', Icons.search_rounded, '/search'),
     _Destination('Favorites', Icons.favorite_rounded, '/favorites'),
+    _Destination('Viewed', Icons.history_rounded, '/viewed'),
     _Destination(
         'Collections', Icons.collections_bookmark_rounded, '/collections'),
     _Destination('Providers', Icons.hub_rounded, '/providers'),

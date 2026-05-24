@@ -6,6 +6,7 @@ import '../../core/cache/image_cache_service.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/database_service.dart';
 import '../../core/http/network_info.dart';
+import '../../core/utils/result.dart';
 import '../providers/provider_factory.dart';
 import '../providers/provider_manager.dart';
 import '../repositories/collection_repository.dart';
@@ -13,6 +14,7 @@ import '../repositories/favorite_repository.dart';
 import '../repositories/post_repository.dart';
 import '../repositories/provider_repository.dart';
 import '../repositories/search_repository.dart';
+import '../repositories/viewed_post_repository.dart';
 import '../services/collection_service.dart';
 import '../services/download_service.dart';
 import '../services/favorite_service.dart';
@@ -20,6 +22,7 @@ import '../services/feed_service.dart';
 import '../services/provider_check_service.dart';
 import '../services/search_service.dart';
 import '../services/settings_service.dart';
+import '../services/viewed_history_service.dart';
 
 final appDatabaseProvider = FutureProvider<AppDatabase>((ref) async {
   final database = await AppDatabase.open();
@@ -52,6 +55,10 @@ final providerRepositoryProvider = Provider<ProviderRepository>((ref) {
 
 final searchRepositoryProvider = Provider<SearchRepository>((ref) {
   return SearchRepository(ref.watch(databaseServiceProvider));
+});
+
+final viewedPostRepositoryProvider = Provider<ViewedPostRepository>((ref) {
+  return ViewedPostRepository(ref.watch(databaseServiceProvider));
 });
 
 final favoriteRepositoryProvider = Provider<FavoriteRepository>((ref) {
@@ -88,7 +95,20 @@ final feedServiceProvider = Provider<FeedService>((ref) {
     ref.watch(providerManagerProvider),
     ref.watch(cacheServiceProvider),
     ref.watch(settingsServiceProvider),
+    ref.watch(viewedHistoryServiceProvider),
   );
+});
+
+final viewedHistoryServiceProvider = Provider<ViewedHistoryService>((ref) {
+  return ViewedHistoryService(
+    ref.watch(viewedPostRepositoryProvider),
+    ref.watch(postRepositoryProvider),
+  );
+});
+
+final viewedKeysProvider = FutureProvider<Set<String>>((ref) async {
+  final result = await ref.watch(viewedHistoryServiceProvider).getViewedKeys();
+  return result is Success<Set<String>> ? result.data : <String>{};
 });
 
 final searchServiceProvider = Provider<SearchService>((ref) {

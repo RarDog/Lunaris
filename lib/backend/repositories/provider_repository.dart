@@ -4,6 +4,7 @@ import '../../core/database/app_database.dart';
 import '../../core/database/database_service.dart';
 import '../../core/utils/result.dart';
 import '../models/content_provider_config.dart';
+import '../models/provider_diagnostics.dart';
 import '../models/provider_health.dart';
 
 class ProviderRepository {
@@ -111,6 +112,14 @@ class ProviderRepository {
 
   Future<Result<void>> ensureSeedProviders() {
     return _databaseService.safeWrite((isar) async {
+      final existingProviders =
+          await isar.providerConfigEntitys.where().findAll();
+      for (final provider in existingProviders) {
+        if (provider.providerId == 'kemono' ||
+            provider.providerId == 'coomer') {
+          await isar.providerConfigEntitys.delete(provider.isarId);
+        }
+      }
       final seeds = seedProviders();
       for (final seed in seeds) {
         final exists = await isar.providerConfigEntitys
@@ -184,6 +193,21 @@ class ProviderRepository {
           .providerIdEqualTo(providerId)
           .findFirst();
       return entity?.toModel();
+    });
+  }
+
+  Future<Result<void>> saveDiagnostics(ProviderDiagnostics diagnostics) {
+    return _databaseService.safeWrite((isar) async {
+      await isar.providerDiagnosticsEntitys.put(
+        ProviderDiagnosticsEntity.fromModel(diagnostics),
+      );
+    });
+  }
+
+  Future<Result<List<ProviderDiagnostics>>> getDiagnostics() {
+    return _databaseService.safeRead((isar) async {
+      final items = await isar.providerDiagnosticsEntitys.where().findAll();
+      return items.map((item) => item.toModel()).toList();
     });
   }
 }

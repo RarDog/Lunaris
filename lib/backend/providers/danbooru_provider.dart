@@ -43,7 +43,7 @@ class DanbooruProvider implements ContentProvider, CommentProvider {
     final response = await _dio.get<dynamic>(
       '/posts.json',
       queryParameters: {
-        'page': page <= 0 ? 1 : page,
+        'page': page + 1,
         'limit': limit,
         'tags': queryTags.join(' '),
         ..._queryParameters,
@@ -107,8 +107,7 @@ class DanbooruProvider implements ContentProvider, CommentProvider {
         ..._queryParameters,
       },
     );
-    final data = response.data;
-    final items = data is List ? data : const [];
+    final items = _commentItems(response.data);
     return items
         .whereType<Map>()
         .map((item) {
@@ -117,9 +116,13 @@ class DanbooruProvider implements ContentProvider, CommentProvider {
             id: (json['id'] ?? '').toString(),
             postId: (json['post_id'] ?? postId).toString(),
             providerId: id,
-            authorName: (json['creator_name'] ?? json['creator_id'] ?? 'user')
+            authorName: (json['creator_name'] ??
+                    json['creator_id'] ??
+                    json['updater_name'] ??
+                    'user')
                 .toString(),
-            body: (json['body'] ?? '').toString(),
+            body: (json['body'] ?? json['text'] ?? json['comment'] ?? '')
+                .toString(),
             createdAt:
                 DateTime.tryParse((json['created_at'] ?? '').toString()) ??
                     DateTime.fromMillisecondsSinceEpoch(0),
@@ -127,6 +130,20 @@ class DanbooruProvider implements ContentProvider, CommentProvider {
         })
         .where((comment) => comment.body.trim().isNotEmpty)
         .toList();
+  }
+
+  List<dynamic> _commentItems(dynamic data) {
+    if (data is List) return data;
+    if (data is! Map) return const [];
+    final json = Map<String, dynamic>.from(data);
+    final comments = json['comments'];
+    if (comments is List) return comments;
+    final records = json['records'];
+    if (records is List) return records;
+    final comment = json['comment'];
+    if (comment is List) return comment;
+    if (comment is Map) return [comment];
+    return const [];
   }
 
   List<String> _topTags(TopPeriodFilter period) {

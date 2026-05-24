@@ -6,8 +6,10 @@ import 'package:gel_rule_app/backend/repositories/collection_repository.dart';
 import 'package:gel_rule_app/backend/repositories/favorite_repository.dart';
 import 'package:gel_rule_app/backend/repositories/post_repository.dart';
 import 'package:gel_rule_app/backend/repositories/provider_repository.dart';
+import 'package:gel_rule_app/backend/repositories/viewed_post_repository.dart';
 import 'package:gel_rule_app/backend/services/collection_service.dart';
 import 'package:gel_rule_app/backend/services/settings_service.dart';
+import 'package:gel_rule_app/backend/services/viewed_history_service.dart';
 import 'package:gel_rule_app/core/cache/cache_service.dart';
 import 'package:gel_rule_app/core/database/app_database.dart';
 import 'package:gel_rule_app/core/database/database_service.dart';
@@ -60,8 +62,9 @@ void main() {
 
     await repository.ensureSeedProviders();
     final result = await repository.getProviders();
+    final providers = (result as Success).data;
 
-    expect((result as Success).data.map((provider) => provider.id), [
+    expect(providers.map((provider) => provider.id), [
       'gelbooru',
       'rule34',
       'safebooru',
@@ -143,6 +146,23 @@ void main() {
     final cached = await service.getCachedPosts() as Success;
 
     expect(cached.data, hasLength(2));
+  });
+
+  test('viewed history persists keys and clears history', () async {
+    final service = ViewedHistoryService(
+      ViewedPostRepository(databaseService),
+      postRepository,
+    );
+    final item = post('seen');
+
+    await service.markViewed(item);
+    expect((await service.isViewed(item.id, item.providerId) as Success).data,
+        isTrue);
+    expect((await service.getViewedKeys() as Success).data,
+        contains(item.cacheKey));
+
+    await service.clearHistory();
+    expect((await service.getViewedKeys() as Success).data, isEmpty);
   });
 }
 

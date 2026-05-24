@@ -30,7 +30,10 @@ class GelbooruMapper {
         fileUrl);
     final previewUrl =
         _string(json['preview_url'] ?? json['previewUrl'] ?? sampleUrl);
-    final tags = _tags(json['tags'] ?? json['tag_string']);
+    final explicitGroups = _tagGroupsFromJson(json);
+    final tags = explicitGroups.isEmpty
+        ? _tags(json['tags'] ?? json['tag_string'])
+        : explicitGroups.values.expand((items) => items).toSet().toList();
     return Post(
       id: id,
       providerId: providerId,
@@ -46,7 +49,7 @@ class GelbooruMapper {
       createdAt: _date(json['created_at'] ?? json['createdAt']),
       fileType: _fileType(fileUrl, json['file_ext']),
       score: _int(json['score']),
-      tagGroups: _tagGroups(tags),
+      tagGroups: explicitGroups.isEmpty ? _tagGroups(tags) : explicitGroups,
     );
   }
 
@@ -107,5 +110,22 @@ class GelbooruMapper {
 
   static Map<String, List<String>> _tagGroups(List<String> tags) {
     return tags.isEmpty ? const {} : {'general': tags};
+  }
+
+  static Map<String, List<String>> _tagGroupsFromJson(
+    Map<String, dynamic> json,
+  ) {
+    final groups = <String, List<String>>{};
+    void add(String key, dynamic value) {
+      final tags = _tags(value);
+      if (tags.isNotEmpty) groups[key] = tags;
+    }
+
+    add('general', json['tag_string_general'] ?? json['tags_general']);
+    add('artist', json['tag_string_artist'] ?? json['tags_artist']);
+    add('copyright', json['tag_string_copyright'] ?? json['tags_copyright']);
+    add('character', json['tag_string_character'] ?? json['tags_character']);
+    add('meta', json['tag_string_meta'] ?? json['tags_meta']);
+    return groups;
   }
 }

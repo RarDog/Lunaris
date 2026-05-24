@@ -90,6 +90,9 @@ class _ProviderFormScreenState extends ConsumerState<ProviderFormScreen> {
                   value: 'rule34', child: Text('rule34-compatible')),
               DropdownMenuItem(
                   value: 'danbooru', child: Text('danbooru-compatible')),
+              DropdownMenuItem(
+                  value: 'moebooru', child: Text('moebooru-compatible')),
+              DropdownMenuItem(value: 'e621', child: Text('e621/e926')),
               DropdownMenuItem(value: 'custom', child: Text('custom')),
             ],
             onChanged: (value) =>

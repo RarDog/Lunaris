@@ -52,6 +52,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final settings =
         ref.watch(appSettingsProvider).value ?? AppSettings.defaults;
     final favoriteKeys = ref.watch(favoriteKeysProvider).value ?? <String>{};
+    final viewedKeys = ref.watch(viewedKeysProvider).value ?? <String>{};
 
     if (!_usedInitialQuery && (widget.initialQuery?.isNotEmpty ?? false)) {
       _usedInitialQuery = true;
@@ -165,6 +166,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                             nsfwEnabled: settings.nsfwEnabled,
                             loading: state.isLoadingMore,
                             favoriteKeys: favoriteKeys,
+                            viewedKeys: viewedKeys,
                             onOpen: (post) => context.push(
                               '/post/${post.providerId}/${post.id}',
                               extra: post,

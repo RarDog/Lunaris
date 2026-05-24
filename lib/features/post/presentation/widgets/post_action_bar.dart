@@ -8,6 +8,7 @@ class PostActionBar extends StatelessWidget {
     required this.onCopy,
     required this.isFavorite,
     this.onDownload,
+    this.onSimilar,
     super.key,
   });
 
@@ -17,6 +18,7 @@ class PostActionBar extends StatelessWidget {
   final VoidCallback onCopy;
   final bool isFavorite;
   final VoidCallback? onDownload;
+  final VoidCallback? onSimilar;
 
   @override
   Widget build(BuildContext context) {
@@ -36,6 +38,12 @@ class PostActionBar extends StatelessWidget {
           icon: const Icon(Icons.add_rounded),
           label: const Text('Collection'),
         ),
+        if (onSimilar != null)
+          FilledButton.tonalIcon(
+            onPressed: onSimilar,
+            icon: const Icon(Icons.auto_awesome_rounded),
+            label: const Text('Similar'),
+          ),
         IconButton.filledTonal(
           tooltip: 'Open original',
           onPressed: onOpen,

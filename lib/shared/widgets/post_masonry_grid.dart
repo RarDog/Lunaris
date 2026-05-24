@@ -17,6 +17,7 @@ class PostMasonryGrid extends StatelessWidget {
     required this.onFavorite,
     this.onAddToCollection,
     this.favoriteKeys = const {},
+    this.viewedKeys = const {},
     this.loading = false,
     this.controller,
     super.key,
@@ -31,6 +32,7 @@ class PostMasonryGrid extends StatelessWidget {
   final ValueChanged<Post> onFavorite;
   final ValueChanged<Post>? onAddToCollection;
   final Set<String> favoriteKeys;
+  final Set<String> viewedKeys;
   final bool loading;
   final ScrollController? controller;
 
@@ -52,6 +54,7 @@ class PostMasonryGrid extends StatelessWidget {
           blurExplicit: blurExplicit && !nsfwEnabled,
           showBadges: showBadges,
           isFavorite: favoriteKeys.contains(post.cacheKey),
+          isViewed: viewedKeys.contains(post.cacheKey),
           onOpen: () => onOpen(post),
           onFavorite: () => onFavorite(post),
           onAddToCollection:

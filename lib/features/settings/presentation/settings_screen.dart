@@ -57,6 +57,35 @@ class SettingsScreen extends ConsumerWidget {
               onChanged: (value) =>
                   _update(ref, settings.copyWith(allowDownloads: value)),
             ),
+            SwitchListTile(
+              value: settings.hideViewedPosts,
+              title: const Text('Hide viewed posts'),
+              onChanged: (value) =>
+                  _update(ref, settings.copyWith(hideViewedPosts: value)),
+            ),
+            const SizedBox(height: 12),
+            _TagListEditor(
+              title: 'Smart blacklist',
+              icon: Icons.visibility_off_rounded,
+              tags: settings.smartBlacklistRules,
+              helper:
+                  'Examples: tag, tag_a tag_b, provider:e621, rating:explicit, type:video, score:<10, artist:name',
+              onChanged: (tags) => _update(
+                ref,
+                settings.copyWith(smartBlacklistRules: tags),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _TagListEditor(
+              title: 'Whitelisted tags',
+              icon: Icons.verified_rounded,
+              tags: settings.whitelistedTags,
+              onChanged: (tags) => _update(
+                ref,
+                settings.copyWith(whitelistedTags: tags),
+              ),
+            ),
+            const SizedBox(height: 12),
             _StepperTile(
               title: 'Desktop columns',
               value: settings.desktopColumns,
@@ -92,6 +121,14 @@ class SettingsScreen extends ConsumerWidget {
                   ref.read(settingsControllerProvider.notifier).clearCache(),
               icon: const Icon(Icons.cleaning_services_rounded),
               label: const Text('Clear cache'),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.tonalIcon(
+              onPressed: () => ref
+                  .read(settingsControllerProvider.notifier)
+                  .clearViewedHistory(),
+              icon: const Icon(Icons.history_toggle_off_rounded),
+              label: const Text('Clear viewed history'),
             ),
             const SizedBox(height: 12),
             FilledButton.tonalIcon(
@@ -157,6 +194,112 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
     controller.dispose();
+  }
+}
+
+class _TagListEditor extends StatefulWidget {
+  const _TagListEditor({
+    required this.title,
+    required this.icon,
+    required this.tags,
+    required this.onChanged,
+    this.helper,
+  });
+
+  final String title;
+  final IconData icon;
+  final List<String> tags;
+  final ValueChanged<List<String>> onChanged;
+  final String? helper;
+
+  @override
+  State<_TagListEditor> createState() => _TagListEditorState();
+}
+
+class _TagListEditorState extends State<_TagListEditor> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(widget.icon, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  widget.title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ],
+            ),
+            if (widget.helper != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                widget.helper!,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final tag in widget.tags)
+                  InputChip(
+                    label: Text(tag),
+                    onDeleted: () => widget.onChanged(
+                      widget.tags.where((item) => item != tag).toList(),
+                    ),
+                  ),
+                SizedBox(
+                  width: 240,
+                  child: TextField(
+                    controller: _controller,
+                    decoration: const InputDecoration(
+                      isDense: true,
+                      hintText: 'Add tags',
+                      prefixIcon: Icon(Icons.tag_rounded),
+                    ),
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _submit(),
+                  ),
+                ),
+                IconButton.filledTonal(
+                  tooltip: 'Add tags',
+                  onPressed: _submit,
+                  icon: const Icon(Icons.add_rounded),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _submit() {
+    final incoming = _controller.text
+        .split(RegExp(r'\s+'))
+        .map((tag) => tag.trim().toLowerCase())
+        .where((tag) => tag.isNotEmpty);
+    final merged = <String>{...widget.tags, ...incoming}.toList()..sort();
+    _controller.clear();
+    widget.onChanged(merged);
   }
 }
 

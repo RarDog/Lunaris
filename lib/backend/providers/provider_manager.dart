@@ -5,6 +5,7 @@ import '../../core/utils/result.dart';
 import '../models/content_provider_config.dart';
 import '../models/post.dart';
 import '../models/post_comment.dart';
+import '../models/provider_diagnostics.dart';
 import '../models/provider_health.dart';
 import '../models/tag_suggestion.dart';
 import '../models/top_period_filter.dart';
@@ -97,6 +98,7 @@ class ProviderManager {
     }
 
     final posts = <Post>[];
+    final seen = <String>{};
     for (final provider in providers) {
       try {
         final providerPosts = await provider.searchPosts(
@@ -106,8 +108,25 @@ class ProviderManager {
           rating: rating,
           topPeriod: topPeriod,
         );
-        posts.addAll(providerPosts);
+        for (final post in providerPosts) {
+          if (seen.add(post.cacheKey)) posts.add(post);
+        }
+        await _repository.saveDiagnostics(
+          ProviderDiagnostics(
+            providerId: provider.id,
+            lastSearchAt: DateTime.now(),
+            lastResultCount: providerPosts.length,
+          ),
+        );
       } catch (_) {
+        await _repository.saveDiagnostics(
+          ProviderDiagnostics(
+            providerId: provider.id,
+            lastSearchAt: DateTime.now(),
+            lastResultCount: 0,
+            lastErrorMessage: 'Search failed',
+          ),
+        );
         await _repository.saveHealth(
           ProviderHealth(
             providerId: provider.id,

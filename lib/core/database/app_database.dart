@@ -7,8 +7,10 @@ import '../../backend/models/collection.dart';
 import '../../backend/models/content_provider_config.dart';
 import '../../backend/models/favorite.dart';
 import '../../backend/models/post.dart';
+import '../../backend/models/provider_diagnostics.dart';
 import '../../backend/models/provider_health.dart';
 import '../../backend/models/search_history.dart';
+import '../../backend/models/viewed_post.dart';
 
 part 'app_database.g.dart';
 
@@ -29,6 +31,8 @@ class AppDatabase {
         CollectionPostEntitySchema,
         SearchHistoryEntitySchema,
         AppSettingEntitySchema,
+        ViewedPostEntitySchema,
+        ProviderDiagnosticsEntitySchema,
       ],
       directory: dir,
       name: 'gel_rule_app',
@@ -275,4 +279,57 @@ class AppSettingEntity {
   late String key;
   late String jsonValue;
   late DateTime updatedAt;
+}
+
+@collection
+class ViewedPostEntity {
+  Id isarId = Isar.autoIncrement;
+
+  @Index(unique: true, replace: true)
+  late String viewedKey;
+  @Index(composite: [CompositeIndex('postId')])
+  late String providerId;
+  late String postId;
+  late DateTime viewedAt;
+
+  ViewedPost toModel() => ViewedPost(
+        viewedKey: viewedKey,
+        providerId: providerId,
+        postId: postId,
+        viewedAt: viewedAt,
+      );
+
+  static ViewedPostEntity fromModel(ViewedPost model) {
+    return ViewedPostEntity()
+      ..viewedKey = model.viewedKey
+      ..providerId = model.providerId
+      ..postId = model.postId
+      ..viewedAt = model.viewedAt;
+  }
+}
+
+@collection
+class ProviderDiagnosticsEntity {
+  Id isarId = Isar.autoIncrement;
+
+  @Index(unique: true, replace: true)
+  late String providerId;
+  late DateTime lastSearchAt;
+  late int lastResultCount;
+  String? lastErrorMessage;
+
+  ProviderDiagnostics toModel() => ProviderDiagnostics(
+        providerId: providerId,
+        lastSearchAt: lastSearchAt,
+        lastResultCount: lastResultCount,
+        lastErrorMessage: lastErrorMessage,
+      );
+
+  static ProviderDiagnosticsEntity fromModel(ProviderDiagnostics model) {
+    return ProviderDiagnosticsEntity()
+      ..providerId = model.providerId
+      ..lastSearchAt = model.lastSearchAt
+      ..lastResultCount = model.lastResultCount
+      ..lastErrorMessage = model.lastErrorMessage;
+  }
 }

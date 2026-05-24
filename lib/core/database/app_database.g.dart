@@ -12456,3 +12456,2147 @@ extension AppSettingEntityQueryProperty
     });
   }
 }
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
+extension GetViewedPostEntityCollection on Isar {
+  IsarCollection<ViewedPostEntity> get viewedPostEntitys => this.collection();
+}
+
+const ViewedPostEntitySchema = CollectionSchema(
+  name: r'ViewedPostEntity',
+  id: 1092589981525841594,
+  properties: {
+    r'postId': PropertySchema(
+      id: 0,
+      name: r'postId',
+      type: IsarType.string,
+    ),
+    r'providerId': PropertySchema(
+      id: 1,
+      name: r'providerId',
+      type: IsarType.string,
+    ),
+    r'viewedAt': PropertySchema(
+      id: 2,
+      name: r'viewedAt',
+      type: IsarType.dateTime,
+    ),
+    r'viewedKey': PropertySchema(
+      id: 3,
+      name: r'viewedKey',
+      type: IsarType.string,
+    )
+  },
+  estimateSize: _viewedPostEntityEstimateSize,
+  serialize: _viewedPostEntitySerialize,
+  deserialize: _viewedPostEntityDeserialize,
+  deserializeProp: _viewedPostEntityDeserializeProp,
+  idName: r'isarId',
+  indexes: {
+    r'viewedKey': IndexSchema(
+      id: 7976054145357241653,
+      name: r'viewedKey',
+      unique: true,
+      replace: true,
+      properties: [
+        IndexPropertySchema(
+          name: r'viewedKey',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    ),
+    r'providerId_postId': IndexSchema(
+      id: 711415917800973915,
+      name: r'providerId_postId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'providerId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        ),
+        IndexPropertySchema(
+          name: r'postId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    )
+  },
+  links: {},
+  embeddedSchemas: {},
+  getId: _viewedPostEntityGetId,
+  getLinks: _viewedPostEntityGetLinks,
+  attach: _viewedPostEntityAttach,
+  version: '3.1.0+1',
+);
+
+int _viewedPostEntityEstimateSize(
+  ViewedPostEntity object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  bytesCount += 3 + object.postId.length * 3;
+  bytesCount += 3 + object.providerId.length * 3;
+  bytesCount += 3 + object.viewedKey.length * 3;
+  return bytesCount;
+}
+
+void _viewedPostEntitySerialize(
+  ViewedPostEntity object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeString(offsets[0], object.postId);
+  writer.writeString(offsets[1], object.providerId);
+  writer.writeDateTime(offsets[2], object.viewedAt);
+  writer.writeString(offsets[3], object.viewedKey);
+}
+
+ViewedPostEntity _viewedPostEntityDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = ViewedPostEntity();
+  object.isarId = id;
+  object.postId = reader.readString(offsets[0]);
+  object.providerId = reader.readString(offsets[1]);
+  object.viewedAt = reader.readDateTime(offsets[2]);
+  object.viewedKey = reader.readString(offsets[3]);
+  return object;
+}
+
+P _viewedPostEntityDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readString(offset)) as P;
+    case 1:
+      return (reader.readString(offset)) as P;
+    case 2:
+      return (reader.readDateTime(offset)) as P;
+    case 3:
+      return (reader.readString(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+Id _viewedPostEntityGetId(ViewedPostEntity object) {
+  return object.isarId;
+}
+
+List<IsarLinkBase<dynamic>> _viewedPostEntityGetLinks(ViewedPostEntity object) {
+  return [];
+}
+
+void _viewedPostEntityAttach(
+    IsarCollection<dynamic> col, Id id, ViewedPostEntity object) {
+  object.isarId = id;
+}
+
+extension ViewedPostEntityByIndex on IsarCollection<ViewedPostEntity> {
+  Future<ViewedPostEntity?> getByViewedKey(String viewedKey) {
+    return getByIndex(r'viewedKey', [viewedKey]);
+  }
+
+  ViewedPostEntity? getByViewedKeySync(String viewedKey) {
+    return getByIndexSync(r'viewedKey', [viewedKey]);
+  }
+
+  Future<bool> deleteByViewedKey(String viewedKey) {
+    return deleteByIndex(r'viewedKey', [viewedKey]);
+  }
+
+  bool deleteByViewedKeySync(String viewedKey) {
+    return deleteByIndexSync(r'viewedKey', [viewedKey]);
+  }
+
+  Future<List<ViewedPostEntity?>> getAllByViewedKey(
+      List<String> viewedKeyValues) {
+    final values = viewedKeyValues.map((e) => [e]).toList();
+    return getAllByIndex(r'viewedKey', values);
+  }
+
+  List<ViewedPostEntity?> getAllByViewedKeySync(List<String> viewedKeyValues) {
+    final values = viewedKeyValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'viewedKey', values);
+  }
+
+  Future<int> deleteAllByViewedKey(List<String> viewedKeyValues) {
+    final values = viewedKeyValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'viewedKey', values);
+  }
+
+  int deleteAllByViewedKeySync(List<String> viewedKeyValues) {
+    final values = viewedKeyValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'viewedKey', values);
+  }
+
+  Future<Id> putByViewedKey(ViewedPostEntity object) {
+    return putByIndex(r'viewedKey', object);
+  }
+
+  Id putByViewedKeySync(ViewedPostEntity object, {bool saveLinks = true}) {
+    return putByIndexSync(r'viewedKey', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByViewedKey(List<ViewedPostEntity> objects) {
+    return putAllByIndex(r'viewedKey', objects);
+  }
+
+  List<Id> putAllByViewedKeySync(List<ViewedPostEntity> objects,
+      {bool saveLinks = true}) {
+    return putAllByIndexSync(r'viewedKey', objects, saveLinks: saveLinks);
+  }
+}
+
+extension ViewedPostEntityQueryWhereSort
+    on QueryBuilder<ViewedPostEntity, ViewedPostEntity, QWhere> {
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterWhere> anyIsarId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(const IdWhereClause.any());
+    });
+  }
+}
+
+extension ViewedPostEntityQueryWhere
+    on QueryBuilder<ViewedPostEntity, ViewedPostEntity, QWhereClause> {
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterWhereClause>
+      isarIdEqualTo(Id isarId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IdWhereClause.between(
+        lower: isarId,
+        upper: isarId,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterWhereClause>
+      isarIdNotEqualTo(Id isarId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IdWhereClause.lessThan(upper: isarId, includeUpper: false),
+            )
+            .addWhereClause(
+              IdWhereClause.greaterThan(lower: isarId, includeLower: false),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IdWhereClause.greaterThan(lower: isarId, includeLower: false),
+            )
+            .addWhereClause(
+              IdWhereClause.lessThan(upper: isarId, includeUpper: false),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterWhereClause>
+      isarIdGreaterThan(Id isarId, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.greaterThan(lower: isarId, includeLower: include),
+      );
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterWhereClause>
+      isarIdLessThan(Id isarId, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.lessThan(upper: isarId, includeUpper: include),
+      );
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterWhereClause>
+      isarIdBetween(
+    Id lowerIsarId,
+    Id upperIsarId, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IdWhereClause.between(
+        lower: lowerIsarId,
+        includeLower: includeLower,
+        upper: upperIsarId,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterWhereClause>
+      viewedKeyEqualTo(String viewedKey) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'viewedKey',
+        value: [viewedKey],
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterWhereClause>
+      viewedKeyNotEqualTo(String viewedKey) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'viewedKey',
+              lower: [],
+              upper: [viewedKey],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'viewedKey',
+              lower: [viewedKey],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'viewedKey',
+              lower: [viewedKey],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'viewedKey',
+              lower: [],
+              upper: [viewedKey],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterWhereClause>
+      providerIdEqualToAnyPostId(String providerId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'providerId_postId',
+        value: [providerId],
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterWhereClause>
+      providerIdNotEqualToAnyPostId(String providerId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'providerId_postId',
+              lower: [],
+              upper: [providerId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'providerId_postId',
+              lower: [providerId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'providerId_postId',
+              lower: [providerId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'providerId_postId',
+              lower: [],
+              upper: [providerId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterWhereClause>
+      providerIdPostIdEqualTo(String providerId, String postId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'providerId_postId',
+        value: [providerId, postId],
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterWhereClause>
+      providerIdEqualToPostIdNotEqualTo(String providerId, String postId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'providerId_postId',
+              lower: [providerId],
+              upper: [providerId, postId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'providerId_postId',
+              lower: [providerId, postId],
+              includeLower: false,
+              upper: [providerId],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'providerId_postId',
+              lower: [providerId, postId],
+              includeLower: false,
+              upper: [providerId],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'providerId_postId',
+              lower: [providerId],
+              upper: [providerId, postId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+}
+
+extension ViewedPostEntityQueryFilter
+    on QueryBuilder<ViewedPostEntity, ViewedPostEntity, QFilterCondition> {
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      isarIdEqualTo(Id value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isarId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      isarIdGreaterThan(
+    Id value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'isarId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      isarIdLessThan(
+    Id value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'isarId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      isarIdBetween(
+    Id lower,
+    Id upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'isarId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      postIdEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'postId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      postIdGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'postId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      postIdLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'postId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      postIdBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'postId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      postIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'postId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      postIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'postId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      postIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'postId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      postIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'postId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      postIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'postId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      postIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'postId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      providerIdEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'providerId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      providerIdGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'providerId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      providerIdLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'providerId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      providerIdBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'providerId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      providerIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'providerId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      providerIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'providerId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      providerIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'providerId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      providerIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'providerId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      providerIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'providerId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      providerIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'providerId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      viewedAtEqualTo(DateTime value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'viewedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      viewedAtGreaterThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'viewedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      viewedAtLessThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'viewedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      viewedAtBetween(
+    DateTime lower,
+    DateTime upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'viewedAt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      viewedKeyEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'viewedKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      viewedKeyGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'viewedKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      viewedKeyLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'viewedKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      viewedKeyBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'viewedKey',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      viewedKeyStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'viewedKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      viewedKeyEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'viewedKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      viewedKeyContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'viewedKey',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      viewedKeyMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'viewedKey',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      viewedKeyIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'viewedKey',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterFilterCondition>
+      viewedKeyIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'viewedKey',
+        value: '',
+      ));
+    });
+  }
+}
+
+extension ViewedPostEntityQueryObject
+    on QueryBuilder<ViewedPostEntity, ViewedPostEntity, QFilterCondition> {}
+
+extension ViewedPostEntityQueryLinks
+    on QueryBuilder<ViewedPostEntity, ViewedPostEntity, QFilterCondition> {}
+
+extension ViewedPostEntityQuerySortBy
+    on QueryBuilder<ViewedPostEntity, ViewedPostEntity, QSortBy> {
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterSortBy>
+      sortByPostId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'postId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterSortBy>
+      sortByPostIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'postId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterSortBy>
+      sortByProviderId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'providerId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterSortBy>
+      sortByProviderIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'providerId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterSortBy>
+      sortByViewedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'viewedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterSortBy>
+      sortByViewedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'viewedAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterSortBy>
+      sortByViewedKey() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'viewedKey', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterSortBy>
+      sortByViewedKeyDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'viewedKey', Sort.desc);
+    });
+  }
+}
+
+extension ViewedPostEntityQuerySortThenBy
+    on QueryBuilder<ViewedPostEntity, ViewedPostEntity, QSortThenBy> {
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterSortBy>
+      thenByIsarId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isarId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterSortBy>
+      thenByIsarIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isarId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterSortBy>
+      thenByPostId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'postId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterSortBy>
+      thenByPostIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'postId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterSortBy>
+      thenByProviderId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'providerId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterSortBy>
+      thenByProviderIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'providerId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterSortBy>
+      thenByViewedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'viewedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterSortBy>
+      thenByViewedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'viewedAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterSortBy>
+      thenByViewedKey() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'viewedKey', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QAfterSortBy>
+      thenByViewedKeyDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'viewedKey', Sort.desc);
+    });
+  }
+}
+
+extension ViewedPostEntityQueryWhereDistinct
+    on QueryBuilder<ViewedPostEntity, ViewedPostEntity, QDistinct> {
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QDistinct> distinctByPostId(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'postId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QDistinct>
+      distinctByProviderId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'providerId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QDistinct>
+      distinctByViewedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'viewedAt');
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, ViewedPostEntity, QDistinct>
+      distinctByViewedKey({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'viewedKey', caseSensitive: caseSensitive);
+    });
+  }
+}
+
+extension ViewedPostEntityQueryProperty
+    on QueryBuilder<ViewedPostEntity, ViewedPostEntity, QQueryProperty> {
+  QueryBuilder<ViewedPostEntity, int, QQueryOperations> isarIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isarId');
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, String, QQueryOperations> postIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'postId');
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, String, QQueryOperations>
+      providerIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'providerId');
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, DateTime, QQueryOperations>
+      viewedAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'viewedAt');
+    });
+  }
+
+  QueryBuilder<ViewedPostEntity, String, QQueryOperations> viewedKeyProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'viewedKey');
+    });
+  }
+}
+
+// coverage:ignore-file
+// ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
+
+extension GetProviderDiagnosticsEntityCollection on Isar {
+  IsarCollection<ProviderDiagnosticsEntity> get providerDiagnosticsEntitys =>
+      this.collection();
+}
+
+const ProviderDiagnosticsEntitySchema = CollectionSchema(
+  name: r'ProviderDiagnosticsEntity',
+  id: -3843424147953592067,
+  properties: {
+    r'lastErrorMessage': PropertySchema(
+      id: 0,
+      name: r'lastErrorMessage',
+      type: IsarType.string,
+    ),
+    r'lastResultCount': PropertySchema(
+      id: 1,
+      name: r'lastResultCount',
+      type: IsarType.long,
+    ),
+    r'lastSearchAt': PropertySchema(
+      id: 2,
+      name: r'lastSearchAt',
+      type: IsarType.dateTime,
+    ),
+    r'providerId': PropertySchema(
+      id: 3,
+      name: r'providerId',
+      type: IsarType.string,
+    )
+  },
+  estimateSize: _providerDiagnosticsEntityEstimateSize,
+  serialize: _providerDiagnosticsEntitySerialize,
+  deserialize: _providerDiagnosticsEntityDeserialize,
+  deserializeProp: _providerDiagnosticsEntityDeserializeProp,
+  idName: r'isarId',
+  indexes: {
+    r'providerId': IndexSchema(
+      id: -1675978104265523206,
+      name: r'providerId',
+      unique: true,
+      replace: true,
+      properties: [
+        IndexPropertySchema(
+          name: r'providerId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        )
+      ],
+    )
+  },
+  links: {},
+  embeddedSchemas: {},
+  getId: _providerDiagnosticsEntityGetId,
+  getLinks: _providerDiagnosticsEntityGetLinks,
+  attach: _providerDiagnosticsEntityAttach,
+  version: '3.1.0+1',
+);
+
+int _providerDiagnosticsEntityEstimateSize(
+  ProviderDiagnosticsEntity object,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  var bytesCount = offsets.last;
+  {
+    final value = object.lastErrorMessage;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  bytesCount += 3 + object.providerId.length * 3;
+  return bytesCount;
+}
+
+void _providerDiagnosticsEntitySerialize(
+  ProviderDiagnosticsEntity object,
+  IsarWriter writer,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  writer.writeString(offsets[0], object.lastErrorMessage);
+  writer.writeLong(offsets[1], object.lastResultCount);
+  writer.writeDateTime(offsets[2], object.lastSearchAt);
+  writer.writeString(offsets[3], object.providerId);
+}
+
+ProviderDiagnosticsEntity _providerDiagnosticsEntityDeserialize(
+  Id id,
+  IsarReader reader,
+  List<int> offsets,
+  Map<Type, List<int>> allOffsets,
+) {
+  final object = ProviderDiagnosticsEntity();
+  object.isarId = id;
+  object.lastErrorMessage = reader.readStringOrNull(offsets[0]);
+  object.lastResultCount = reader.readLong(offsets[1]);
+  object.lastSearchAt = reader.readDateTime(offsets[2]);
+  object.providerId = reader.readString(offsets[3]);
+  return object;
+}
+
+P _providerDiagnosticsEntityDeserializeProp<P>(
+  IsarReader reader,
+  int propertyId,
+  int offset,
+  Map<Type, List<int>> allOffsets,
+) {
+  switch (propertyId) {
+    case 0:
+      return (reader.readStringOrNull(offset)) as P;
+    case 1:
+      return (reader.readLong(offset)) as P;
+    case 2:
+      return (reader.readDateTime(offset)) as P;
+    case 3:
+      return (reader.readString(offset)) as P;
+    default:
+      throw IsarError('Unknown property with id $propertyId');
+  }
+}
+
+Id _providerDiagnosticsEntityGetId(ProviderDiagnosticsEntity object) {
+  return object.isarId;
+}
+
+List<IsarLinkBase<dynamic>> _providerDiagnosticsEntityGetLinks(
+    ProviderDiagnosticsEntity object) {
+  return [];
+}
+
+void _providerDiagnosticsEntityAttach(
+    IsarCollection<dynamic> col, Id id, ProviderDiagnosticsEntity object) {
+  object.isarId = id;
+}
+
+extension ProviderDiagnosticsEntityByIndex
+    on IsarCollection<ProviderDiagnosticsEntity> {
+  Future<ProviderDiagnosticsEntity?> getByProviderId(String providerId) {
+    return getByIndex(r'providerId', [providerId]);
+  }
+
+  ProviderDiagnosticsEntity? getByProviderIdSync(String providerId) {
+    return getByIndexSync(r'providerId', [providerId]);
+  }
+
+  Future<bool> deleteByProviderId(String providerId) {
+    return deleteByIndex(r'providerId', [providerId]);
+  }
+
+  bool deleteByProviderIdSync(String providerId) {
+    return deleteByIndexSync(r'providerId', [providerId]);
+  }
+
+  Future<List<ProviderDiagnosticsEntity?>> getAllByProviderId(
+      List<String> providerIdValues) {
+    final values = providerIdValues.map((e) => [e]).toList();
+    return getAllByIndex(r'providerId', values);
+  }
+
+  List<ProviderDiagnosticsEntity?> getAllByProviderIdSync(
+      List<String> providerIdValues) {
+    final values = providerIdValues.map((e) => [e]).toList();
+    return getAllByIndexSync(r'providerId', values);
+  }
+
+  Future<int> deleteAllByProviderId(List<String> providerIdValues) {
+    final values = providerIdValues.map((e) => [e]).toList();
+    return deleteAllByIndex(r'providerId', values);
+  }
+
+  int deleteAllByProviderIdSync(List<String> providerIdValues) {
+    final values = providerIdValues.map((e) => [e]).toList();
+    return deleteAllByIndexSync(r'providerId', values);
+  }
+
+  Future<Id> putByProviderId(ProviderDiagnosticsEntity object) {
+    return putByIndex(r'providerId', object);
+  }
+
+  Id putByProviderIdSync(ProviderDiagnosticsEntity object,
+      {bool saveLinks = true}) {
+    return putByIndexSync(r'providerId', object, saveLinks: saveLinks);
+  }
+
+  Future<List<Id>> putAllByProviderId(List<ProviderDiagnosticsEntity> objects) {
+    return putAllByIndex(r'providerId', objects);
+  }
+
+  List<Id> putAllByProviderIdSync(List<ProviderDiagnosticsEntity> objects,
+      {bool saveLinks = true}) {
+    return putAllByIndexSync(r'providerId', objects, saveLinks: saveLinks);
+  }
+}
+
+extension ProviderDiagnosticsEntityQueryWhereSort on QueryBuilder<
+    ProviderDiagnosticsEntity, ProviderDiagnosticsEntity, QWhere> {
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterWhere> anyIsarId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(const IdWhereClause.any());
+    });
+  }
+}
+
+extension ProviderDiagnosticsEntityQueryWhere on QueryBuilder<
+    ProviderDiagnosticsEntity, ProviderDiagnosticsEntity, QWhereClause> {
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterWhereClause> isarIdEqualTo(Id isarId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IdWhereClause.between(
+        lower: isarId,
+        upper: isarId,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterWhereClause> isarIdNotEqualTo(Id isarId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IdWhereClause.lessThan(upper: isarId, includeUpper: false),
+            )
+            .addWhereClause(
+              IdWhereClause.greaterThan(lower: isarId, includeLower: false),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IdWhereClause.greaterThan(lower: isarId, includeLower: false),
+            )
+            .addWhereClause(
+              IdWhereClause.lessThan(upper: isarId, includeUpper: false),
+            );
+      }
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterWhereClause> isarIdGreaterThan(Id isarId, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.greaterThan(lower: isarId, includeLower: include),
+      );
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterWhereClause> isarIdLessThan(Id isarId, {bool include = false}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IdWhereClause.lessThan(upper: isarId, includeUpper: include),
+      );
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterWhereClause> isarIdBetween(
+    Id lowerIsarId,
+    Id upperIsarId, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IdWhereClause.between(
+        lower: lowerIsarId,
+        includeLower: includeLower,
+        upper: upperIsarId,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterWhereClause> providerIdEqualTo(String providerId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'providerId',
+        value: [providerId],
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterWhereClause> providerIdNotEqualTo(String providerId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'providerId',
+              lower: [],
+              upper: [providerId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'providerId',
+              lower: [providerId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'providerId',
+              lower: [providerId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'providerId',
+              lower: [],
+              upper: [providerId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+}
+
+extension ProviderDiagnosticsEntityQueryFilter on QueryBuilder<
+    ProviderDiagnosticsEntity, ProviderDiagnosticsEntity, QFilterCondition> {
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> isarIdEqualTo(Id value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isarId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> isarIdGreaterThan(
+    Id value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'isarId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> isarIdLessThan(
+    Id value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'isarId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> isarIdBetween(
+    Id lower,
+    Id upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'isarId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> lastErrorMessageIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'lastErrorMessage',
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> lastErrorMessageIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'lastErrorMessage',
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> lastErrorMessageEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lastErrorMessage',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> lastErrorMessageGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'lastErrorMessage',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> lastErrorMessageLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'lastErrorMessage',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> lastErrorMessageBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'lastErrorMessage',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> lastErrorMessageStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'lastErrorMessage',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> lastErrorMessageEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'lastErrorMessage',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+          QAfterFilterCondition>
+      lastErrorMessageContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'lastErrorMessage',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+          QAfterFilterCondition>
+      lastErrorMessageMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'lastErrorMessage',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> lastErrorMessageIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lastErrorMessage',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> lastErrorMessageIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'lastErrorMessage',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> lastResultCountEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lastResultCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> lastResultCountGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'lastResultCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> lastResultCountLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'lastResultCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> lastResultCountBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'lastResultCount',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> lastSearchAtEqualTo(DateTime value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lastSearchAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> lastSearchAtGreaterThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'lastSearchAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> lastSearchAtLessThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'lastSearchAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> lastSearchAtBetween(
+    DateTime lower,
+    DateTime upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'lastSearchAt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> providerIdEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'providerId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> providerIdGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'providerId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> providerIdLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'providerId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> providerIdBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'providerId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> providerIdStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'providerId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> providerIdEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'providerId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+          QAfterFilterCondition>
+      providerIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'providerId',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+          QAfterFilterCondition>
+      providerIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'providerId',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> providerIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'providerId',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterFilterCondition> providerIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'providerId',
+        value: '',
+      ));
+    });
+  }
+}
+
+extension ProviderDiagnosticsEntityQueryObject on QueryBuilder<
+    ProviderDiagnosticsEntity, ProviderDiagnosticsEntity, QFilterCondition> {}
+
+extension ProviderDiagnosticsEntityQueryLinks on QueryBuilder<
+    ProviderDiagnosticsEntity, ProviderDiagnosticsEntity, QFilterCondition> {}
+
+extension ProviderDiagnosticsEntityQuerySortBy on QueryBuilder<
+    ProviderDiagnosticsEntity, ProviderDiagnosticsEntity, QSortBy> {
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterSortBy> sortByLastErrorMessage() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastErrorMessage', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterSortBy> sortByLastErrorMessageDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastErrorMessage', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterSortBy> sortByLastResultCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastResultCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterSortBy> sortByLastResultCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastResultCount', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterSortBy> sortByLastSearchAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSearchAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterSortBy> sortByLastSearchAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSearchAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterSortBy> sortByProviderId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'providerId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterSortBy> sortByProviderIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'providerId', Sort.desc);
+    });
+  }
+}
+
+extension ProviderDiagnosticsEntityQuerySortThenBy on QueryBuilder<
+    ProviderDiagnosticsEntity, ProviderDiagnosticsEntity, QSortThenBy> {
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterSortBy> thenByIsarId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isarId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterSortBy> thenByIsarIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isarId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterSortBy> thenByLastErrorMessage() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastErrorMessage', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterSortBy> thenByLastErrorMessageDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastErrorMessage', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterSortBy> thenByLastResultCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastResultCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterSortBy> thenByLastResultCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastResultCount', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterSortBy> thenByLastSearchAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSearchAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterSortBy> thenByLastSearchAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSearchAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterSortBy> thenByProviderId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'providerId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity,
+      QAfterSortBy> thenByProviderIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'providerId', Sort.desc);
+    });
+  }
+}
+
+extension ProviderDiagnosticsEntityQueryWhereDistinct on QueryBuilder<
+    ProviderDiagnosticsEntity, ProviderDiagnosticsEntity, QDistinct> {
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity, QDistinct>
+      distinctByLastErrorMessage({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lastErrorMessage',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity, QDistinct>
+      distinctByLastResultCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lastResultCount');
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity, QDistinct>
+      distinctByLastSearchAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lastSearchAt');
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, ProviderDiagnosticsEntity, QDistinct>
+      distinctByProviderId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'providerId', caseSensitive: caseSensitive);
+    });
+  }
+}
+
+extension ProviderDiagnosticsEntityQueryProperty on QueryBuilder<
+    ProviderDiagnosticsEntity, ProviderDiagnosticsEntity, QQueryProperty> {
+  QueryBuilder<ProviderDiagnosticsEntity, int, QQueryOperations>
+      isarIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isarId');
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, String?, QQueryOperations>
+      lastErrorMessageProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastErrorMessage');
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, int, QQueryOperations>
+      lastResultCountProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastResultCount');
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, DateTime, QQueryOperations>
+      lastSearchAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastSearchAt');
+    });
+  }
+
+  QueryBuilder<ProviderDiagnosticsEntity, String, QQueryOperations>
+      providerIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'providerId');
+    });
+  }
+}

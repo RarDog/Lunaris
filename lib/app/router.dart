@@ -12,6 +12,7 @@ import '../features/providers/presentation/provider_form_screen.dart';
 import '../features/providers/presentation/providers_screen.dart';
 import '../features/search/presentation/search_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
+import '../features/viewed/presentation/viewed_screen.dart';
 import '../shared/widgets/app_shell.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -42,6 +43,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/favorites',
             builder: (context, state) => const FavoritesScreen(),
+          ),
+          GoRoute(
+            path: '/viewed',
+            builder: (context, state) => const ViewedScreen(),
           ),
           GoRoute(
             path: '/collections',

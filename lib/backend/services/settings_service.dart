@@ -24,6 +24,10 @@ class AppSettings {
     required this.selectedFeedProviderIds,
     required this.showPostBadges,
     required this.defaultTopPeriodFilter,
+    required this.blacklistedTags,
+    required this.whitelistedTags,
+    required this.smartBlacklistRules,
+    required this.hideViewedPosts,
     this.defaultRatingFilter,
   });
 
@@ -40,6 +44,10 @@ class AppSettings {
   final List<String> selectedFeedProviderIds;
   final bool showPostBadges;
   final String defaultTopPeriodFilter;
+  final List<String> blacklistedTags;
+  final List<String> whitelistedTags;
+  final List<String> smartBlacklistRules;
+  final bool hideViewedPosts;
   final String? defaultRatingFilter;
 
   static const defaults = AppSettings(
@@ -56,6 +64,10 @@ class AppSettings {
     selectedFeedProviderIds: [],
     showPostBadges: true,
     defaultTopPeriodFilter: 'none',
+    blacklistedTags: [],
+    whitelistedTags: [],
+    smartBlacklistRules: [],
+    hideViewedPosts: false,
     defaultRatingFilter: null,
   );
 
@@ -73,6 +85,10 @@ class AppSettings {
     List<String>? selectedFeedProviderIds,
     bool? showPostBadges,
     String? defaultTopPeriodFilter,
+    List<String>? blacklistedTags,
+    List<String>? whitelistedTags,
+    List<String>? smartBlacklistRules,
+    bool? hideViewedPosts,
     String? defaultRatingFilter,
   }) {
     return AppSettings(
@@ -91,6 +107,10 @@ class AppSettings {
       showPostBadges: showPostBadges ?? this.showPostBadges,
       defaultTopPeriodFilter:
           defaultTopPeriodFilter ?? this.defaultTopPeriodFilter,
+      blacklistedTags: blacklistedTags ?? this.blacklistedTags,
+      whitelistedTags: whitelistedTags ?? this.whitelistedTags,
+      smartBlacklistRules: smartBlacklistRules ?? this.smartBlacklistRules,
+      hideViewedPosts: hideViewedPosts ?? this.hideViewedPosts,
       defaultRatingFilter: defaultRatingFilter ?? this.defaultRatingFilter,
     );
   }
@@ -109,6 +129,10 @@ class AppSettings {
         'selectedFeedProviderIds': selectedFeedProviderIds,
         'showPostBadges': showPostBadges,
         'defaultTopPeriodFilter': defaultTopPeriodFilter,
+        'blacklistedTags': blacklistedTags,
+        'whitelistedTags': whitelistedTags,
+        'smartBlacklistRules': smartBlacklistRules,
+        'hideViewedPosts': hideViewedPosts,
         'defaultRatingFilter': defaultRatingFilter,
       };
 
@@ -141,6 +165,19 @@ class AppSettings {
             (json['showPostBadges'] as bool?) ?? defaults.showPostBadges,
         defaultTopPeriodFilter: (json['defaultTopPeriodFilter'] as String?) ??
             defaults.defaultTopPeriodFilter,
+        blacklistedTags: List<String>.from(
+          (json['blacklistedTags'] as List?) ?? defaults.blacklistedTags,
+        ),
+        whitelistedTags: List<String>.from(
+          (json['whitelistedTags'] as List?) ?? defaults.whitelistedTags,
+        ),
+        smartBlacklistRules: List<String>.from(
+          (json['smartBlacklistRules'] as List?) ??
+              (json['blacklistedTags'] as List?) ??
+              defaults.smartBlacklistRules,
+        ),
+        hideViewedPosts:
+            (json['hideViewedPosts'] as bool?) ?? defaults.hideViewedPosts,
         defaultRatingFilter: json['defaultRatingFilter'] as String?,
       );
 }

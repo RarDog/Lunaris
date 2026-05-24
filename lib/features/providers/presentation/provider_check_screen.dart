@@ -15,6 +15,7 @@ class ProviderCheckScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final providers = ref.watch(providersControllerProvider);
     final health = ref.watch(providerHealthProvider);
+    final diagnostics = ref.watch(providerDiagnosticsProvider).value ?? {};
     return AdaptiveScaffold(
       title: 'Provider Check',
       actions: [
@@ -35,6 +36,7 @@ class ProviderCheckScreen extends ConsumerWidget {
             return ProviderHealthTile(
               config: item,
               health: health[item.id],
+              diagnostics: diagnostics[item.id],
               onCheck: () => _checkOne(ref, item.id),
             );
           },

@@ -3,14 +3,22 @@ import '../../core/utils/result.dart';
 import '../models/post.dart';
 import '../models/top_period_filter.dart';
 import '../providers/provider_manager.dart';
+import '../services/viewed_history_service.dart';
+import '../utils/smart_blacklist.dart';
 import 'settings_service.dart';
 
 class FeedService {
-  FeedService(this._providerManager, this._cacheService, this._settingsService);
+  FeedService(
+    this._providerManager,
+    this._cacheService,
+    this._settingsService,
+    this._viewedHistoryService,
+  );
 
   final ProviderManager _providerManager;
   final CacheService _cacheService;
   final SettingsService _settingsService;
+  final ViewedHistoryService _viewedHistoryService;
   final Map<String, int> _pages = {};
 
   String _key(
@@ -61,10 +69,65 @@ class FeedService {
     final posts = (result as Success<List<Post>>).data;
     _pages[key] = page + 1;
     final settingsResult = await _settingsService.getSettings();
-    final maxItems = settingsResult is Success<AppSettings>
-        ? settingsResult.data.cacheMaxItems
-        : null;
-    await _cacheService.cachePosts(posts, maxItems: maxItems);
-    return Success(posts);
+    final settings = settingsResult is Success<AppSettings>
+        ? settingsResult.data
+        : AppSettings.defaults;
+    final viewedKeysResult = settings.hideViewedPosts
+        ? await _viewedHistoryService.getViewedKeys()
+        : const Success(<String>{});
+    final viewedKeys = viewedKeysResult is Success<Set<String>>
+        ? viewedKeysResult.data
+        : <String>{};
+    final filteredPosts = posts
+        .where((post) => postMatchesRequestedTags(post, tags))
+        .where((post) => postPassesTagFilters(post, settings))
+        .where((post) =>
+            !settings.hideViewedPosts || !viewedKeys.contains(post.cacheKey))
+        .toList(growable: false);
+    await _cacheService.cachePosts(
+      filteredPosts,
+      maxItems: settings.cacheMaxItems,
+    );
+    return Success(filteredPosts);
   }
+}
+
+bool postMatchesRequestedTags(Post post, List<String> requestedTags) {
+  final requested = requestedTags
+      .map((tag) => tag.trim().toLowerCase())
+      .where((tag) => tag.isNotEmpty && !tag.startsWith('-'))
+      .toList(growable: false);
+  if (requested.isEmpty) return true;
+  final postTags = _postTagSet(post);
+  return requested.every(postTags.contains);
+}
+
+bool postPassesTagFilters(Post post, AppSettings settings) {
+  final tags = _postTagSet(post);
+  if (tags.isEmpty) return settings.whitelistedTags.isEmpty;
+
+  final blacklist = [
+    ...settings.smartBlacklistRules,
+    ...settings.blacklistedTags,
+  ].map((tag) => tag.trim().toLowerCase()).where((tag) => tag.isNotEmpty);
+  if (blacklist.any((rule) => SmartBlacklistMatcher.matches(post, rule))) {
+    return false;
+  }
+
+  final whitelist = settings.whitelistedTags
+      .map((tag) => tag.trim().toLowerCase())
+      .where((tag) => tag.isNotEmpty)
+      .toList(growable: false);
+  if (whitelist.isEmpty) return true;
+  return whitelist.any(tags.contains);
+}
+
+Set<String> _postTagSet(Post post) {
+  return <String>{
+    ...post.tags,
+    for (final group in post.tagGroups.values) ...group,
+  }
+      .map((tag) => tag.trim().toLowerCase())
+      .where((tag) => tag.isNotEmpty)
+      .toSet();
 }

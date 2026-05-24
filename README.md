@@ -62,6 +62,10 @@ The MVP ships with seed configs for:
 - Gelbooru: `https://gelbooru.com`
 - Rule34: `https://api.rule34.xxx`
 - Safebooru: `https://safebooru.org`
+- Konachan: `https://konachan.com`
+- Yande.re: `https://yande.re`
+- e621: `https://e621.net`
+- e926: `https://e926.net`
 
 Providers implement:
 
@@ -109,6 +113,8 @@ For custom providers, MVP supports these `apiType` values:
 - `gelbooru`
 - `rule34`
 - `danbooru`
+- `moebooru`
+- `e621`
 
 Unsupported types return `ProviderUnavailableException` instead of crashing the app.
 

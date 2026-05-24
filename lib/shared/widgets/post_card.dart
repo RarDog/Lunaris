@@ -12,6 +12,7 @@ class PostCard extends StatefulWidget {
     required this.blurExplicit,
     required this.showBadges,
     required this.isFavorite,
+    required this.isViewed,
     required this.onOpen,
     required this.onFavorite,
     this.onAddToCollection,
@@ -22,6 +23,7 @@ class PostCard extends StatefulWidget {
   final bool blurExplicit;
   final bool showBadges;
   final bool isFavorite;
+  final bool isViewed;
   final VoidCallback onOpen;
   final VoidCallback onFavorite;
   final VoidCallback? onAddToCollection;
@@ -110,6 +112,12 @@ class _PostCardState extends State<PostCard> {
                   bottom: 8,
                   child: _MediaBadge(fileType: post.fileType),
                 ),
+                if (widget.isViewed)
+                  const Positioned(
+                    right: 8,
+                    bottom: 8,
+                    child: _SeenBadge(),
+                  ),
               ],
               if (mobile)
                 Positioned(
@@ -277,6 +285,34 @@ class _MediaBadge extends StatelessWidget {
         'gif' => Icons.gif_box_rounded,
         _ => Icons.image_rounded,
       };
+}
+
+class _SeenBadge extends StatelessWidget {
+  const _SeenBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.visibility_rounded, size: 12, color: Colors.white),
+            SizedBox(width: 4),
+            Text(
+              'seen',
+              style: TextStyle(fontSize: 11, color: Colors.white),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 Future<void> showAddToCollectionPicker(

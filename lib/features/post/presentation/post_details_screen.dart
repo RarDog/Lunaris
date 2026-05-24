@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/app.dart';
@@ -16,6 +17,7 @@ import '../../../shared/widgets/rating_badge.dart';
 import '../../collections/presentation/collection_form_dialog.dart';
 import '../../favorites/presentation/favorites_controller.dart';
 import '../../feed/presentation/feed_controller.dart';
+import '../../viewed/presentation/viewed_controller.dart';
 import 'post_details_controller.dart';
 import 'widgets/post_action_bar.dart';
 import 'widgets/post_media_viewer.dart';
@@ -69,6 +71,11 @@ class PostDetailsScreen extends ConsumerWidget {
         error: (error, _) => ErrorView(message: error.toString()),
         data: (post) {
           if (post == null) return const EmptyView(title: 'Post not found');
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ref.read(viewedHistoryServiceProvider).markViewed(post);
+            ref.invalidate(viewedKeysProvider);
+            ref.invalidate(viewedControllerProvider);
+          });
           final currentIndex = feedPosts.indexWhere(
             (item) => item.providerId == post.providerId && item.id == post.id,
           );
@@ -99,70 +106,131 @@ class PostDetailsScreen extends ConsumerWidget {
               favoriteKeys,
             );
           }
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  IconButton.filledTonal(
-                    tooltip: 'Previous',
-                    onPressed: previous == null
-                        ? null
-                        : () => _openPost(context, previous),
-                    icon: const Icon(Icons.chevron_left_rounded),
-                  ),
-                  Expanded(
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxHeight: 760),
-                        child: PostMediaViewer(post: post),
+          return Shortcuts(
+            shortcuts: {
+              LogicalKeySet(LogicalKeyboardKey.arrowLeft):
+                  const _PreviousPostIntent(),
+              LogicalKeySet(LogicalKeyboardKey.arrowRight):
+                  const _NextPostIntent(),
+              LogicalKeySet(LogicalKeyboardKey.keyF):
+                  const _ToggleFavoriteIntent(),
+              LogicalKeySet(LogicalKeyboardKey.keyC):
+                  const _AddCollectionIntent(),
+              LogicalKeySet(LogicalKeyboardKey.escape): const _CloseIntent(),
+            },
+            child: Actions(
+              actions: {
+                _PreviousPostIntent: CallbackAction<_PreviousPostIntent>(
+                  onInvoke: (_) {
+                    if (previous != null) _openPost(context, previous);
+                    return null;
+                  },
+                ),
+                _NextPostIntent: CallbackAction<_NextPostIntent>(
+                  onInvoke: (_) {
+                    if (next != null) _openPost(context, next);
+                    return null;
+                  },
+                ),
+                _ToggleFavoriteIntent: CallbackAction<_ToggleFavoriteIntent>(
+                  onInvoke: (_) {
+                    _toggleFavorite(ref, post, favoriteKeys);
+                    return null;
+                  },
+                ),
+                _AddCollectionIntent: CallbackAction<_AddCollectionIntent>(
+                  onInvoke: (_) {
+                    _addToCollection(context, ref, post);
+                    return null;
+                  },
+                ),
+                _CloseIntent: CallbackAction<_CloseIntent>(
+                  onInvoke: (_) {
+                    _close(context);
+                    return null;
+                  },
+                ),
+              },
+              child: Focus(
+                autofocus: true,
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        IconButton.filledTonal(
+                          tooltip: 'Previous',
+                          onPressed: previous == null
+                              ? null
+                              : () => _openPost(context, previous),
+                          icon: const Icon(Icons.chevron_left_rounded),
+                        ),
+                        Expanded(
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxHeight: 760),
+                              child: PostMediaViewer(post: post),
+                            ),
+                          ),
+                        ),
+                        IconButton.filledTonal(
+                          tooltip: 'Next',
+                          onPressed: next == null
+                              ? null
+                              : () => _openPost(context, next),
+                          icon: const Icon(Icons.chevron_right_rounded),
+                        ),
+                      ],
+                    ),
+                    if (currentIndex >= 0) ...[
+                      const SizedBox(height: 10),
+                      _NeighborStrip(
+                        posts: feedPosts,
+                        currentIndex: currentIndex,
+                        onOpen: (post) => _openPost(context, post),
                       ),
+                    ],
+                    const SizedBox(height: 16),
+                    PostActionBar(
+                      isFavorite: favoriteKeys.contains(post.cacheKey),
+                      onFavorite: () =>
+                          _toggleFavorite(ref, post, favoriteKeys),
+                      onCollection: () => _addToCollection(context, ref, post),
+                      onOpen: () => launchUrl(Uri.parse(post.fileUrl)),
+                      onCopy: () =>
+                          Clipboard.setData(ClipboardData(text: post.fileUrl)),
+                      onSimilar: () => _openSimilar(context, ref, post),
+                      onDownload: settings.allowDownloads
+                          ? () => _download(context, ref, post)
+                          : null,
                     ),
-                  ),
-                  IconButton.filledTonal(
-                    tooltip: 'Next',
-                    onPressed:
-                        next == null ? null : () => _openPost(context, next),
-                    icon: const Icon(Icons.chevron_right_rounded),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              PostActionBar(
-                isFavorite: favoriteKeys.contains(post.cacheKey),
-                onFavorite: () => _toggleFavorite(ref, post, favoriteKeys),
-                onCollection: () => _addToCollection(context, ref, post),
-                onOpen: () => launchUrl(Uri.parse(post.fileUrl)),
-                onCopy: () =>
-                    Clipboard.setData(ClipboardData(text: post.fileUrl)),
-                onDownload: settings.allowDownloads
-                    ? () => _download(context, ref, post)
-                    : null,
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Chip(label: Text(post.providerName)),
-                  RatingBadge(rating: post.rating),
-                  Chip(label: Text('${post.width} x ${post.height}')),
-                  if (post.source != null && post.source!.isNotEmpty)
-                    ActionChip(
-                      label: const Text('Source'),
-                      onPressed: () => launchUrl(Uri.parse(post.source!)),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Chip(label: Text(post.providerName)),
+                        RatingBadge(rating: post.rating),
+                        Chip(label: Text('${post.width} x ${post.height}')),
+                        if (post.source != null && post.source!.isNotEmpty)
+                          ActionChip(
+                            label: const Text('Source'),
+                            onPressed: () => launchUrl(Uri.parse(post.source!)),
+                          ),
+                      ],
                     ),
-                ],
+                    const SizedBox(height: 16),
+                    Text('Tags', style: Theme.of(context).textTheme.titleLarge),
+                    const SizedBox(height: 8),
+                    PostTagsPanel(post: post),
+                    const SizedBox(height: 16),
+                    _CommentsSection(post: post),
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
-              Text('Tags', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 8),
-              PostTagsPanel(post: post),
-              const SizedBox(height: 16),
-              _CommentsSection(post: post),
-            ],
+            ),
           );
         },
       ),
@@ -192,6 +260,7 @@ class PostDetailsScreen extends ConsumerWidget {
           onCollection: () => _addToCollection(context, ref, post),
           onOpen: () => launchUrl(Uri.parse(post.fileUrl)),
           onCopy: () => Clipboard.setData(ClipboardData(text: post.fileUrl)),
+          onSimilar: () => _openSimilar(context, ref, post),
           onDownload: settings.allowDownloads
               ? () => _download(context, ref, post)
               : null,
@@ -288,6 +357,13 @@ class PostDetailsScreen extends ConsumerWidget {
     _replacePost(context, post);
   }
 
+  void _openSimilar(BuildContext context, WidgetRef ref, Post post) {
+    final query = similarTagsFor(post).join(' ');
+    if (query.trim().isEmpty) return;
+    ref.read(feedControllerProvider.notifier).search(query);
+    context.go('/?q=${Uri.encodeQueryComponent(query)}');
+  }
+
   void _replacePost(BuildContext context, Post post) {
     context.replace('/post/${post.providerId}/${post.id}', extra: post);
   }
@@ -360,14 +436,6 @@ class _MobilePostPagerState extends State<_MobilePostPager> {
       onPageChanged: (index) {
         _currentIndex = index;
         _prefetchAround(index);
-        final post = widget.posts[index];
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          GoRouter.of(context).replace(
-            '/post/${post.providerId}/${post.id}',
-            extra: post,
-          );
-        });
       },
       itemBuilder: (context, index) {
         return _KeepAlivePostPage(
@@ -381,7 +449,7 @@ class _MobilePostPagerState extends State<_MobilePostPager> {
   }
 
   void _prefetchAround(int index) {
-    for (final offset in [-1, 0, 1]) {
+    for (final offset in [-2, -1, 0, 1, 2]) {
       final target = index + offset;
       if (target < 0 || target >= widget.posts.length) continue;
       final post = widget.posts[target];
@@ -391,9 +459,29 @@ class _MobilePostPagerState extends State<_MobilePostPager> {
         if (post.fileType.toLowerCase().contains('gif')) post.fileUrl,
       ].where((url) => url.trim().isNotEmpty).toSet();
       for (final url in urls) {
-        precacheImage(NetworkImage(url), context);
+        precacheImage(
+          CachedNetworkImageProvider(url, headers: _headersFor(post)),
+          context,
+        );
       }
     }
+  }
+
+  Map<String, String> _headersFor(Post post) {
+    return {
+      'User-Agent': 'RuleGel/0.2 Flutter local booru browser',
+      'Accept': '*/*',
+      if (post.providerName.toLowerCase().contains('gelbooru') ||
+          post.fileUrl.contains('gelbooru.com') ||
+          post.sampleUrl.contains('gelbooru.com') ||
+          post.previewUrl.contains('gelbooru.com'))
+        'Referer': 'https://gelbooru.com/',
+      if (post.providerName.toLowerCase().contains('rule34') ||
+          post.fileUrl.contains('rule34') ||
+          post.sampleUrl.contains('rule34') ||
+          post.previewUrl.contains('rule34'))
+        'Referer': 'https://rule34.xxx/',
+    };
   }
 }
 
@@ -416,6 +504,83 @@ class _KeepAlivePostPageState extends State<_KeepAlivePostPage>
     super.build(context);
     return widget.child;
   }
+}
+
+class _NeighborStrip extends StatelessWidget {
+  const _NeighborStrip({
+    required this.posts,
+    required this.currentIndex,
+    required this.onOpen,
+  });
+
+  final List<Post> posts;
+  final int currentIndex;
+  final ValueChanged<Post> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final start = (currentIndex - 3).clamp(0, posts.length);
+    final end = (currentIndex + 4).clamp(0, posts.length);
+    final visible = posts.sublist(start, end);
+    return SizedBox(
+      height: 72,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: visible.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final post = visible[index];
+          final selected = post.cacheKey == posts[currentIndex].cacheKey;
+          return InkWell(
+            onTap: () => onOpen(post),
+            borderRadius: BorderRadius.circular(8),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 140),
+              width: 72,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: selected
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.transparent,
+                  width: 2,
+                ),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: CachedNetworkImage(
+                imageUrl: post.previewUrl.isNotEmpty
+                    ? post.previewUrl
+                    : post.sampleUrl,
+                fit: BoxFit.cover,
+                errorWidget: (_, __, ___) =>
+                    const Center(child: Icon(Icons.broken_image_rounded)),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _PreviousPostIntent extends Intent {
+  const _PreviousPostIntent();
+}
+
+class _NextPostIntent extends Intent {
+  const _NextPostIntent();
+}
+
+class _ToggleFavoriteIntent extends Intent {
+  const _ToggleFavoriteIntent();
+}
+
+class _AddCollectionIntent extends Intent {
+  const _AddCollectionIntent();
+}
+
+class _CloseIntent extends Intent {
+  const _CloseIntent();
 }
 
 class _CommentsSection extends ConsumerStatefulWidget {
@@ -466,7 +631,7 @@ class _CommentsSectionState extends ConsumerState<_CommentsSection> {
                 alignment: Alignment.centerLeft,
                 child: Padding(
                   padding: EdgeInsets.only(bottom: 12),
-                  child: Text('Comments unavailable'),
+                  child: Text('No comments'),
                 ),
               );
             }
