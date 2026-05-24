@@ -97,8 +97,8 @@ class ProviderManager {
           providers.where((provider) => provider.id == providerId).toList();
     }
 
-    final posts = <Post>[];
     final seen = <String>{};
+    final providerResults = <List<Post>>[];
     for (final provider in providers) {
       try {
         final providerPosts = await provider.searchPosts(
@@ -108,9 +108,7 @@ class ProviderManager {
           rating: rating,
           topPeriod: topPeriod,
         );
-        for (final post in providerPosts) {
-          if (seen.add(post.cacheKey)) posts.add(post);
-        }
+        providerResults.add(providerPosts);
         await _repository.saveDiagnostics(
           ProviderDiagnostics(
             providerId: provider.id,
@@ -138,7 +136,43 @@ class ProviderManager {
         );
       }
     }
+    final posts = providerId == null
+        ? _interleaveProviderResults(providerResults, seen)
+        : _flattenProviderResults(providerResults, seen);
     return Success(posts);
+  }
+
+  List<Post> _flattenProviderResults(
+      List<List<Post>> results, Set<String> seen) {
+    final posts = <Post>[];
+    for (final providerPosts in results) {
+      for (final post in providerPosts) {
+        if (seen.add(post.cacheKey)) posts.add(post);
+      }
+    }
+    return posts;
+  }
+
+  List<Post> _interleaveProviderResults(
+    List<List<Post>> results,
+    Set<String> seen,
+  ) {
+    final posts = <Post>[];
+    var index = 0;
+    while (true) {
+      var added = false;
+      for (final providerPosts in results) {
+        if (index >= providerPosts.length) continue;
+        final post = providerPosts[index];
+        if (seen.add(post.cacheKey)) {
+          posts.add(post);
+          added = true;
+        }
+      }
+      if (!added && results.every((items) => index >= items.length)) break;
+      index++;
+    }
+    return posts;
   }
 
   Future<Result<List<PostComment>>> getComments(

@@ -184,6 +184,7 @@ class PostDetailsScreen extends ConsumerWidget {
                             child: ConstrainedBox(
                               constraints: const BoxConstraints(maxHeight: 760),
                               child: PostMediaViewer(
+                                key: ValueKey(post.cacheKey),
                                 post: post,
                                 qualityMode: qualityMode,
                               ),
@@ -261,61 +262,78 @@ class PostDetailsScreen extends ConsumerWidget {
     Set<String> favoriteKeys,
     MediaQualityMode qualityMode,
   ) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
-      children: [
-        ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(context).height * 0.62,
-          ),
-          child: Center(
-            child: PostMediaViewer(
-              post: post,
-              qualityMode: qualityMode,
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        PostActionBar(
-          isFavorite: favoriteKeys.contains(post.cacheKey),
-          onFavorite: () => _toggleFavorite(ref, post, favoriteKeys),
-          onCollection: () => _addToCollection(context, ref, post),
-          onOpen: () => launchUrl(Uri.parse(post.fileUrl)),
-          onCopy: () => Clipboard.setData(ClipboardData(text: post.fileUrl)),
-          onSimilar: () => _openSimilar(context, ref, post),
-          onDownload: settings.allowDownloads
-              ? () => _download(context, ref, post)
-              : null,
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            Chip(label: Text(post.providerName)),
-            RatingBadge(rating: post.rating),
-            Chip(label: Text('${post.width} x ${post.height}')),
-            if (post.source != null && post.source!.isNotEmpty)
-              ActionChip(
-                label: const Text('Source'),
-                onPressed: () => launchUrl(Uri.parse(post.source!)),
+    final isVideo = MediaUrlSelector.isVideo(post);
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onVerticalDragEnd: (details) {
+        if ((details.primaryVelocity ?? 0) > 900) _close(context);
+      },
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.deferToChild,
+            onDoubleTap:
+                isVideo ? null : () => _toggleFavorite(ref, post, favoriteKeys),
+            onLongPress: isVideo
+                ? null
+                : () =>
+                    _showMobileQuickActions(context, ref, post, favoriteKeys),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.62,
               ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        ExpansionTile(
-          tilePadding: EdgeInsets.zero,
-          initiallyExpanded: false,
-          title: Text('Tags', style: Theme.of(context).textTheme.titleMedium),
-          children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: PostTagsPanel(post: post),
+              child: Center(
+                child: PostMediaViewer(
+                  key: ValueKey(post.cacheKey),
+                  post: post,
+                  qualityMode: qualityMode,
+                ),
+              ),
             ),
-          ],
-        ),
-        _CommentsSection(post: post),
-      ],
+          ),
+          const SizedBox(height: 12),
+          PostActionBar(
+            isFavorite: favoriteKeys.contains(post.cacheKey),
+            onFavorite: () => _toggleFavorite(ref, post, favoriteKeys),
+            onCollection: () => _addToCollection(context, ref, post),
+            onOpen: () => launchUrl(Uri.parse(post.fileUrl)),
+            onCopy: () => Clipboard.setData(ClipboardData(text: post.fileUrl)),
+            onSimilar: () => _openSimilar(context, ref, post),
+            onDownload: settings.allowDownloads
+                ? () => _download(context, ref, post)
+                : null,
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              Chip(label: Text(post.providerName)),
+              RatingBadge(rating: post.rating),
+              Chip(label: Text('${post.width} x ${post.height}')),
+              if (post.source != null && post.source!.isNotEmpty)
+                ActionChip(
+                  label: const Text('Source'),
+                  onPressed: () => launchUrl(Uri.parse(post.source!)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            initiallyExpanded: false,
+            title: Text('Tags', style: Theme.of(context).textTheme.titleMedium),
+            children: [
+              Align(
+                alignment: Alignment.centerLeft,
+                child: PostTagsPanel(post: post),
+              ),
+            ],
+          ),
+          _CommentsSection(post: post),
+        ],
+      ),
     );
   }
 
@@ -349,6 +367,65 @@ class PostDetailsScreen extends ConsumerWidget {
     );
   }
 
+  Future<void> _showMobileQuickActions(
+    BuildContext context,
+    WidgetRef ref,
+    Post post,
+    Set<String> favoriteKeys,
+  ) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(
+                favoriteKeys.contains(post.cacheKey)
+                    ? Icons.favorite_rounded
+                    : Icons.favorite_border_rounded,
+              ),
+              title: Text(
+                favoriteKeys.contains(post.cacheKey)
+                    ? 'Remove favorite'
+                    : 'Favorite',
+              ),
+              onTap: () async {
+                Navigator.pop(sheetContext);
+                await _toggleFavorite(ref, post, favoriteKeys);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.collections_bookmark_rounded),
+              title: const Text('Add to collection'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _addToCollection(context, ref, post);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.copy_rounded),
+              title: const Text('Copy link'),
+              onTap: () {
+                Clipboard.setData(ClipboardData(text: post.fileUrl));
+                Navigator.pop(sheetContext);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.download_rounded),
+              title: const Text('Download'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _download(context, ref, post);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _toggleFavorite(
     WidgetRef ref,
     Post post,
@@ -370,10 +447,7 @@ class PostDetailsScreen extends ConsumerWidget {
   }
 
   void _openSimilar(BuildContext context, WidgetRef ref, Post post) {
-    final query = similarTagsFor(post).join(' ');
-    if (query.trim().isEmpty) return;
-    ref.read(feedControllerProvider.notifier).search(query);
-    context.go('/?q=${Uri.encodeQueryComponent(query)}');
+    context.push('/post/${post.providerId}/${post.id}/similar', extra: post);
   }
 
   void _replacePost(BuildContext context, Post post) {

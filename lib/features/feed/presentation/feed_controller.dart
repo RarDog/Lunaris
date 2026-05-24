@@ -177,7 +177,7 @@ class FeedController extends AsyncNotifier<FeedState> {
         ? <String?>[null]
         : current.selectedProviderIds;
     final posts = <Post>[];
-    final seen = <String>{};
+    final providerResults = <List<Post>>[];
     for (final providerId in providerIds) {
       final result = refresh
           ? await service.refresh(
@@ -193,10 +193,33 @@ class FeedController extends AsyncNotifier<FeedState> {
               topPeriod: current.topPeriodFilter,
             );
       if (result is Success<List<Post>>) {
-        for (final post in result.data) {
+        providerResults.add(result.data);
+      }
+    }
+    final seen = <String>{};
+    if (providerResults.length <= 1) {
+      for (final group in providerResults) {
+        for (final post in group) {
           if (seen.add(post.cacheKey)) posts.add(post);
         }
       }
+      return posts;
+    }
+    var index = 0;
+    while (true) {
+      var added = false;
+      for (final group in providerResults) {
+        if (index >= group.length) continue;
+        final post = group[index];
+        if (seen.add(post.cacheKey)) {
+          posts.add(post);
+          added = true;
+        }
+      }
+      if (!added && providerResults.every((group) => index >= group.length)) {
+        break;
+      }
+      index++;
     }
     return posts;
   }

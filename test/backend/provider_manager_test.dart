@@ -191,6 +191,29 @@ void main() {
     expect(repository.diagnostics['c']?.lastErrorMessage, 'Search failed');
   });
 
+  test('all providers results are interleaved by provider priority', () async {
+    final repository = FakeProviderRepository()
+      ..configs['a'] = config('a', 0)
+      ..configs['b'] = config('b', 1)
+      ..configs['c'] = config('c', 2);
+    final manager = ProviderManager(
+      repository,
+      FakeProviderFactory({
+        'a': FakeProvider('a', 'a', [post('a', '1'), post('a', '2')]),
+        'b': FakeProvider('b', 'b', [post('b', '1'), post('b', '2')]),
+        'c': FakeProvider('c', 'c', [post('c', '1')]),
+      }),
+    );
+
+    final result = await manager.searchAcrossProviders(tags: [], page: 0)
+        as Success<List<Post>>;
+
+    expect(
+      result.data.map((item) => item.cacheKey),
+      ['a:1', 'b:1', 'c:1', 'a:2', 'b:2'],
+    );
+  });
+
   test('enable disable provider persists config', () async {
     final repository = FakeProviderRepository()..configs['a'] = config('a', 0);
     final manager = ProviderManager(

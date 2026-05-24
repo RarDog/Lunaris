@@ -7,6 +7,7 @@ import '../features/collections/presentation/collections_screen.dart';
 import '../features/favorites/presentation/favorites_screen.dart';
 import '../features/feed/presentation/feed_screen.dart';
 import '../features/post/presentation/post_details_screen.dart';
+import '../features/post/presentation/similar_posts_screen.dart';
 import '../features/providers/presentation/provider_check_screen.dart';
 import '../features/providers/presentation/provider_form_screen.dart';
 import '../features/providers/presentation/providers_screen.dart';
@@ -35,6 +36,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/post/:providerId/:postId',
             builder: (context, state) => PostDetailsScreen(
+              providerId: state.pathParameters['providerId']!,
+              postId: state.pathParameters['postId']!,
+              initialPost: state.extra is Post ? state.extra! as Post : null,
+            ),
+          ),
+          GoRoute(
+            path: '/post/:providerId/:postId/similar',
+            builder: (context, state) => SimilarPostsScreen(
               providerId: state.pathParameters['providerId']!,
               postId: state.pathParameters['postId']!,
               initialPost: state.extra is Post ? state.extra! as Post : null,
