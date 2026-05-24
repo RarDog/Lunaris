@@ -9,6 +9,7 @@ class PostActionBar extends StatelessWidget {
     required this.isFavorite,
     this.onDownload,
     this.onSimilar,
+    this.onHide,
     super.key,
   });
 
@@ -19,6 +20,7 @@ class PostActionBar extends StatelessWidget {
   final bool isFavorite;
   final VoidCallback? onDownload;
   final VoidCallback? onSimilar;
+  final VoidCallback? onHide;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +61,12 @@ class PostActionBar extends StatelessWidget {
             tooltip: 'Download',
             onPressed: onDownload,
             icon: const Icon(Icons.download_rounded),
+          ),
+        if (onHide != null)
+          IconButton.filledTonal(
+            tooltip: 'Hide post locally',
+            onPressed: onHide,
+            icon: const Icon(Icons.visibility_off_rounded),
           ),
       ],
     );

@@ -17,6 +17,7 @@ class PostMasonryGrid extends StatelessWidget {
     required this.onFavorite,
     this.onAddToCollection,
     this.onPreview,
+    this.onHide,
     this.onToggleSelected,
     this.selectionMode = false,
     this.selectedKeys = const {},
@@ -36,6 +37,7 @@ class PostMasonryGrid extends StatelessWidget {
   final ValueChanged<Post> onFavorite;
   final ValueChanged<Post>? onAddToCollection;
   final ValueChanged<Post>? onPreview;
+  final ValueChanged<Post>? onHide;
   final ValueChanged<Post>? onToggleSelected;
   final bool selectionMode;
   final Set<String> selectedKeys;
@@ -66,6 +68,7 @@ class PostMasonryGrid extends StatelessWidget {
           onOpen: () => onOpen(post),
           onFavorite: () => onFavorite(post),
           onPreview: onPreview == null ? null : () => onPreview!(post),
+          onHide: onHide == null ? null : () => onHide!(post),
           selectionMode: selectionMode,
           selected: selectedKeys.contains(post.cacheKey),
           onToggleSelected:

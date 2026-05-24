@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/app_version.dart';
+import '../../../app/changelog.dart';
 import '../../../backend/backend.dart';
 import '../../../core/utils/result.dart';
 import '../../../shared/widgets/adaptive_scaffold.dart';
@@ -154,6 +155,15 @@ class SettingsScreen extends ConsumerWidget {
             FilledButton.tonalIcon(
               onPressed: () => ref
                   .read(settingsControllerProvider.notifier)
+                  .clearHiddenPosts(),
+              icon: const Icon(Icons.visibility_off_rounded),
+              label: Text(
+                  'Clear hidden posts (${settings.hiddenPostKeys.length})'),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.tonalIcon(
+              onPressed: () => ref
+                  .read(settingsControllerProvider.notifier)
                   .clearViewedHistory(),
               icon: const Icon(Icons.history_toggle_off_rounded),
               label: const Text('Clear viewed history'),
@@ -186,8 +196,54 @@ class SettingsScreen extends ConsumerWidget {
               icon: const Icon(Icons.system_update_alt_rounded),
               label: const Text('Check for updates'),
             ),
+            const SizedBox(height: 12),
+            FilledButton.tonalIcon(
+              onPressed: () async {
+                final report = await ref
+                    .read(settingsControllerProvider.notifier)
+                    .diagnosticsReport();
+                await Clipboard.setData(ClipboardData(text: report));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Diagnostics copied')),
+                  );
+                }
+              },
+              icon: const Icon(Icons.bug_report_rounded),
+              label: const Text('Copy diagnostics report'),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.tonalIcon(
+              onPressed: () async {
+                final logs = await ref
+                    .read(settingsControllerProvider.notifier)
+                    .diagnosticLogs();
+                await Clipboard.setData(ClipboardData(text: logs));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Diagnostic logs copied')),
+                  );
+                }
+              },
+              icon: const Icon(Icons.receipt_long_rounded),
+              label: const Text('Copy local logs'),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.tonalIcon(
+              onPressed: () => ref
+                  .read(settingsControllerProvider.notifier)
+                  .clearDiagnosticLogs(),
+              icon: const Icon(Icons.delete_sweep_rounded),
+              label: const Text('Clear local logs'),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.tonalIcon(
+              onPressed: () => _showChangelog(context),
+              icon: const Icon(Icons.new_releases_rounded),
+              label: const Text('What changed'),
+            ),
             const SizedBox(height: 24),
-            const Text('Version $appDisplayVersion'),
+            const Text('Version $appDisplayVersion ($appBuildNumber)'),
           ],
         ),
       ),
@@ -304,6 +360,45 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
     ref.invalidate(settingsControllerProvider);
+  }
+
+  Future<void> _showChangelog(BuildContext context) {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('RuleGel changelog'),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final change in ruleGelChangelog) ...[
+                  Text(
+                    '${change.version} - ${change.title}',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 6),
+                  for (final bullet in change.bullets)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8, bottom: 4),
+                      child: Text('- $bullet'),
+                    ),
+                  const SizedBox(height: 12),
+                ],
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 }
 

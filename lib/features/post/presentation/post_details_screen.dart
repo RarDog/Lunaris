@@ -218,6 +218,7 @@ class PostDetailsScreen extends ConsumerWidget {
                       onCopy: () =>
                           Clipboard.setData(ClipboardData(text: post.fileUrl)),
                       onSimilar: () => _openSimilar(context, ref, post),
+                      onHide: () => _hidePost(context, ref, post),
                       onDownload: settings.allowDownloads
                           ? () => _download(context, ref, post)
                           : null,
@@ -300,6 +301,7 @@ class PostDetailsScreen extends ConsumerWidget {
             onOpen: () => launchUrl(Uri.parse(post.fileUrl)),
             onCopy: () => Clipboard.setData(ClipboardData(text: post.fileUrl)),
             onSimilar: () => _openSimilar(context, ref, post),
+            onHide: () => _hidePost(context, ref, post),
             onDownload: settings.allowDownloads
                 ? () => _download(context, ref, post)
                 : null,
@@ -440,6 +442,21 @@ class PostDetailsScreen extends ConsumerWidget {
     }
     ref.invalidate(favoriteKeysProvider);
     ref.invalidate(favoritesControllerProvider);
+  }
+
+  Future<void> _hidePost(
+    BuildContext context,
+    WidgetRef ref,
+    Post post,
+  ) async {
+    await ref.read(settingsServiceProvider).hidePostKey(post.cacheKey);
+    ref.invalidate(appSettingsProvider);
+    ref.read(feedControllerProvider.notifier).refresh();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Post hidden locally')),
+    );
+    _close(context);
   }
 
   void _openPost(BuildContext context, Post post) {

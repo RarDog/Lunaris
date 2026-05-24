@@ -49,6 +49,15 @@ void main() {
       expect(postMatchesRequestedTags(post, ['touhou']), isTrue);
       expect(postMatchesRequestedTags(post, ['touhou', 'cirno']), isFalse);
     });
+
+    test('hidden post keys are filtered locally', () {
+      final post = _post(tags: ['touhou']);
+      final settings = AppSettings.defaults.copyWith(
+        hiddenPostKeys: [post.cacheKey],
+      );
+
+      expect(postPassesTagFilters(post, settings), isFalse);
+    });
   });
 }
 

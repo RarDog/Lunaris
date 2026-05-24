@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app/app.dart';
 import '../../../backend/backend.dart';
 import '../../../core/utils/result.dart';
 import 'feed_state.dart';
@@ -151,6 +152,22 @@ class FeedController extends AsyncNotifier<FeedState> {
           lastFeedScrollOffset: 0,
         ));
     await refresh();
+  }
+
+  Future<void> hidePost(Post post) async {
+    final current = state.value;
+    if (current == null) return;
+    final result =
+        await ref.read(settingsServiceProvider).hidePostKey(post.cacheKey);
+    if (result is Error<void>) return;
+    state = AsyncData(
+      current.copyWith(
+        posts: current.posts
+            .where((item) => item.cacheKey != post.cacheKey)
+            .toList(growable: false),
+      ),
+    );
+    ref.invalidate(appSettingsProvider);
   }
 
   Future<void> saveSession({double? scrollOffset}) async {

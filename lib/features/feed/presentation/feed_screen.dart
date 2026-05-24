@@ -249,6 +249,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                                 _toggleFavorite(ref, post, favoriteKeys),
                             onAddToCollection: (post) =>
                                 _addToCollection(context, ref, post),
+                            onHide: (post) => _hidePost(context, ref, post),
                           ),
                         ),
                 ),
@@ -399,6 +400,30 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     }
     ref.invalidate(favoriteKeysProvider);
     ref.invalidate(favoritesControllerProvider);
+  }
+
+  Future<void> _hidePost(
+    BuildContext context,
+    WidgetRef ref,
+    Post post,
+  ) async {
+    await ref.read(feedControllerProvider.notifier).hidePost(post);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('Post hidden locally'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () async {
+            await ref
+                .read(settingsServiceProvider)
+                .unhidePostKey(post.cacheKey);
+            ref.invalidate(appSettingsProvider);
+            ref.read(feedControllerProvider.notifier).refresh();
+          },
+        ),
+      ),
+    );
   }
 }
 

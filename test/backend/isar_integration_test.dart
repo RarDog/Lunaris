@@ -167,6 +167,7 @@ void main() {
         blacklistedTags: ['blocked'],
         whitelistedTags: ['allowed'],
         smartBlacklistRules: ['provider:e621 score:<10'],
+        hiddenPostKeys: ['provider:post'],
       ),
     );
 
@@ -178,6 +179,8 @@ void main() {
     expect(exported.data, contains('"allowed"'));
     expect(exported.data, contains('"smartBlacklistRules"'));
     expect(exported.data, contains('provider:e621 score:<10'));
+    expect(exported.data, contains('"hiddenPostKeys"'));
+    expect(exported.data, contains('"provider:post"'));
   });
 
   test('cache service prunes to max item count', () async {

@@ -122,6 +122,8 @@ bool postMatchesRequestedTags(Post post, List<String> requestedTags) {
 }
 
 bool postPassesTagFilters(Post post, AppSettings settings) {
+  if (settings.hiddenPostKeys.contains(post.cacheKey)) return false;
+
   final tags = _postTagSet(post);
   if (tags.isEmpty) return settings.whitelistedTags.isEmpty;
 

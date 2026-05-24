@@ -7,6 +7,7 @@ import '../../core/database/database_service.dart';
 import '../../core/errors/failure.dart';
 import '../../core/utils/result.dart';
 import '../models/content_provider_config.dart';
+import '../models/provider_diagnostics.dart';
 import '../repositories/provider_repository.dart';
 
 class AppSettings {
@@ -29,6 +30,8 @@ class AppSettings {
     required this.smartBlacklistRules,
     required this.hideViewedPosts,
     required this.mediaQualityMode,
+    required this.hiddenPostKeys,
+    required this.diagnosticLogLines,
     required this.lastFeedTags,
     required this.lastFeedProviderIds,
     required this.lastFeedTopPeriod,
@@ -57,6 +60,8 @@ class AppSettings {
   final List<String> smartBlacklistRules;
   final bool hideViewedPosts;
   final String mediaQualityMode;
+  final List<String> hiddenPostKeys;
+  final List<String> diagnosticLogLines;
   final List<String> lastFeedTags;
   final List<String> lastFeedProviderIds;
   final String lastFeedTopPeriod;
@@ -85,6 +90,8 @@ class AppSettings {
     smartBlacklistRules: [],
     hideViewedPosts: false,
     mediaQualityMode: 'auto',
+    hiddenPostKeys: [],
+    diagnosticLogLines: [],
     lastFeedTags: [],
     lastFeedProviderIds: [],
     lastFeedTopPeriod: 'none',
@@ -114,6 +121,8 @@ class AppSettings {
     List<String>? smartBlacklistRules,
     bool? hideViewedPosts,
     String? mediaQualityMode,
+    List<String>? hiddenPostKeys,
+    List<String>? diagnosticLogLines,
     List<String>? lastFeedTags,
     List<String>? lastFeedProviderIds,
     String? lastFeedTopPeriod,
@@ -145,6 +154,8 @@ class AppSettings {
       smartBlacklistRules: smartBlacklistRules ?? this.smartBlacklistRules,
       hideViewedPosts: hideViewedPosts ?? this.hideViewedPosts,
       mediaQualityMode: mediaQualityMode ?? this.mediaQualityMode,
+      hiddenPostKeys: hiddenPostKeys ?? this.hiddenPostKeys,
+      diagnosticLogLines: diagnosticLogLines ?? this.diagnosticLogLines,
       lastFeedTags: lastFeedTags ?? this.lastFeedTags,
       lastFeedProviderIds: lastFeedProviderIds ?? this.lastFeedProviderIds,
       lastFeedTopPeriod: lastFeedTopPeriod ?? this.lastFeedTopPeriod,
@@ -176,6 +187,8 @@ class AppSettings {
         'smartBlacklistRules': smartBlacklistRules,
         'hideViewedPosts': hideViewedPosts,
         'mediaQualityMode': mediaQualityMode,
+        'hiddenPostKeys': hiddenPostKeys,
+        'diagnosticLogLines': diagnosticLogLines,
         'lastFeedTags': lastFeedTags,
         'lastFeedProviderIds': lastFeedProviderIds,
         'lastFeedTopPeriod': lastFeedTopPeriod,
@@ -230,6 +243,12 @@ class AppSettings {
             (json['hideViewedPosts'] as bool?) ?? defaults.hideViewedPosts,
         mediaQualityMode:
             (json['mediaQualityMode'] as String?) ?? defaults.mediaQualityMode,
+        hiddenPostKeys: List<String>.from(
+          (json['hiddenPostKeys'] as List?) ?? defaults.hiddenPostKeys,
+        ),
+        diagnosticLogLines: List<String>.from(
+          (json['diagnosticLogLines'] as List?) ?? defaults.diagnosticLogLines,
+        ),
         lastFeedTags: List<String>.from(
           (json['lastFeedTags'] as List?) ?? defaults.lastFeedTags,
         ),
@@ -331,6 +350,124 @@ class SettingsService {
     );
   }
 
+  Future<Result<void>> hidePostKey(String cacheKey) async {
+    final result = await getSettings();
+    if (result is Error<AppSettings>) return Error(result.failure);
+    final settings = (result as Success<AppSettings>).data;
+    final hidden = <String>{...settings.hiddenPostKeys, cacheKey}.toList()
+      ..sort();
+    return updateSettings(settings.copyWith(hiddenPostKeys: hidden));
+  }
+
+  Future<Result<void>> unhidePostKey(String cacheKey) async {
+    final result = await getSettings();
+    if (result is Error<AppSettings>) return Error(result.failure);
+    final settings = (result as Success<AppSettings>).data;
+    return updateSettings(
+      settings.copyWith(
+        hiddenPostKeys:
+            settings.hiddenPostKeys.where((key) => key != cacheKey).toList(),
+      ),
+    );
+  }
+
+  Future<Result<void>> clearHiddenPosts() async {
+    final result = await getSettings();
+    if (result is Error<AppSettings>) return Error(result.failure);
+    final settings = (result as Success<AppSettings>).data;
+    return updateSettings(settings.copyWith(hiddenPostKeys: const []));
+  }
+
+  Future<Result<void>> appendDiagnosticLog(String message) async {
+    final result = await getSettings();
+    if (result is Error<AppSettings>) return Error(result.failure);
+    final settings = (result as Success<AppSettings>).data;
+    final line = '${DateTime.now().toIso8601String()}  $message';
+    final lines = [...settings.diagnosticLogLines, line];
+    return updateSettings(
+      settings.copyWith(
+        diagnosticLogLines:
+            lines.length > 200 ? lines.sublist(lines.length - 200) : lines,
+      ),
+    );
+  }
+
+  Future<Result<void>> clearDiagnosticLogs() async {
+    final result = await getSettings();
+    if (result is Error<AppSettings>) return Error(result.failure);
+    final settings = (result as Success<AppSettings>).data;
+    return updateSettings(settings.copyWith(diagnosticLogLines: const []));
+  }
+
+  Future<Result<String>> buildDiagnosticsReport({
+    required String appVersion,
+    required int buildNumber,
+  }) async {
+    final settingsResult = await getSettings();
+    if (settingsResult is Error<AppSettings>) {
+      return Error(settingsResult.failure);
+    }
+    final settings = (settingsResult as Success<AppSettings>).data;
+    final providers = <ContentProviderConfig>[];
+    final diagnostics = <String>[];
+    final repository = _providerRepository;
+    if (repository != null) {
+      final providersResult = await repository.getProviders(enabledOnly: false);
+      if (providersResult is Success<List<ContentProviderConfig>>) {
+        providers.addAll(providersResult.data);
+      }
+      final diagnosticsResult = await repository.getDiagnostics();
+      if (diagnosticsResult is Success<List<ProviderDiagnostics>>) {
+        for (final item in diagnosticsResult.data) {
+          diagnostics.add(
+            '${item.providerId}: ${item.lastResultCount} posts, '
+            'lastSearchAt=${item.lastSearchAt}, '
+            'error=${item.lastErrorMessage ?? 'none'}',
+          );
+        }
+      }
+    }
+    final enabledProviders =
+        providers.where((provider) => provider.enabled).map((p) => p.id);
+    return Success(
+      const JsonEncoder.withIndent('  ').convert({
+        'app': {
+          'name': 'RuleGel',
+          'version': appVersion,
+          'build': buildNumber,
+          'generatedAt': DateTime.now().toIso8601String(),
+        },
+        'settingsSummary': {
+          'themeMode': settings.themeMode,
+          'nsfwEnabled': settings.nsfwEnabled,
+          'blurExplicitContent': settings.blurExplicitContent,
+          'mediaQualityMode': settings.mediaQualityMode,
+          'cacheTtlHours': settings.cacheTtlHours,
+          'cacheMaxItems': settings.cacheMaxItems,
+          'hiddenPosts': settings.hiddenPostKeys.length,
+          'blacklistRules': settings.smartBlacklistRules.length,
+          'whitelistTags': settings.whitelistedTags.length,
+          'hideViewedPosts': settings.hideViewedPosts,
+        },
+        'providers': {
+          'enabled': enabledProviders.toList(),
+          'all': providers
+              .map((provider) => {
+                    'id': provider.id,
+                    'name': provider.name,
+                    'apiType': provider.apiType,
+                    'enabled': provider.enabled,
+                    'priority': provider.priority,
+                    'baseUrl': provider.baseUrl,
+                  })
+              .toList(),
+        },
+        'recentLogs': settings.diagnosticLogLines.take(60).toList(),
+        'providerDiagnostics': diagnostics,
+      }),
+    );
+  }
+
   Future<Result<String>> exportSettingsToJson() async {
     final result = await getSettings();
     if (result is Error<AppSettings>) return Error(result.failure);
@@ -351,6 +488,7 @@ class SettingsService {
           'blacklistedTags': settings.blacklistedTags,
           'whitelistedTags': settings.whitelistedTags,
           'smartBlacklistRules': settings.smartBlacklistRules,
+          'hiddenPostKeys': settings.hiddenPostKeys,
         },
         'providers': providers.map((provider) => provider.toJson()).toList(),
       }),

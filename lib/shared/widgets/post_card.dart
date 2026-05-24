@@ -17,6 +17,7 @@ class PostCard extends StatefulWidget {
     required this.onFavorite,
     this.onAddToCollection,
     this.onPreview,
+    this.onHide,
     this.onToggleSelected,
     this.selectionMode = false,
     this.selected = false,
@@ -32,6 +33,7 @@ class PostCard extends StatefulWidget {
   final VoidCallback onFavorite;
   final VoidCallback? onAddToCollection;
   final VoidCallback? onPreview;
+  final VoidCallback? onHide;
   final VoidCallback? onToggleSelected;
   final bool selectionMode;
   final bool selected;
@@ -94,6 +96,11 @@ class _PostCardState extends State<PostCard> {
                 PopupMenuItem(
                   onTap: widget.onAddToCollection,
                   child: const Text('Add to collection'),
+                ),
+              if (widget.onHide != null)
+                PopupMenuItem(
+                  onTap: widget.onHide,
+                  child: const Text('Hide post'),
                 ),
             ],
           );
@@ -217,6 +224,15 @@ class _PostCardState extends State<PostCard> {
                                 onPressed: widget.onAddToCollection,
                                 icon: const Icon(Icons.add_rounded),
                               ),
+                              if (widget.onHide != null) ...[
+                                const SizedBox(width: 6),
+                                IconButton.filledTonal(
+                                  tooltip: 'Hide post',
+                                  onPressed: widget.onHide,
+                                  icon:
+                                      const Icon(Icons.visibility_off_rounded),
+                                ),
+                              ],
                             ],
                           ),
                         ),
