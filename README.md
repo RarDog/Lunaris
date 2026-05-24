@@ -1,73 +1,104 @@
 # RuleGel
 
-RuleGel is a single Flutter monolith for browsing booru/gelbooru/rule34-like providers with a Pinterest-style feed. It does not start or require a separate backend server. Provider access, caching, favorites, collections, search history, settings, downloads, read-only comments where APIs allow them, and health checks all run locally inside the Flutter app.
+RuleGel — единое Flutter-приложение для просмотра booru/gelbooru/rule34-подобных источников в Pinterest-стиле.
 
-## Stack
+Приложение не использует отдельный backend-сервер. Вся логика работает локально внутри Flutter: провайдеры API, кэш metadata, избранное, коллекции, история, настройки, диагностика и фильтры.
 
-- Dart and Flutter
-- Riverpod for dependency injection
-- Dio for provider HTTP APIs
-- Isar for local storage
-- connectivity_plus for network state
-- build_runner with Isar/freezed/json_serializable dependencies available for generated code workflows
-- go_router for navigation
-- cached_network_image and flutter_staggered_grid_view for the Pinterest-style feed
-- media_kit for video posts
+## Возможности
 
-## Structure
+- Pinterest-like masonry feed с несколькими провайдерами.
+- Поиск по тегам через удобные chip-теги: ввёл тег, нажал пробел или Enter, тег стал отдельным элементом.
+- Подсказки тегов из provider API.
+- Избранное, коллекции и история просмотренных постов.
+- Smart blacklist и whitelist с правилами по тегам, рейтингу, провайдеру, типу файла и score.
+- Детальный просмотр фото, GIF и видео.
+- Видео-плеер с fullscreen, repeat, mute и понижением громкости.
+- Desktop-only просмотр `.swf` через Ruffle/WebView на Windows.
+- Управление провайдерами, health-check и provider diagnostics.
+- Экспорт и импорт настроек.
+- Android и Windows сборки.
 
-- `lib/core/http`: Dio setup, retry/backoff, network info
-- `lib/core/database`: Isar database and entity mappings
-- `lib/core/cache`: metadata cache helpers
-- `lib/core/errors`: app exceptions and failures
-- `lib/core/utils`: `Result<T>` and logging
-- `lib/backend/models`: domain models
-- `lib/backend/providers`: provider interface, concrete providers, factory, manager
-- `lib/backend/repositories`: local persistence access
-- `lib/backend/services`: app-facing service layer
-- `lib/backend/di`: Riverpod providers
-- `lib/app`: app shell, router, theme, responsive helpers
-- `lib/shared/widgets`: reusable UI pieces
-- `lib/features`: feed, post details, search, favorites, collections, providers, settings
+## Скачать
 
-## Frontend Routes
+Готовые сборки лежат в Gitea Releases:
 
-- `/`: masonry feed
-- `/search`: recent searches and autocomplete
-- `/post/:providerId/:postId`: post details
-- `/favorites`: favorite posts
-- `/collections`: boards
-- `/collections/:collectionId`: posts inside a collection
-- `/providers`: provider management
-- `/providers/new`: provider form for create/edit
-- `/providers/check`: provider health checks
-- `/settings`: app settings
+[RuleGel v0.3.0](https://gitea.rardogsynapse.online/RarDog/RuleGelApp/releases/tag/v0.3.0-tag-chips-swf)
 
-## Frontend And Backend Integration
+- `RuleGelSetup.exe` — установщик для Windows.
+- `RuleGel-v0.3.0.apk` — APK для Android.
 
-The UI calls backend services through Riverpod providers from `lib/backend/di/backend_providers.dart`.
+## Стек
 
-- `FeedController` calls `FeedService`, `SearchService`, and `ProviderManager`.
-- `PostDetailsScreen` uses cached post metadata first, then `ProviderManager.getPost`.
-- `PostCard` and details actions call `FavoriteService` and `CollectionService`.
-- Provider screens call `ProviderManager` and `ProviderCheckService`.
-- Settings call `SettingsService` and `CacheService`.
+- Flutter и Dart
+- Riverpod
+- go_router
+- Dio
+- Isar
+- cached_network_image
+- flutter_staggered_grid_view
+- media_kit
+- webview_windows для SWF/Ruffle на Windows
+- connectivity_plus
+- freezed/json_serializable/build_runner
 
-Business logic stays in backend/core services. UI controllers only coordinate state and user actions.
+## Архитектура
 
-## Providers
+RuleGel — Flutter-монолит. UI не дублирует backend-логику, а вызывает локальные сервисы через Riverpod.
 
-The MVP ships with seed configs for:
+Основные слои:
 
-- Gelbooru: `https://gelbooru.com`
-- Rule34: `https://api.rule34.xxx`
-- Safebooru: `https://safebooru.org`
-- Konachan: `https://konachan.com`
-- Yande.re: `https://yande.re`
-- e621: `https://e621.net`
-- e926: `https://e926.net`
+- `lib/core` — HTTP, база, кэш, ошибки, Result-тип и утилиты.
+- `lib/backend/models` — доменные модели.
+- `lib/backend/providers` — API-провайдеры и ProviderManager.
+- `lib/backend/repositories` — доступ к локальному Isar-хранилищу.
+- `lib/backend/services` — Feed/Search/Favorites/Collections/Settings/Diagnostics.
+- `lib/backend/di` — Riverpod providers для backend/core.
+- `lib/app` — приложение, роутер, тема и responsive helpers.
+- `lib/shared/widgets` — общие UI-компоненты.
+- `lib/features` — экраны и контроллеры фич.
 
-Providers implement:
+## Экраны
+
+- `/` — главный feed.
+- `/search` — поиск и recent searches.
+- `/post/:providerId/:postId` — детальный просмотр поста.
+- `/favorites` — избранное.
+- `/viewed` — история просмотренных постов.
+- `/collections` — коллекции.
+- `/collections/:collectionId` — посты внутри коллекции.
+- `/providers` — управление провайдерами.
+- `/providers/new` — добавление/редактирование провайдера.
+- `/providers/check` — проверка провайдеров и diagnostics.
+- `/settings` — настройки.
+
+## Провайдеры по умолчанию
+
+- Gelbooru — `https://gelbooru.com`
+- Rule34 — `https://api.rule34.xxx`
+- Safebooru — `https://safebooru.org`
+- Konachan — `https://konachan.com`
+- Yande.re — `https://yande.re`
+- e621 — `https://e621.net`
+- e926 — `https://e926.net`
+
+Поддерживаемые `apiType`:
+
+- `gelbooru`
+- `rule34`
+- `danbooru`
+- `moebooru`
+- `e621`
+
+Один упавший провайдер не ломает общий feed: ошибки сохраняются в diagnostics, а остальные провайдеры продолжают отдавать посты.
+
+## Как добавить провайдера
+
+1. Добавить mapper в `lib/backend/mappers`, если формат ответа отличается.
+2. Реализовать `ContentProvider` в `lib/backend/providers`.
+3. Зарегистрировать новый `apiType` в `ProviderFactory`.
+4. Добавить config через `ProviderManager` или UI Providers.
+
+Интерфейс провайдера:
 
 ```dart
 abstract class ContentProvider {
@@ -87,200 +118,109 @@ abstract class ContentProvider {
 }
 ```
 
-Gelbooru and Rule34 use the Gelbooru-compatible dapi endpoint:
+## Локальная база
 
-```text
-/index.php?page=dapi&s=post&q=index&json=1
-```
+Isar хранит:
 
-Danbooru uses:
+- configs провайдеров;
+- health status и diagnostics;
+- cached metadata постов;
+- избранное;
+- коллекции и связи collection-post;
+- историю поиска;
+- историю просмотренных постов;
+- app settings.
 
-```text
-/posts.json
-```
+Кэш хранит только metadata. Оригинальные медиафайлы не скачиваются автоматически.
 
-All provider responses are normalized to `Post`.
+## Использование сервисов из UI
 
-## Adding A Provider
+UI получает сервисы через Riverpod из `lib/backend/di/backend_providers.dart`.
 
-1. Add a mapper in `lib/backend/mappers`.
-2. Implement `ContentProvider` in `lib/backend/providers`.
-3. Register the `apiType` in `ProviderFactory`.
-4. Save a `ContentProviderConfig` with `ProviderManager.addCustomProvider`.
-
-For custom providers, MVP supports these `apiType` values:
-
-- `gelbooru`
-- `rule34`
-- `danbooru`
-- `moebooru`
-- `e621`
-
-Unsupported types return `ProviderUnavailableException` instead of crashing the app.
-
-## ProviderManager
-
-`ProviderManager` loads enabled provider configs from Isar, sorts them by `priority`, creates provider instances through `ProviderFactory`, checks health, and performs multi-provider search.
-
-Search behavior:
-
-- Enabled providers are tried even if an older health check marked them offline.
-- A failed provider marks itself offline for diagnostics.
-- Other providers continue returning posts.
-- Results are combined into a single list.
-
-## Health Checks
-
-Use `ProviderCheckService`:
+Пример feed:
 
 ```dart
-final health = await ref
-    .read(providerCheckServiceProvider)
-    .checkOne('gelbooru');
-
-final all = await ref
-    .read(providerCheckServiceProvider)
-    .checkAll();
-```
-
-`checkAll()` runs in parallel with a concurrency limit of 3 and saves `ProviderHealth` in Isar.
-
-## Using Services From Flutter UI
-
-Initialize your app with Riverpod:
-
-```dart
-ProviderScope(
-  child: MyApp(),
-);
-```
-
-Load a feed:
-
-```dart
-final feed = ref.read(feedServiceProvider);
-final result = await feed.refresh(
-  tags: ['landscape'],
+final result = await ref.read(feedServiceProvider).refresh(
+  tags: ['touhou', 'hakurei_reimu'],
   rating: 'safe',
 );
 ```
 
-Infinite scroll:
-
-```dart
-final next = await ref.read(feedServiceProvider).loadNextPage(
-  tags: ['landscape'],
-);
-```
-
-Search history:
-
-```dart
-final search = ref.read(searchServiceProvider);
-final tags = search.parseTags('cat cute');
-await search.saveSearch('cat cute', 120);
-final recent = await search.recentSearches();
-```
-
-Favorites:
+Пример избранного:
 
 ```dart
 await ref.read(favoriteServiceProvider).addFavorite(post);
+
 final saved = await ref
     .read(favoriteServiceProvider)
     .isFavorite(post.id, post.providerId);
 ```
 
-Collections:
-
-```dart
-final collection = await ref
-    .read(collectionServiceProvider)
-    .createCollection('Inspiration', 'Reference posts');
-
-await ref
-    .read(collectionServiceProvider)
-    .addPostToCollection(collection.data.id, post);
-```
-
-Settings export/import:
+Пример настроек:
 
 ```dart
 final settings = ref.read(settingsServiceProvider);
-final json = await settings.exportSettingsToJson();
-await settings.importSettingsFromJson(json.data);
+final exported = await settings.exportSettingsToJson();
+await settings.importSettingsFromJson(exported.data);
 ```
 
-## Local Storage
+## Сборка и запуск
 
-Isar stores:
-
-- provider configs
-- provider health
-- cached post metadata
-- favorites
-- collections
-- collection-post links
-- search history
-- app settings
-
-Post cache stores metadata only. It does not download or persist original media files.
-
-## Safety Notes
-
-- The app requests API metadata only.
-- It does not bypass site limits or authentication.
-- Dio uses a clear User-Agent.
-- Retry is limited and uses exponential backoff.
-- Provider failures are isolated so one offline provider does not break the feed.
-
-## Development
-
-Fetch dependencies:
+Установить зависимости:
 
 ```bash
 flutter pub get
 ```
 
-On Windows, Flutter plugins require Developer Mode for symlink support. If `flutter pub get` or desktop builds show a symlink warning, enable Developer Mode in Windows settings.
-
-Generate Isar code:
+Сгенерировать Isar-код:
 
 ```bash
 dart run build_runner build --delete-conflicting-outputs
 ```
 
-Run tests:
-
-```bash
-flutter test
-```
-
-Run the app:
+Запустить:
 
 ```bash
 flutter run -d windows
-flutter run -d linux
 flutter run -d android
 ```
 
-Build release artifacts:
+Собрать релиз:
 
 ```bash
 flutter build windows
-flutter build linux
 flutter build apk
 ```
 
-Notes:
+Собрать Windows installer:
 
-- Windows builds require Windows Developer Mode when plugins are used.
-- Linux builds must be run on a Linux host.
-- Android builds require Android SDK and `ANDROID_HOME`.
+```powershell
+& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" installer\RuleGel.iss
+```
 
-## Adding A Screen
+## Важные заметки
 
-1. Add a route in `lib/app/router.dart`.
-2. Add feature state/controller/screen under `lib/features/<name>/presentation`.
-3. Use backend providers from `backend_providers.dart`; do not recreate Dio, Isar, or provider logic in UI code.
-4. Add loading, error, empty, and success states.
+- На Windows для Flutter plugins может понадобиться Developer Mode.
+- Android-сборка требует Android SDK и принятые `flutter doctor --android-licenses`.
+- Linux build нужно собирать на Linux-хосте.
+- Если путь проекта содержит апостроф, Flutter Windows/test tooling может капризничать. Для сборки можно использовать junction-путь без спецсимволов.
+- SWF работает только на Windows. На Android он намеренно отключён.
+- Для SWF на Windows может понадобиться Microsoft WebView2 Runtime.
+
+## Безопасность
+
+- RuleGel использует публичные API и metadata.
+- Приложение не обходит ограничения сайтов.
+- Оригинальные файлы скачиваются только вручную по действию пользователя.
+- Dio использует нормальный User-Agent.
+- Retry/backoff ограничены.
+- NSFW/blur/filter настройки работают локально.
+
+## Тесты
+
+```bash
+flutter analyze
+flutter test
+```
+
+В текущей версии покрыты backend-сервисы, provider parsing, smart blacklist, viewed history и tag chip input.
