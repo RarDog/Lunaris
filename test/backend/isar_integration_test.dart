@@ -74,6 +74,10 @@ void main() {
       'e926',
       'realbooru',
     ]);
+    expect(
+      providers.singleWhere((provider) => provider.id == 'realbooru').enabled,
+      isFalse,
+    );
   });
 
   test('settings saveEnabledProviders updates provider configs', () async {

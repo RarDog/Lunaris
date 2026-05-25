@@ -1,5 +1,14 @@
 const ruleGelChangelog = [
   RuleGelChange(
+    version: '1.0.2',
+    title: 'Realbooru safety fix',
+    bullets: [
+      'Realbooru stays available in Providers, but is disabled by default while its public DAPI is offline.',
+      'Provider diagnostics now surface the Realbooru API reason instead of a generic exception.',
+      'Existing enabled Realbooru configs are disabled on startup so the main feed is not polluted by a known-offline API.',
+    ],
+  ),
+  RuleGelChange(
     version: '1.0.1',
     title: 'Realbooru and mobile polish',
     bullets: [

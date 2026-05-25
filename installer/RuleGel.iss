@@ -1,5 +1,5 @@
 #define MyAppName "RuleGel"
-#define MyAppVersion "1.0.1"
+#define MyAppVersion "1.0.2"
 #define MyAppPublisher "RarDog"
 #define MyAppExeName "gel_rule_app.exe"
 

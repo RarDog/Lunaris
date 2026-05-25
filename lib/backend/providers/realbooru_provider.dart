@@ -107,14 +107,17 @@ class RealbooruProvider extends GelbooruProvider {
       final success = data['success']?.toString().toLowerCase();
       if (success == 'false') {
         throw ProviderUnavailableException(
-          (data['message'] ?? 'Realbooru search is unavailable').toString(),
+          (data['message'] ??
+                  data['reason'] ??
+                  'Realbooru search is unavailable')
+              .toString(),
         );
       }
     }
     final text = data?.toString().toLowerCase() ?? '';
     if (text.contains('success="false"') || text.contains("success='false'")) {
-      final message =
-          RegExp(r'''message\s*=\s*["']([^"']+)["']''').firstMatch(text);
+      final message = RegExp(r'''(?:message|reason)\s*=\s*["']([^"']+)["']''')
+          .firstMatch(data?.toString() ?? '');
       throw ProviderUnavailableException(
         message?.group(1) ?? 'Realbooru search is unavailable',
       );

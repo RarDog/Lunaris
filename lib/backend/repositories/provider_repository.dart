@@ -112,7 +112,7 @@ class ProviderRepository {
         name: 'Realbooru',
         baseUrl: 'https://realbooru.com',
         apiType: 'realbooru',
-        enabled: true,
+        enabled: false,
         priority: 7,
         timeoutSeconds: 20,
         customHeaders: const {},
@@ -141,6 +141,10 @@ class ProviderRepository {
         if (exists == null) {
           await isar.providerConfigEntitys
               .put(ProviderConfigEntity.fromModel(seed));
+        } else if (seed.id == 'realbooru' && exists.enabled) {
+          exists.enabled = false;
+          exists.updatedAt = DateTime.now();
+          await isar.providerConfigEntitys.put(exists);
         }
       }
     });

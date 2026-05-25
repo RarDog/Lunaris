@@ -210,7 +210,7 @@ void main() {
         .where((provider) => provider.id == 'realbooru')
         .single;
 
-    expect(realbooru.enabled, isTrue);
+    expect(realbooru.enabled, isFalse);
     expect(realbooru.apiType, 'realbooru');
     expect(realbooru.baseUrl, 'https://realbooru.com');
   });
