@@ -1,31 +1,32 @@
-# RuleGel
+# Lunaris
 
-RuleGel — единое Flutter-приложение для просмотра booru/gelbooru/rule34-подобных источников в Pinterest-стиле.
+Lunaris — локальное Flutter-приложение для просмотра booru/gelbooru/rule34-подобных источников в Pinterest-стиле.
 
-Приложение не использует отдельный backend-сервер. Вся логика работает локально внутри Flutter: провайдеры API, кэш metadata, избранное, коллекции, история, настройки, диагностика и фильтры.
+Приложение не использует отдельный backend-сервер. Вся логика работает внутри Flutter: API-провайдеры, metadata-кэш, избранное, коллекции, история, настройки, диагностика и фильтры.
 
 ## Возможности
 
-- Pinterest-like masonry feed с несколькими провайдерами.
-- Поиск по тегам через удобные chip-теги: ввёл тег, нажал пробел или Enter, тег стал отдельным элементом.
+- Masonry feed с несколькими провайдерами и перемешанной выдачей All providers.
+- Поиск по тегам через chip-input: ввёл тег, нажал пробел или Enter, тег стал отдельным элементом.
 - Подсказки тегов из provider API.
 - Избранное, коллекции и история просмотренных постов.
-- Smart blacklist и whitelist с правилами по тегам, рейтингу, провайдеру, типу файла и score.
-- Детальный просмотр фото, GIF и видео.
-- Видео-плеер с fullscreen, repeat, mute и понижением громкости.
-- Desktop-only просмотр `.swf` через Ruffle/WebView на Windows.
+- Smart blacklist/whitelist с правилами по тегам, рейтингу, провайдеру, типу файла и score.
+- Детальный просмотр фото, GIF, видео и SWF на Windows.
+- Видео-плеер с fullscreen, repeat, mute, half-volume и сохранением выбранных настроек.
 - Управление провайдерами, health-check и provider diagnostics.
 - Экспорт и импорт настроек.
+- Автопроверка обновлений через Gitea releases.
 - Android и Windows сборки.
 
 ## Скачать
 
 Готовые сборки лежат в Gitea Releases:
 
-[RuleGel v0.3.0](https://gitea.rardogsynapse.online/RarDog/RuleGelApp/releases/tag/v0.3.0-tag-chips-swf)
+[Lunaris v1.1.0](https://gitea.rardogsynapse.online/RarDog/RuleGelApp/releases/tag/v1.1.0)
 
-- `RuleGelSetup.exe` — установщик для Windows.
-- `RuleGel-v0.3.0.apk` — APK для Android.
+- `Lunaris-v1.1.0.apk` — APK для Android.
+- `LunarisSetup-v1.1.0.exe` — установщик для Windows.
+- `LunarisPortable-v1.1.0.zip` — portable-версия для Windows.
 
 ## Стек
 
@@ -39,11 +40,10 @@ RuleGel — единое Flutter-приложение для просмотра 
 - media_kit
 - webview_windows для SWF/Ruffle на Windows
 - connectivity_plus
-- freezed/json_serializable/build_runner
 
 ## Архитектура
 
-RuleGel — Flutter-монолит. UI не дублирует backend-логику, а вызывает локальные сервисы через Riverpod.
+Lunaris — Flutter-монолит. UI не дублирует backend-логику, а вызывает локальные сервисы через Riverpod.
 
 Основные слои:
 
@@ -80,16 +80,21 @@ RuleGel — Flutter-монолит. UI не дублирует backend-логи�
 - Yande.re — `https://yande.re`
 - e621 — `https://e621.net`
 - e926 — `https://e926.net`
+- Xbooru — `https://xbooru.com`
+- CosBooru — `https://cos.lycore.co`
+
+Realbooru оставлен в списке провайдеров, но выключен по умолчанию, потому что его публичный API сейчас нестабилен.
 
 Поддерживаемые `apiType`:
 
 - `gelbooru`
 - `rule34`
+- `realbooru`
 - `danbooru`
 - `moebooru`
 - `e621`
 
-Один упавший провайдер не ломает общий feed: ошибки сохраняются в diagnostics, а остальные провайдеры продолжают отдавать посты.
+Один упавший провайдер не ломает общий feed: ошибки сохраняются в diagnostics, остальные провайдеры продолжают отдавать посты.
 
 ## Как добавить провайдера
 
@@ -133,49 +138,12 @@ Isar хранит:
 
 Кэш хранит только metadata. Оригинальные медиафайлы не скачиваются автоматически.
 
-## Использование сервисов из UI
-
-UI получает сервисы через Riverpod из `lib/backend/di/backend_providers.dart`.
-
-Пример feed:
-
-```dart
-final result = await ref.read(feedServiceProvider).refresh(
-  tags: ['touhou', 'hakurei_reimu'],
-  rating: 'safe',
-);
-```
-
-Пример избранного:
-
-```dart
-await ref.read(favoriteServiceProvider).addFavorite(post);
-
-final saved = await ref
-    .read(favoriteServiceProvider)
-    .isFavorite(post.id, post.providerId);
-```
-
-Пример настроек:
-
-```dart
-final settings = ref.read(settingsServiceProvider);
-final exported = await settings.exportSettingsToJson();
-await settings.importSettingsFromJson(exported.data);
-```
-
 ## Сборка и запуск
 
 Установить зависимости:
 
 ```bash
 flutter pub get
-```
-
-Сгенерировать Isar-код:
-
-```bash
-dart run build_runner build --delete-conflicting-outputs
 ```
 
 Запустить:
@@ -195,7 +163,7 @@ flutter build apk
 Собрать Windows installer:
 
 ```powershell
-& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" installer\RuleGel.iss
+& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" installer\Lunaris.iss
 ```
 
 ## Важные заметки
@@ -203,13 +171,13 @@ flutter build apk
 - На Windows для Flutter plugins может понадобиться Developer Mode.
 - Android-сборка требует Android SDK и принятые `flutter doctor --android-licenses`.
 - Linux build нужно собирать на Linux-хосте.
-- Если путь проекта содержит апостроф, Flutter Windows/test tooling может капризничать. Для сборки можно использовать junction-путь без спецсимволов.
-- SWF работает только на Windows. На Android он намеренно отключён.
+- Если путь проекта содержит апостроф, Flutter Windows/test tooling может ломаться. Для сборки можно использовать копию проекта в пути без спецсимволов.
+- SWF работает только на Windows через Ruffle/WebView. На Android он намеренно отключён.
 - Для SWF на Windows может понадобиться Microsoft WebView2 Runtime.
 
 ## Безопасность
 
-- RuleGel использует публичные API и metadata.
+- Lunaris использует публичные API и metadata.
 - Приложение не обходит ограничения сайтов.
 - Оригинальные файлы скачиваются только вручную по действию пользователя.
 - Dio использует нормальный User-Agent.
@@ -223,4 +191,4 @@ flutter analyze
 flutter test
 ```
 
-В текущей версии покрыты backend-сервисы, provider parsing, smart blacklist, viewed history и tag chip input.
+Покрыты backend-сервисы, provider parsing, smart blacklist, viewed history, settings migration и tag chip input.

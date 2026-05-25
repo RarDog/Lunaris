@@ -32,6 +32,10 @@ class AppSettings {
     required this.mediaQualityMode,
     required this.motionRefreshMode,
     required this.autoBatterySaver60Hz,
+    required this.videoPlayerMuted,
+    required this.videoPlayerHalfVolume,
+    required this.videoPlayerLoop,
+    required this.videoPlayerCover,
     required this.hiddenPostKeys,
     required this.diagnosticLogLines,
     required this.lastFeedTags,
@@ -64,6 +68,10 @@ class AppSettings {
   final String mediaQualityMode;
   final String motionRefreshMode;
   final bool autoBatterySaver60Hz;
+  final bool videoPlayerMuted;
+  final bool videoPlayerHalfVolume;
+  final bool videoPlayerLoop;
+  final bool videoPlayerCover;
   final List<String> hiddenPostKeys;
   final List<String> diagnosticLogLines;
   final List<String> lastFeedTags;
@@ -96,6 +104,10 @@ class AppSettings {
     mediaQualityMode: 'auto',
     motionRefreshMode: 'auto',
     autoBatterySaver60Hz: true,
+    videoPlayerMuted: false,
+    videoPlayerHalfVolume: false,
+    videoPlayerLoop: false,
+    videoPlayerCover: false,
     hiddenPostKeys: [],
     diagnosticLogLines: [],
     lastFeedTags: [],
@@ -129,6 +141,10 @@ class AppSettings {
     String? mediaQualityMode,
     String? motionRefreshMode,
     bool? autoBatterySaver60Hz,
+    bool? videoPlayerMuted,
+    bool? videoPlayerHalfVolume,
+    bool? videoPlayerLoop,
+    bool? videoPlayerCover,
     List<String>? hiddenPostKeys,
     List<String>? diagnosticLogLines,
     List<String>? lastFeedTags,
@@ -164,6 +180,11 @@ class AppSettings {
       mediaQualityMode: mediaQualityMode ?? this.mediaQualityMode,
       motionRefreshMode: motionRefreshMode ?? this.motionRefreshMode,
       autoBatterySaver60Hz: autoBatterySaver60Hz ?? this.autoBatterySaver60Hz,
+      videoPlayerMuted: videoPlayerMuted ?? this.videoPlayerMuted,
+      videoPlayerHalfVolume:
+          videoPlayerHalfVolume ?? this.videoPlayerHalfVolume,
+      videoPlayerLoop: videoPlayerLoop ?? this.videoPlayerLoop,
+      videoPlayerCover: videoPlayerCover ?? this.videoPlayerCover,
       hiddenPostKeys: hiddenPostKeys ?? this.hiddenPostKeys,
       diagnosticLogLines: diagnosticLogLines ?? this.diagnosticLogLines,
       lastFeedTags: lastFeedTags ?? this.lastFeedTags,
@@ -199,6 +220,10 @@ class AppSettings {
         'mediaQualityMode': mediaQualityMode,
         'motionRefreshMode': motionRefreshMode,
         'autoBatterySaver60Hz': autoBatterySaver60Hz,
+        'videoPlayerMuted': videoPlayerMuted,
+        'videoPlayerHalfVolume': videoPlayerHalfVolume,
+        'videoPlayerLoop': videoPlayerLoop,
+        'videoPlayerCover': videoPlayerCover,
         'hiddenPostKeys': hiddenPostKeys,
         'diagnosticLogLines': diagnosticLogLines,
         'lastFeedTags': lastFeedTags,
@@ -259,6 +284,14 @@ class AppSettings {
             defaults.motionRefreshMode,
         autoBatterySaver60Hz: (json['autoBatterySaver60Hz'] as bool?) ??
             defaults.autoBatterySaver60Hz,
+        videoPlayerMuted:
+            (json['videoPlayerMuted'] as bool?) ?? defaults.videoPlayerMuted,
+        videoPlayerHalfVolume: (json['videoPlayerHalfVolume'] as bool?) ??
+            defaults.videoPlayerHalfVolume,
+        videoPlayerLoop:
+            (json['videoPlayerLoop'] as bool?) ?? defaults.videoPlayerLoop,
+        videoPlayerCover:
+            (json['videoPlayerCover'] as bool?) ?? defaults.videoPlayerCover,
         hiddenPostKeys: List<String>.from(
           (json['hiddenPostKeys'] as List?) ?? defaults.hiddenPostKeys,
         ),
@@ -448,7 +481,7 @@ class SettingsService {
     return Success(
       const JsonEncoder.withIndent('  ').convert({
         'app': {
-          'name': 'RuleGel',
+          'name': 'Lunaris',
           'version': appVersion,
           'build': buildNumber,
           'generatedAt': DateTime.now().toIso8601String(),

@@ -392,7 +392,7 @@ class _SettingsContent extends ConsumerWidget {
     final update = (result as Success<AppUpdateInfo?>).data;
     if (update == null) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('RuleGel is up to date')),
+        const SnackBar(content: Text('Lunaris is up to date')),
       );
       return;
     }
@@ -407,7 +407,7 @@ class _SettingsContent extends ConsumerWidget {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('RuleGel ${info.version} is available'),
+        title: Text('Lunaris ${info.version} is available'),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
           child: SingleChildScrollView(
@@ -454,7 +454,7 @@ class _SettingsContent extends ConsumerWidget {
     return showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('RuleGel changelog'),
+        title: const Text('Lunaris changelog'),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 560),
           child: SingleChildScrollView(
@@ -462,7 +462,7 @@ class _SettingsContent extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                for (final change in ruleGelChangelog) ...[
+                for (final change in lunarisChangelog) ...[
                   Text(
                     '${change.version} - ${change.title}',
                     style: Theme.of(context).textTheme.titleMedium,

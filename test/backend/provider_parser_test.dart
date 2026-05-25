@@ -5,6 +5,7 @@ import 'package:gel_rule_app/backend/mappers/gelbooru_mapper.dart';
 import 'package:gel_rule_app/backend/mappers/moebooru_mapper.dart';
 import 'package:gel_rule_app/backend/mappers/rule34_mapper.dart';
 import 'package:gel_rule_app/backend/models/content_provider_config.dart';
+import 'package:gel_rule_app/backend/providers/danbooru_provider.dart';
 import 'package:gel_rule_app/backend/providers/provider_factory.dart';
 import 'package:gel_rule_app/backend/providers/realbooru_provider.dart';
 import 'package:gel_rule_app/backend/repositories/provider_repository.dart';
@@ -205,7 +206,7 @@ void main() {
     expect(posts.single.rating, 'unknown');
   });
 
-  test('seed providers include enabled Realbooru', () {
+  test('seed providers include CosBooru and no Paheal', () {
     final realbooru = ProviderRepository.seedProviders()
         .where((provider) => provider.id == 'realbooru')
         .single;
@@ -213,6 +214,23 @@ void main() {
     expect(realbooru.enabled, isFalse);
     expect(realbooru.apiType, 'realbooru');
     expect(realbooru.baseUrl, 'https://realbooru.com');
+    expect(
+      ProviderRepository.seedProviders()
+          .where((provider) => provider.id == 'paheal'),
+      isEmpty,
+    );
+    final cosbooru = ProviderRepository.seedProviders()
+        .where((provider) => provider.id == 'cosbooru')
+        .single;
+    final xbooru = ProviderRepository.seedProviders()
+        .where((provider) => provider.id == 'xbooru')
+        .single;
+    expect(xbooru.enabled, isTrue);
+    expect(xbooru.apiType, 'gelbooru');
+    expect(xbooru.baseUrl, 'https://xbooru.com');
+    expect(cosbooru.enabled, isTrue);
+    expect(cosbooru.apiType, 'danbooru');
+    expect(cosbooru.baseUrl, 'https://cos.lycore.co');
   });
 
   test('provider factory creates Realbooru provider', () {
@@ -231,5 +249,23 @@ void main() {
     ));
 
     expect(provider, isA<RealbooruProvider>());
+  });
+
+  test('provider factory creates CosBooru as Danbooru provider', () {
+    final now = DateTime(2026);
+    final provider = ProviderFactory().create(ContentProviderConfig(
+      id: 'cosbooru',
+      name: 'CosBooru',
+      baseUrl: 'https://cos.lycore.co',
+      apiType: 'danbooru',
+      enabled: true,
+      priority: 8,
+      timeoutSeconds: 20,
+      customHeaders: const {},
+      createdAt: now,
+      updatedAt: now,
+    ));
+
+    expect(provider, isA<DanbooruProvider>());
   });
 }

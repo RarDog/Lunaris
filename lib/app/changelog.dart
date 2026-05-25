@@ -1,5 +1,16 @@
-const ruleGelChangelog = [
-  RuleGelChange(
+const lunarisChangelog = [
+  LunarisChange(
+    version: '1.1.0',
+    title: 'Lunaris rebrand and CosBooru',
+    bullets: [
+      'RuleGel is now Lunaris while keeping the same package identity for updates.',
+      'CosBooru now uses the working Danbooru-compatible API at cos.lycore.co.',
+      'Xbooru was added as a default Gelbooru-compatible provider.',
+      'Rule34 Paheal was removed from providers.',
+      'Video player UI preferences are saved across fullscreen, details and restarts.',
+    ],
+  ),
+  LunarisChange(
     version: '1.0.2',
     title: 'Realbooru safety fix',
     bullets: [
@@ -8,7 +19,7 @@ const ruleGelChangelog = [
       'Existing enabled Realbooru configs are disabled on startup so the main feed is not polluted by a known-offline API.',
     ],
   ),
-  RuleGelChange(
+  LunarisChange(
     version: '1.0.1',
     title: 'Realbooru and mobile polish',
     bullets: [
@@ -18,7 +29,7 @@ const ruleGelChangelog = [
       'Tag chip input no longer jumps while typing.',
     ],
   ),
-  RuleGelChange(
+  LunarisChange(
     version: '1.0.0',
     title: 'Stable 1.0',
     bullets: [
@@ -28,7 +39,7 @@ const ruleGelChangelog = [
       'Windows portable package is published alongside APK and installer.',
     ],
   ),
-  RuleGelChange(
+  LunarisChange(
     version: '0.4.3',
     title: 'Bugfixes',
     bullets: [
@@ -40,8 +51,8 @@ const ruleGelChangelog = [
   ),
 ];
 
-class RuleGelChange {
-  const RuleGelChange({
+class LunarisChange {
+  const LunarisChange({
     required this.version,
     required this.title,
     required this.bullets,

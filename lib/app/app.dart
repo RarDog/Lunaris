@@ -32,7 +32,7 @@ class GelRuleApp extends ConsumerWidget {
         home: _StartupErrorScreen(error: error),
       ),
       data: (_) => MaterialApp.router(
-        title: 'RuleGel',
+        title: 'Lunaris',
         debugShowCheckedModeBanner: false,
         theme: buildTheme(Brightness.light),
         darkTheme: buildTheme(Brightness.dark),
@@ -79,7 +79,7 @@ class _AppOverlayState extends ConsumerState<_AppOverlay> {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('RuleGel ${info.version} is available'),
+        title: Text('Lunaris ${info.version} is available'),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
           child: SingleChildScrollView(

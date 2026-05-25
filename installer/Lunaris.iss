@@ -1,5 +1,5 @@
-#define MyAppName "RuleGel"
-#define MyAppVersion "1.0.2"
+#define MyAppName "Lunaris"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "RarDog"
 #define MyAppExeName "gel_rule_app.exe"
 
@@ -13,7 +13,7 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 OutputDir=..\dist
-OutputBaseFilename=RuleGelSetup
+OutputBaseFilename=LunarisSetup
 SetupIconFile=..\windows\runner\resources\app_icon.ico
 Compression=lzma2
 SolidCompression=yes

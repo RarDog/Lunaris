@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gel_rule_app/backend/models/content_provider_config.dart';
 import 'package:gel_rule_app/backend/models/post.dart';
 import 'package:gel_rule_app/backend/repositories/collection_repository.dart';
 import 'package:gel_rule_app/backend/repositories/favorite_repository.dart';
@@ -73,11 +74,52 @@ void main() {
       'e621',
       'e926',
       'realbooru',
+      'xbooru',
+      'cosbooru',
     ]);
     expect(
       providers.singleWhere((provider) => provider.id == 'realbooru').enabled,
       isFalse,
     );
+    expect(
+      providers.singleWhere((provider) => provider.id == 'cosbooru').enabled,
+      isTrue,
+    );
+    final xbooru = providers.singleWhere((provider) => provider.id == 'xbooru');
+    expect(xbooru.enabled, isTrue);
+    expect(xbooru.baseUrl, 'https://xbooru.com');
+    expect(xbooru.apiType, 'gelbooru');
+    final cosbooru =
+        providers.singleWhere((provider) => provider.id == 'cosbooru');
+    expect(cosbooru.baseUrl, 'https://cos.lycore.co');
+    expect(cosbooru.apiType, 'danbooru');
+  });
+
+  test('provider repository migrates old CosBooru config', () async {
+    final repository = ProviderRepository(databaseService);
+    final now = DateTime(2026);
+    await repository.saveProvider(ContentProviderConfig(
+      id: 'cosbooru',
+      name: 'CosBooru',
+      baseUrl: 'https://cos.booru.nl',
+      apiType: 'gelbooru',
+      enabled: false,
+      priority: 99,
+      timeoutSeconds: 10,
+      customHeaders: const {},
+      createdAt: now,
+      updatedAt: now,
+    ));
+
+    await repository.ensureSeedProviders();
+    final providers = (await repository.getProviders() as Success).data;
+    final cosbooru =
+        providers.singleWhere((provider) => provider.id == 'cosbooru');
+
+    expect(cosbooru.baseUrl, 'https://cos.lycore.co');
+    expect(cosbooru.apiType, 'danbooru');
+    expect(cosbooru.enabled, isTrue);
+    expect(cosbooru.priority, 9);
   });
 
   test('settings saveEnabledProviders updates provider configs', () async {

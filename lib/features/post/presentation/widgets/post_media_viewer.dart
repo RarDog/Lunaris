@@ -27,6 +27,7 @@ class PostMediaViewer extends StatefulWidget {
     this.initialHalfVolume = false,
     this.qualityMode = MediaQualityMode.auto,
     this.onPlaybackSnapshot,
+    this.onPlaybackPreferencesChanged,
     super.key,
   });
 
@@ -40,6 +41,7 @@ class PostMediaViewer extends StatefulWidget {
   final bool initialHalfVolume;
   final MediaQualityMode qualityMode;
   final ValueChanged<VideoPlaybackSnapshot>? onPlaybackSnapshot;
+  final ValueChanged<VideoPlaybackSnapshot>? onPlaybackPreferencesChanged;
 
   @override
   State<PostMediaViewer> createState() => _PostMediaViewerState();
@@ -161,12 +163,14 @@ class _PostMediaViewerState extends State<PostMediaViewer>
               onRetry: _retryVideo,
               onToggleFit: () {
                 setState(() => _coverVideo = !_coverVideo);
+                _emitPlaybackPreferences();
                 _showControls();
               },
               onToggleMute: () async {
                 final nextMuted = !_muted;
                 setState(() => _muted = nextMuted);
                 await _applyVolume();
+                _emitPlaybackPreferences();
                 _showControls();
               },
               onToggleHalfVolume: () async {
@@ -175,6 +179,7 @@ class _PostMediaViewerState extends State<PostMediaViewer>
                   if (_halfVolume) _muted = false;
                 });
                 await _applyVolume();
+                _emitPlaybackPreferences();
                 _showControls();
               },
               onToggleLoop: () async {
@@ -183,6 +188,7 @@ class _PostMediaViewerState extends State<PostMediaViewer>
                 await _player!.setPlaylistMode(
                   nextLoop ? PlaylistMode.single : PlaylistMode.none,
                 );
+                _emitPlaybackPreferences();
                 _showControls();
               },
               onFullscreen: widget.fullscreen
@@ -342,7 +348,7 @@ class _PostMediaViewerState extends State<PostMediaViewer>
 
   Map<String, String> _headersFor(Post post) {
     return {
-      'User-Agent': 'RuleGel/0.2 Flutter local booru browser',
+      'User-Agent': 'Lunaris/1.1 Flutter local booru browser',
       'Accept': '*/*',
       if (post.providerName.toLowerCase().contains('gelbooru') ||
           post.fileUrl.contains('gelbooru.com') ||
@@ -394,6 +400,7 @@ class _PostMediaViewerState extends State<PostMediaViewer>
           coverVideo: _coverVideo,
           errorMessage: _videoError,
           onRetry: _retryVideo,
+          onChanged: (_) => _emitPlaybackPreferences(),
         ),
         transitionsBuilder: (_, animation, __, child) => FadeTransition(
           opacity: animation,
@@ -414,6 +421,7 @@ class _PostMediaViewerState extends State<PostMediaViewer>
       await player.setPlaylistMode(
         _loopVideo ? PlaylistMode.single : PlaylistMode.none,
       );
+      _emitPlaybackPreferences();
       return;
     }
   }
@@ -436,6 +444,13 @@ class _PostMediaViewerState extends State<PostMediaViewer>
         : _halfVolume
             ? 50
             : 100);
+  }
+
+  void _emitPlaybackPreferences() {
+    final snapshot = _snapshot();
+    _playbackMemory[widget.post.cacheKey] = snapshot;
+    widget.onPlaybackSnapshot?.call(snapshot);
+    widget.onPlaybackPreferencesChanged?.call(snapshot);
   }
 
   Future<void> _togglePlay() async {
@@ -750,6 +765,7 @@ class _FullscreenVideoPage extends StatefulWidget {
     required this.coverVideo,
     required this.errorMessage,
     required this.onRetry,
+    required this.onChanged,
   });
 
   final Player player;
@@ -761,6 +777,7 @@ class _FullscreenVideoPage extends StatefulWidget {
   final bool coverVideo;
   final String? errorMessage;
   final VoidCallback onRetry;
+  final ValueChanged<VideoPlaybackSnapshot> onChanged;
 
   @override
   State<_FullscreenVideoPage> createState() => _FullscreenVideoPageState();
@@ -849,11 +866,13 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
                       onRetry: widget.onRetry,
                       onToggleFit: () {
                         setState(() => _coverVideo = !_coverVideo);
+                        widget.onChanged(_snapshot());
                         _showControls();
                       },
                       onToggleMute: () async {
                         setState(() => _muted = !_muted);
                         await _applyVolume();
+                        widget.onChanged(_snapshot());
                         _showControls();
                       },
                       onToggleHalfVolume: () async {
@@ -862,6 +881,7 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
                           if (_halfVolume) _muted = false;
                         });
                         await _applyVolume();
+                        widget.onChanged(_snapshot());
                         _showControls();
                       },
                       onToggleLoop: () async {
@@ -869,6 +889,7 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
                         await widget.player.setPlaylistMode(
                           _loopVideo ? PlaylistMode.single : PlaylistMode.none,
                         );
+                        widget.onChanged(_snapshot());
                         _showControls();
                       },
                       onFullscreen: () => Navigator.of(

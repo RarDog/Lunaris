@@ -88,7 +88,7 @@ class ProviderRepository {
         priority: 5,
         timeoutSeconds: 20,
         customHeaders: const {
-          'User-Agent': 'RuleGel/0.2 Flutter local booru browser',
+          'User-Agent': 'Lunaris/1.1 Flutter local booru browser',
         },
         createdAt: now,
         updatedAt: now,
@@ -102,7 +102,7 @@ class ProviderRepository {
         priority: 6,
         timeoutSeconds: 20,
         customHeaders: const {
-          'User-Agent': 'RuleGel/0.2 Flutter local booru browser',
+          'User-Agent': 'Lunaris/1.1 Flutter local booru browser',
         },
         createdAt: now,
         updatedAt: now,
@@ -119,6 +119,30 @@ class ProviderRepository {
         createdAt: now,
         updatedAt: now,
       ),
+      ContentProviderConfig(
+        id: 'xbooru',
+        name: 'Xbooru',
+        baseUrl: 'https://xbooru.com',
+        apiType: 'gelbooru',
+        enabled: true,
+        priority: 8,
+        timeoutSeconds: 20,
+        customHeaders: const {},
+        createdAt: now,
+        updatedAt: now,
+      ),
+      ContentProviderConfig(
+        id: 'cosbooru',
+        name: 'CosBooru',
+        baseUrl: 'https://cos.lycore.co',
+        apiType: 'danbooru',
+        enabled: true,
+        priority: 9,
+        timeoutSeconds: 20,
+        customHeaders: const {},
+        createdAt: now,
+        updatedAt: now,
+      ),
     ];
   }
 
@@ -128,10 +152,35 @@ class ProviderRepository {
           await isar.providerConfigEntitys.where().findAll();
       for (final provider in existingProviders) {
         if (provider.providerId == 'kemono' ||
-            provider.providerId == 'coomer') {
+            provider.providerId == 'coomer' ||
+            provider.providerId == 'paheal') {
           await isar.providerConfigEntitys.delete(provider.isarId);
         }
       }
+      await isar.providerHealthEntitys
+          .filter()
+          .providerIdEqualTo('paheal')
+          .deleteAll();
+      await isar.providerDiagnosticsEntitys
+          .filter()
+          .providerIdEqualTo('paheal')
+          .deleteAll();
+      await isar.cachedPostEntitys
+          .filter()
+          .providerIdEqualTo('paheal')
+          .deleteAll();
+      await isar.favoriteEntitys
+          .filter()
+          .providerIdEqualTo('paheal')
+          .deleteAll();
+      await isar.collectionPostEntitys
+          .filter()
+          .providerIdEqualTo('paheal')
+          .deleteAll();
+      await isar.viewedPostEntitys
+          .filter()
+          .providerIdEqualTo('paheal')
+          .deleteAll();
       final seeds = seedProviders();
       for (final seed in seeds) {
         final exists = await isar.providerConfigEntitys
@@ -143,6 +192,17 @@ class ProviderRepository {
               .put(ProviderConfigEntity.fromModel(seed));
         } else if (seed.id == 'realbooru' && exists.enabled) {
           exists.enabled = false;
+          exists.updatedAt = DateTime.now();
+          await isar.providerConfigEntitys.put(exists);
+        } else if (seed.id == 'cosbooru' &&
+            (exists.baseUrl != seed.baseUrl ||
+                exists.apiType != seed.apiType)) {
+          exists.name = seed.name;
+          exists.baseUrl = seed.baseUrl;
+          exists.apiType = seed.apiType;
+          exists.enabled = seed.enabled;
+          exists.priority = seed.priority;
+          exists.timeoutSeconds = seed.timeoutSeconds;
           exists.updatedAt = DateTime.now();
           await isar.providerConfigEntitys.put(exists);
         }

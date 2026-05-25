@@ -188,6 +188,13 @@ class PostDetailsScreen extends ConsumerWidget {
                                 key: ValueKey(post.cacheKey),
                                 post: post,
                                 qualityMode: qualityMode,
+                                initialLoop: settings.videoPlayerLoop,
+                                initialMuted: settings.videoPlayerMuted,
+                                initialCoverVideo: settings.videoPlayerCover,
+                                initialHalfVolume:
+                                    settings.videoPlayerHalfVolume,
+                                onPlaybackPreferencesChanged: (snapshot) =>
+                                    _saveVideoPreferences(ref, snapshot),
                               ),
                             ),
                           ),
@@ -290,6 +297,12 @@ class PostDetailsScreen extends ConsumerWidget {
                   key: ValueKey(post.cacheKey),
                   post: post,
                   qualityMode: qualityMode,
+                  initialLoop: settings.videoPlayerLoop,
+                  initialMuted: settings.videoPlayerMuted,
+                  initialCoverVideo: settings.videoPlayerCover,
+                  initialHalfVolume: settings.videoPlayerHalfVolume,
+                  onPlaybackPreferencesChanged: (snapshot) =>
+                      _saveVideoPreferences(ref, snapshot),
                 ),
               ),
             ),
@@ -479,6 +492,30 @@ class PostDetailsScreen extends ConsumerWidget {
     }
     context.go('/');
   }
+
+  Future<void> _saveVideoPreferences(
+    WidgetRef ref,
+    VideoPlaybackSnapshot snapshot,
+  ) async {
+    final result = await ref.read(settingsServiceProvider).getSettings();
+    if (result is! Success<AppSettings>) return;
+    final settings = result.data;
+    if (settings.videoPlayerMuted == snapshot.muted &&
+        settings.videoPlayerHalfVolume == snapshot.halfVolume &&
+        settings.videoPlayerLoop == snapshot.loopVideo &&
+        settings.videoPlayerCover == snapshot.coverVideo) {
+      return;
+    }
+    await ref.read(settingsServiceProvider).updateSettings(
+          settings.copyWith(
+            videoPlayerMuted: snapshot.muted,
+            videoPlayerHalfVolume: snapshot.halfVolume,
+            videoPlayerLoop: snapshot.loopVideo,
+            videoPlayerCover: snapshot.coverVideo,
+          ),
+        );
+    ref.invalidate(appSettingsProvider);
+  }
 }
 
 class _MobilePostPager extends StatefulWidget {
@@ -573,7 +610,7 @@ class _MobilePostPagerState extends State<_MobilePostPager> {
 
   Map<String, String> _headersFor(Post post) {
     return {
-      'User-Agent': 'RuleGel/0.2 Flutter local booru browser',
+      'User-Agent': 'Lunaris/1.1 Flutter local booru browser',
       'Accept': '*/*',
       if (post.providerName.toLowerCase().contains('gelbooru') ||
           post.fileUrl.contains('gelbooru.com') ||
