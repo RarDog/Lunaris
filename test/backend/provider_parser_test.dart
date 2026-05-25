@@ -4,6 +4,10 @@ import 'package:gel_rule_app/backend/mappers/e621_mapper.dart';
 import 'package:gel_rule_app/backend/mappers/gelbooru_mapper.dart';
 import 'package:gel_rule_app/backend/mappers/moebooru_mapper.dart';
 import 'package:gel_rule_app/backend/mappers/rule34_mapper.dart';
+import 'package:gel_rule_app/backend/models/content_provider_config.dart';
+import 'package:gel_rule_app/backend/providers/provider_factory.dart';
+import 'package:gel_rule_app/backend/providers/realbooru_provider.dart';
+import 'package:gel_rule_app/backend/repositories/provider_repository.dart';
 
 void main() {
   test('parses Gelbooru array response', () {
@@ -44,6 +48,23 @@ void main() {
 
     expect(posts.single.id, '2');
     expect(posts.single.fileType, 'gif');
+  });
+
+  test('parses Gelbooru compatible XML post response', () {
+    final posts = GelbooruMapper.postsFromResponse(
+      '''
+      <posts count="1">
+        <post id="7" file_url="https://example.test/r.jpg" preview_url="https://example.test/r-preview.jpg" tags="real booru" rating="explicit" width="300" height="400" score="12" />
+      </posts>
+      ''',
+      providerId: 'realbooru',
+      providerName: 'Realbooru',
+    );
+
+    expect(posts.single.id, '7');
+    expect(posts.single.providerId, 'realbooru');
+    expect(posts.single.tags, ['real', 'booru']);
+    expect(posts.single.rating, 'explicit');
   });
 
   test('parses Rule34 compatible response', () {
@@ -182,5 +203,33 @@ void main() {
 
     expect(posts.single.fileUrl, '');
     expect(posts.single.rating, 'unknown');
+  });
+
+  test('seed providers include enabled Realbooru', () {
+    final realbooru = ProviderRepository.seedProviders()
+        .where((provider) => provider.id == 'realbooru')
+        .single;
+
+    expect(realbooru.enabled, isTrue);
+    expect(realbooru.apiType, 'realbooru');
+    expect(realbooru.baseUrl, 'https://realbooru.com');
+  });
+
+  test('provider factory creates Realbooru provider', () {
+    final now = DateTime(2026);
+    final provider = ProviderFactory().create(ContentProviderConfig(
+      id: 'realbooru',
+      name: 'Realbooru',
+      baseUrl: 'https://realbooru.com',
+      apiType: 'realbooru',
+      enabled: true,
+      priority: 7,
+      timeoutSeconds: 20,
+      customHeaders: const {},
+      createdAt: now,
+      updatedAt: now,
+    ));
+
+    expect(provider, isA<RealbooruProvider>());
   });
 }

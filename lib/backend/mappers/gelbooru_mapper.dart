@@ -55,6 +55,7 @@ class GelbooruMapper {
 
   static List<dynamic> _extractItems(dynamic data) {
     if (data is List) return data;
+    if (data is String) return _extractItemsFromText(data);
     if (data is Map) {
       final posts = data['post'] ?? data['posts'];
       if (posts is List) return posts;
@@ -62,6 +63,26 @@ class GelbooruMapper {
       if (posts is Map) return [posts];
     }
     return const [];
+  }
+
+  static List<Map<String, dynamic>> _extractItemsFromText(String text) {
+    final items = <Map<String, dynamic>>[];
+    for (final match
+        in RegExp(r'<post\b([^>]*)/?>', caseSensitive: false, dotAll: true)
+            .allMatches(text)) {
+      final attrs = _attributes(match.group(1) ?? '');
+      if (attrs.isNotEmpty) items.add(attrs);
+    }
+    return items;
+  }
+
+  static Map<String, dynamic> _attributes(String source) {
+    final result = <String, dynamic>{};
+    for (final match in RegExp(r'''([A-Za-z0-9_:-]+)\s*=\s*["']([^"']*)["']''')
+        .allMatches(source)) {
+      result[match.group(1)!] = _decodeEntities(match.group(2) ?? '');
+    }
+    return result;
   }
 
   static List<String> _tags(dynamic value) {
@@ -127,5 +148,15 @@ class GelbooruMapper {
     add('character', json['tag_string_character'] ?? json['tags_character']);
     add('meta', json['tag_string_meta'] ?? json['tags_meta']);
     return groups;
+  }
+
+  static String _decodeEntities(String value) {
+    return value
+        .replaceAll('&amp;', '&')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"')
+        .replaceAll('&#039;', "'")
+        .replaceAll('&apos;', "'");
   }
 }

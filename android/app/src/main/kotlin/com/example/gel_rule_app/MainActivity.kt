@@ -1,7 +1,9 @@
 package com.example.gel_rule_app
 
 import android.content.ContentValues
+import android.content.Context
 import android.os.Build
+import android.os.BatteryManager
 import android.os.Environment
 import android.provider.MediaStore
 import io.flutter.embedding.android.FlutterActivity
@@ -27,6 +29,25 @@ class MainActivity : FlutterActivity() {
                     result.success(saveToDownloads(path, fileName, mimeType))
                 } catch (error: Throwable) {
                     result.error("save_failed", error.message, null)
+                }
+            }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "rulegel/device")
+            .setMethodCallHandler { call, result ->
+                try {
+                    when (call.method) {
+                        "getBatteryLevel" -> result.success(batteryLevel())
+                        "getSupportedRefreshRates" -> result.success(supportedRefreshRates())
+                        "setPreferredRefreshRate" -> {
+                            val hz = call.argument<Double>("hz")
+                                ?: call.argument<Int>("hz")?.toDouble()
+                                ?: 60.0
+                            setPreferredRefreshRate(hz.toFloat())
+                            result.success(null)
+                        }
+                        else -> result.notImplemented()
+                    }
+                } catch (error: Throwable) {
+                    result.error("device_failed", error.message, null)
                 }
             }
     }
@@ -60,5 +81,35 @@ class MainActivity : FlutterActivity() {
             FileOutputStream(destination).use { output -> input.copyTo(output) }
         }
         return destination.absolutePath
+    }
+
+    private fun batteryLevel(): Int? {
+        val manager = getSystemService(Context.BATTERY_SERVICE) as? BatteryManager ?: return null
+        val level = manager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+        return if (level in 0..100) level else null
+    }
+
+    private fun supportedRefreshRates(): List<Double> {
+        val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) display else windowManager.defaultDisplay
+        return display?.supportedModes
+            ?.map { it.refreshRate.toDouble() }
+            ?.distinct()
+            ?.sorted()
+            ?: emptyList()
+    }
+
+    private fun setPreferredRefreshRate(targetHz: Float) {
+        val display = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) display else windowManager.defaultDisplay
+        val mode = display?.supportedModes?.minByOrNull {
+            kotlin.math.abs(it.refreshRate - targetHz)
+        } ?: return
+        val attrs = window.attributes
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            attrs.preferredDisplayModeId = mode.modeId
+        } else {
+            @Suppress("DEPRECATION")
+            attrs.preferredRefreshRate = mode.refreshRate
+        }
+        window.attributes = attrs
     }
 }

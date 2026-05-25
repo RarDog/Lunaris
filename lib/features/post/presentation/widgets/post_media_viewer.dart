@@ -9,6 +9,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_windows/webview_windows.dart';
 
+import '../../../../app/motion.dart';
 import '../../../../backend/backend.dart';
 
 final Map<String, VideoPlaybackSnapshot> _playbackMemory =
@@ -1010,10 +1011,10 @@ class _VideoSurface extends StatelessWidget {
               final playing = snapshot.data ?? false;
               return AnimatedScale(
                 scale: controlsVisible || !playing ? 1 : 0.85,
-                duration: const Duration(milliseconds: 160),
+                duration: AppMotion.duration(context, 160),
                 child: AnimatedOpacity(
                   opacity: controlsVisible || !playing ? 1 : 0,
-                  duration: const Duration(milliseconds: 160),
+                  duration: AppMotion.duration(context, 160),
                   child: Center(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
@@ -1051,7 +1052,7 @@ class _VideoSurface extends StatelessWidget {
           ignoring: !controlsVisible || errorMessage != null,
           child: AnimatedOpacity(
             opacity: controlsVisible || errorMessage != null ? 1 : 0,
-            duration: const Duration(milliseconds: 180),
+            duration: AppMotion.duration(context, 180),
             child: _VideoControls(
               player: player,
               muted: muted,
@@ -1176,7 +1177,7 @@ class _RoundControlButton extends StatelessWidget {
         onTap: onPressed,
         radius: emphasized ? 23 : 21,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
+          duration: AppMotion.duration(context, 140),
           width: emphasized ? 38 : 34,
           height: emphasized ? 38 : 34,
           decoration: BoxDecoration(

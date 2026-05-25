@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../app/motion.dart';
 import '../../backend/backend.dart';
 
 class AppSearchBar extends StatefulWidget {
@@ -48,6 +49,7 @@ class TagInputSearchBar extends StatefulWidget {
 class _TagInputSearchBarState extends State<TagInputSearchBar> {
   late final TextEditingController _controller;
   late final FocusNode _focusNode;
+  late final ScrollController _tagScrollController;
   Timer? _debounce;
   List<String> _tags = [];
 
@@ -56,6 +58,7 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
     super.initState();
     _controller = TextEditingController();
     _focusNode = FocusNode();
+    _tagScrollController = ScrollController();
     _focusNode.addListener(_handleFocusChanged);
     _setFromQuery(widget.initialValue ?? '');
   }
@@ -72,6 +75,7 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _tagScrollController.dispose();
     _focusNode.removeListener(_handleFocusChanged);
     _focusNode.dispose();
     _controller.dispose();
@@ -105,53 +109,64 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 7),
-                    child: Icon(Icons.search_rounded,
-                        color: scheme.onSurfaceVariant),
-                  ),
+                  Icon(Icons.search_rounded, color: scheme.onSurfaceVariant),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        for (final tag in _tags) _buildTagChip(context, tag),
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(
-                            minWidth: 120,
-                            maxWidth: 320,
-                          ),
-                          child: Focus(
-                            onKeyEvent: _handleKeyEvent,
-                            child: TextField(
-                              controller: _controller,
-                              focusNode: _focusNode,
-                              autocorrect: false,
-                              enableSuggestions: false,
-                              textInputAction: TextInputAction.search,
-                              onSubmitted: (_) => _submit(),
-                              onChanged: _handleDraftChanged,
-                              decoration: InputDecoration(
-                                isDense: true,
-                                border: InputBorder.none,
-                                enabledBorder: InputBorder.none,
-                                focusedBorder: InputBorder.none,
-                                filled: false,
-                                contentPadding:
-                                    const EdgeInsets.symmetric(vertical: 8),
-                                hintText:
-                                    _tags.isEmpty ? widget.hintText : 'tag',
-                                prefixIcon: null,
-                                suffixIcon: null,
+                    child: SizedBox(
+                      height: 38,
+                      child: Scrollbar(
+                        controller: _tagScrollController,
+                        thumbVisibility: false,
+                        child: SingleChildScrollView(
+                          controller: _tagScrollController,
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              for (final tag in _tags) ...[
+                                _buildTagChip(context, tag),
+                                const SizedBox(width: 6),
+                              ],
+                              ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  minWidth: 120,
+                                  maxWidth: 300,
+                                ),
+                                child: Focus(
+                                  onKeyEvent: _handleKeyEvent,
+                                  child: TextField(
+                                    controller: _controller,
+                                    focusNode: _focusNode,
+                                    autocorrect: false,
+                                    enableSuggestions: false,
+                                    textInputAction: TextInputAction.search,
+                                    onSubmitted: (_) => _submit(),
+                                    onChanged: _handleDraftChanged,
+                                    decoration: InputDecoration(
+                                      isDense: true,
+                                      border: InputBorder.none,
+                                      enabledBorder: InputBorder.none,
+                                      focusedBorder: InputBorder.none,
+                                      filled: false,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                        vertical: 8,
+                                      ),
+                                      hintText: _tags.isEmpty
+                                          ? widget.hintText
+                                          : 'tag',
+                                      prefixIcon: null,
+                                      suffixIcon: null,
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
                   IconButton(
@@ -238,6 +253,7 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
   void _commitDraft(String value) {
     final additions = _parseTags(value);
     if (additions.isEmpty) return;
+    final keepInputVisible = _isInputNearEnd();
     setState(() {
       for (final tag in additions) {
         if (!_tags.contains(tag)) _tags.add(tag);
@@ -245,6 +261,7 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
       _controller.clear();
     });
     _notifyChanged();
+    if (keepInputVisible) _scrollTagsToEnd();
   }
 
   void _submit() {
@@ -284,6 +301,7 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
 
   void _applySuggestion(String suggestion) {
     final draft = _controller.text.trim();
+    final keepInputVisible = _isInputNearEnd();
     setState(() {
       if (draft.isNotEmpty) {
         final draftTags = _parseTags(draft);
@@ -295,6 +313,7 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
     _notifyChanged();
     widget.onSuggestionApplied?.call(_query);
     _focusNode.requestFocus();
+    if (keepInputVisible) _scrollTagsToEnd();
   }
 
   void _notifyChangedDebounced() {
@@ -321,6 +340,22 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
     final draft = _controller.text.trim();
     final all = [..._tags, if (draft.isNotEmpty) draft];
     return all.join(' ');
+  }
+
+  void _scrollTagsToEnd() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_tagScrollController.hasClients) return;
+      _tagScrollController.animateTo(
+        _tagScrollController.position.maxScrollExtent,
+        duration: AppMotion.duration(context, 120),
+        curve: Curves.easeOut,
+      );
+    });
+  }
+
+  bool _isInputNearEnd() {
+    if (!_tagScrollController.hasClients) return true;
+    return _tagScrollController.position.extentAfter < 96;
   }
 }
 

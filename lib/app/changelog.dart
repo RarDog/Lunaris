@@ -1,5 +1,15 @@
 const ruleGelChangelog = [
   RuleGelChange(
+    version: '1.0.1',
+    title: 'Realbooru and mobile polish',
+    bullets: [
+      'Added Realbooru as a default enabled provider.',
+      'Startup update checks now look for new Gitea releases every launch.',
+      'Refresh-rate controls are Android-only; desktop keeps stable app motion.',
+      'Tag chip input no longer jumps while typing.',
+    ],
+  ),
+  RuleGelChange(
     version: '1.0.0',
     title: 'Stable 1.0',
     bullets: [

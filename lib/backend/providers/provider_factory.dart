@@ -6,6 +6,7 @@ import 'danbooru_provider.dart';
 import 'e621_provider.dart';
 import 'gelbooru_provider.dart';
 import 'moebooru_provider.dart';
+import 'realbooru_provider.dart';
 import 'rule34_provider.dart';
 
 class ProviderFactory {
@@ -33,6 +34,14 @@ class ProviderFactory {
         );
       case 'rule34':
         return Rule34Provider(
+          id: config.id,
+          name: config.name,
+          baseUrl: config.baseUrl,
+          dioClient: client,
+          queryParameters: queryParameters,
+        );
+      case 'realbooru':
+        return RealbooruProvider(
           id: config.id,
           name: config.name,
           baseUrl: config.baseUrl,

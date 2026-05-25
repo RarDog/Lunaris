@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/motion.dart';
 import '../../app/responsive.dart';
 
 class AppShell extends StatelessWidget {
@@ -93,7 +94,7 @@ class _DesktopShellState extends State<_DesktopShell> {
             onEnter: (_) => setState(() => _hovered = true),
             onExit: (_) => setState(() => _hovered = false),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
+              duration: AppMotion.duration(context, 180),
               curve: Curves.easeOutCubic,
               width: _hovered ? 256 : 72,
               color: Theme.of(context).navigationRailTheme.backgroundColor,
@@ -174,7 +175,7 @@ class _RailButton extends StatelessWidget {
                       child: ClipRect(
                         child: AnimatedOpacity(
                           opacity: 1,
-                          duration: const Duration(milliseconds: 120),
+                          duration: AppMotion.duration(context, 120),
                           curve: Curves.easeOut,
                           child: Align(
                             alignment: Alignment.centerLeft,

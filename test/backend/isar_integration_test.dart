@@ -72,6 +72,7 @@ void main() {
       'yandere',
       'e621',
       'e926',
+      'realbooru',
     ]);
   });
 

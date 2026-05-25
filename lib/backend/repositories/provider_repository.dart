@@ -107,6 +107,18 @@ class ProviderRepository {
         createdAt: now,
         updatedAt: now,
       ),
+      ContentProviderConfig(
+        id: 'realbooru',
+        name: 'Realbooru',
+        baseUrl: 'https://realbooru.com',
+        apiType: 'realbooru',
+        enabled: true,
+        priority: 7,
+        timeoutSeconds: 20,
+        customHeaders: const {},
+        createdAt: now,
+        updatedAt: now,
+      ),
     ];
   }
 

@@ -84,6 +84,24 @@ void main() {
     expect(find.text('touhou'), findsWidgets);
     expect(applied, 'touhou');
   });
+
+  testWidgets('many chips stay in a single compact row', (tester) async {
+    await tester.pumpWidget(_Harness(
+      child: SizedBox(
+        width: 320,
+        child: TagInputSearchBar(
+          initialValue:
+              'touhou video hakurei_reimu kirisame_marisa kochiya_sanae cirno',
+          onSubmitted: (_) {},
+        ),
+      ),
+    ));
+
+    final size = tester.getSize(find.byType(TagInputSearchBar));
+
+    expect(size.height, lessThan(96));
+    expect(find.text('touhou'), findsOneWidget);
+  });
 }
 
 class _Harness extends StatelessWidget {

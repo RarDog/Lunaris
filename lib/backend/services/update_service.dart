@@ -21,8 +21,6 @@ class UpdateService {
         ? settingsResult.data
         : AppSettings.defaults;
 
-    if (!force && !_shouldCheck(settings)) return const Success(null);
-
     try {
       final response = await _dio.get<dynamic>(latestReleaseUrl);
       final data = Map<String, dynamic>.from(response.data as Map);
@@ -66,12 +64,6 @@ class UpdateService {
     return _settingsService.updateSettings(
       settings.copyWith(skippedUpdateVersion: info.version),
     );
-  }
-
-  bool _shouldCheck(AppSettings settings) {
-    final last = DateTime.tryParse(settings.lastUpdateCheckAt ?? '');
-    if (last == null) return true;
-    return DateTime.now().difference(last) >= const Duration(hours: 24);
   }
 
   AppUpdateInfo _releaseFromJson(Map<String, dynamic> json) {

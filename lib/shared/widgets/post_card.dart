@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../app/motion.dart';
 import '../../backend/backend.dart';
 import 'blur_content.dart';
 import 'loading_skeleton.dart';
@@ -188,7 +189,7 @@ class _PostCardState extends State<PostCard> {
                   ignoring: !_hovered || mobile,
                   child: AnimatedOpacity(
                     opacity: _hovered && !mobile ? 1 : 0,
-                    duration: const Duration(milliseconds: 140),
+                    duration: AppMotion.duration(context, 140),
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(

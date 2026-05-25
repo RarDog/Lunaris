@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/app_version.dart';
 import '../../../app/changelog.dart';
+import '../../../app/motion.dart';
 import '../../../backend/backend.dart';
 import '../../../core/utils/result.dart';
 import '../../../shared/widgets/adaptive_scaffold.dart';
@@ -23,8 +26,37 @@ class SettingsScreen extends ConsumerWidget {
       body: settings.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => ErrorView(message: error.toString()),
-        data: (settings) => ListView(
-          padding: const EdgeInsets.all(16),
+        data: (settings) => _SettingsContent(settings: settings),
+      ),
+    );
+  }
+}
+
+class _SettingsContent extends ConsumerWidget {
+  const _SettingsContent({required this.settings});
+
+  final AppSettings settings;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isAndroid = Platform.isAndroid;
+    final deviceInfo =
+        isAndroid ? ref.watch(motionDeviceInfoProvider).value : null;
+    final detectedHz =
+        isAndroid ? View.maybeOf(context)?.display.refreshRate ?? 60.0 : 60.0;
+    final motion = isAndroid
+        ? resolveMotionSettings(
+            settings: settings,
+            detectedHz: detectedHz,
+            device: deviceInfo,
+          )
+        : null;
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _SettingsSection(
+          title: 'General',
+          icon: Icons.tune_rounded,
           children: [
             DropdownButtonFormField<String>(
               initialValue: settings.themeMode,
@@ -37,18 +69,17 @@ class SettingsScreen extends ConsumerWidget {
               onChanged: (value) =>
                   _update(ref, settings.copyWith(themeMode: value ?? 'dark')),
             ),
-            const SizedBox(height: 12),
-            SwitchListTile(
-              value: settings.blurExplicitContent,
-              title: const Text('Blur sensitive previews'),
-              onChanged: (value) =>
-                  _update(ref, settings.copyWith(blurExplicitContent: value)),
-            ),
             SwitchListTile(
               value: settings.nsfwEnabled,
               title: const Text('Allow NSFW content'),
               onChanged: (value) =>
                   _update(ref, settings.copyWith(nsfwEnabled: value)),
+            ),
+            SwitchListTile(
+              value: settings.blurExplicitContent,
+              title: const Text('Blur sensitive previews'),
+              onChanged: (value) =>
+                  _update(ref, settings.copyWith(blurExplicitContent: value)),
             ),
             SwitchListTile(
               value: settings.showPostBadges,
@@ -62,6 +93,12 @@ class SettingsScreen extends ConsumerWidget {
               onChanged: (value) =>
                   _update(ref, settings.copyWith(allowDownloads: value)),
             ),
+          ],
+        ),
+        _SettingsSection(
+          title: 'Feed & Layout',
+          icon: Icons.dashboard_customize_rounded,
+          children: [
             DropdownButtonFormField<String>(
               initialValue: settings.mediaQualityMode,
               decoration: const InputDecoration(labelText: 'Media quality'),
@@ -74,25 +111,68 @@ class SettingsScreen extends ConsumerWidget {
                 settings.copyWith(mediaQualityMode: value ?? 'auto'),
               ),
             ),
-            const SizedBox(height: 8),
-            FilledButton.tonalIcon(
-              onPressed: () => context.go('/providers'),
-              icon: const Icon(Icons.hub_rounded),
-              label: const Text('Providers'),
+            if (isAndroid) ...[
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: settings.motionRefreshMode,
+                decoration: const InputDecoration(
+                  labelText: 'Animation refresh profile',
+                ),
+                items: [
+                  for (final mode in MotionRefreshMode.values)
+                    DropdownMenuItem(value: mode.name, child: Text(mode.label)),
+                ],
+                onChanged: (value) => _update(
+                  ref,
+                  settings.copyWith(motionRefreshMode: value ?? 'auto'),
+                ),
+              ),
+              SwitchListTile(
+                value: settings.autoBatterySaver60Hz,
+                title: const Text('Auto 60 Hz below 20% battery'),
+                subtitle: Text(
+                  'Detected ${motion!.detectedHz.toStringAsFixed(0)} Hz'
+                  '${motion.batteryLevel == null ? '' : ', battery ${motion.batteryLevel}%'}'
+                  '${motion.batterySaverActive ? ', saver active' : ''}',
+                ),
+                onChanged: (value) => _update(
+                  ref,
+                  settings.copyWith(autoBatterySaver60Hz: value),
+                ),
+              ),
+            ],
+            _StepperTile(
+              title: 'Desktop columns',
+              value: settings.desktopColumns,
+              min: 3,
+              max: 8,
+              onChanged: (value) => _update(
+                ref,
+                settings.copyWith(desktopColumns: value),
+              ),
             ),
-            const SizedBox(height: 8),
-            FilledButton.tonalIcon(
-              onPressed: () => context.go('/providers/check'),
-              icon: const Icon(Icons.network_check_rounded),
-              label: const Text('Provider diagnostics'),
+            _StepperTile(
+              title: 'Mobile columns',
+              value: settings.mobileColumns,
+              min: 1,
+              max: 3,
+              onChanged: (value) => _update(
+                ref,
+                settings.copyWith(mobileColumns: value),
+              ),
             ),
+          ],
+        ),
+        _SettingsSection(
+          title: 'Filters',
+          icon: Icons.filter_alt_rounded,
+          children: [
             SwitchListTile(
               value: settings.hideViewedPosts,
               title: const Text('Hide viewed posts'),
               onChanged: (value) =>
                   _update(ref, settings.copyWith(hideViewedPosts: value)),
             ),
-            const SizedBox(height: 12),
             _TagListEditor(
               title: 'Smart blacklist',
               icon: Icons.visibility_off_rounded,
@@ -114,27 +194,12 @@ class SettingsScreen extends ConsumerWidget {
                 settings.copyWith(whitelistedTags: tags),
               ),
             ),
-            const SizedBox(height: 12),
-            _StepperTile(
-              title: 'Desktop columns',
-              value: settings.desktopColumns,
-              min: 3,
-              max: 8,
-              onChanged: (value) => _update(
-                ref,
-                settings.copyWith(desktopColumns: value),
-              ),
-            ),
-            _StepperTile(
-              title: 'Mobile columns',
-              value: settings.mobileColumns,
-              min: 1,
-              max: 3,
-              onChanged: (value) => _update(
-                ref,
-                settings.copyWith(mobileColumns: value),
-              ),
-            ),
+          ],
+        ),
+        _SettingsSection(
+          title: 'Storage',
+          icon: Icons.storage_rounded,
+          children: [
             _StepperTile(
               title: 'Cache max items',
               value: settings.cacheMaxItems,
@@ -144,114 +209,139 @@ class SettingsScreen extends ConsumerWidget {
               onChanged: (value) =>
                   _update(ref, settings.copyWith(cacheMaxItems: value)),
             ),
-            const SizedBox(height: 12),
-            FilledButton.tonalIcon(
-              onPressed: () =>
-                  ref.read(settingsControllerProvider.notifier).clearCache(),
-              icon: const Icon(Icons.cleaning_services_rounded),
-              label: const Text('Clear cache'),
+            _ActionGrid(
+              children: [
+                FilledButton.tonalIcon(
+                  onPressed: () => ref
+                      .read(settingsControllerProvider.notifier)
+                      .clearCache(),
+                  icon: const Icon(Icons.cleaning_services_rounded),
+                  label: const Text('Clear cache'),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: () => ref
+                      .read(settingsControllerProvider.notifier)
+                      .clearViewedHistory(),
+                  icon: const Icon(Icons.history_toggle_off_rounded),
+                  label: const Text('Clear viewed'),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: () => ref
+                      .read(settingsControllerProvider.notifier)
+                      .clearHiddenPosts(),
+                  icon: const Icon(Icons.visibility_off_rounded),
+                  label:
+                      Text('Clear hidden (${settings.hiddenPostKeys.length})'),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            FilledButton.tonalIcon(
-              onPressed: () => ref
-                  .read(settingsControllerProvider.notifier)
-                  .clearHiddenPosts(),
-              icon: const Icon(Icons.visibility_off_rounded),
-              label: Text(
-                  'Clear hidden posts (${settings.hiddenPostKeys.length})'),
+          ],
+        ),
+        _SettingsSection(
+          title: 'Providers & Diagnostics',
+          icon: Icons.hub_rounded,
+          children: [
+            _ActionGrid(
+              children: [
+                FilledButton.tonalIcon(
+                  onPressed: () => context.go('/providers'),
+                  icon: const Icon(Icons.hub_rounded),
+                  label: const Text('Providers'),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: () => context.go('/providers/check'),
+                  icon: const Icon(Icons.network_check_rounded),
+                  label: const Text('Diagnostics'),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: () => _copyDiagnostics(context, ref),
+                  icon: const Icon(Icons.bug_report_rounded),
+                  label: const Text('Copy report'),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: () => _copyLogs(context, ref),
+                  icon: const Icon(Icons.receipt_long_rounded),
+                  label: const Text('Copy logs'),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: () => ref
+                      .read(settingsControllerProvider.notifier)
+                      .clearDiagnosticLogs(),
+                  icon: const Icon(Icons.delete_sweep_rounded),
+                  label: const Text('Clear logs'),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            FilledButton.tonalIcon(
-              onPressed: () => ref
-                  .read(settingsControllerProvider.notifier)
-                  .clearViewedHistory(),
-              icon: const Icon(Icons.history_toggle_off_rounded),
-              label: const Text('Clear viewed history'),
+          ],
+        ),
+        _SettingsSection(
+          title: 'About',
+          icon: Icons.info_rounded,
+          children: [
+            _ActionGrid(
+              children: [
+                FilledButton.tonalIcon(
+                  onPressed: () => _checkUpdates(context, ref),
+                  icon: const Icon(Icons.system_update_alt_rounded),
+                  label: const Text('Check updates'),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: () => _showChangelog(context),
+                  icon: const Icon(Icons.new_releases_rounded),
+                  label: const Text('What changed'),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: () => _exportJson(context, ref),
+                  icon: const Icon(Icons.upload_file_rounded),
+                  label: const Text('Export JSON'),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: () => _importDialog(context, ref),
+                  icon: const Icon(Icons.download_for_offline_rounded),
+                  label: const Text('Import JSON'),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            FilledButton.tonalIcon(
-              onPressed: () async {
-                final json = await ref
-                    .read(settingsControllerProvider.notifier)
-                    .exportJson();
-                await Clipboard.setData(ClipboardData(text: json));
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Settings JSON copied')),
-                  );
-                }
-              },
-              icon: const Icon(Icons.upload_file_rounded),
-              label: const Text('Export settings and providers JSON'),
-            ),
-            const SizedBox(height: 12),
-            FilledButton.tonalIcon(
-              onPressed: () => _importDialog(context, ref),
-              icon: const Icon(Icons.download_for_offline_rounded),
-              label: const Text('Import settings and providers JSON'),
-            ),
-            const SizedBox(height: 12),
-            FilledButton.tonalIcon(
-              onPressed: () => _checkUpdates(context, ref),
-              icon: const Icon(Icons.system_update_alt_rounded),
-              label: const Text('Check for updates'),
-            ),
-            const SizedBox(height: 12),
-            FilledButton.tonalIcon(
-              onPressed: () async {
-                final report = await ref
-                    .read(settingsControllerProvider.notifier)
-                    .diagnosticsReport();
-                await Clipboard.setData(ClipboardData(text: report));
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Diagnostics copied')),
-                  );
-                }
-              },
-              icon: const Icon(Icons.bug_report_rounded),
-              label: const Text('Copy diagnostics report'),
-            ),
-            const SizedBox(height: 12),
-            FilledButton.tonalIcon(
-              onPressed: () async {
-                final logs = await ref
-                    .read(settingsControllerProvider.notifier)
-                    .diagnosticLogs();
-                await Clipboard.setData(ClipboardData(text: logs));
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Diagnostic logs copied')),
-                  );
-                }
-              },
-              icon: const Icon(Icons.receipt_long_rounded),
-              label: const Text('Copy local logs'),
-            ),
-            const SizedBox(height: 12),
-            FilledButton.tonalIcon(
-              onPressed: () => ref
-                  .read(settingsControllerProvider.notifier)
-                  .clearDiagnosticLogs(),
-              icon: const Icon(Icons.delete_sweep_rounded),
-              label: const Text('Clear local logs'),
-            ),
-            const SizedBox(height: 12),
-            FilledButton.tonalIcon(
-              onPressed: () => _showChangelog(context),
-              icon: const Icon(Icons.new_releases_rounded),
-              label: const Text('What changed'),
-            ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 8),
             const Text('Version $appDisplayVersion ($appBuildNumber)'),
           ],
         ),
-      ),
+      ],
     );
   }
 
   Future<void> _update(WidgetRef ref, AppSettings settings) {
     return ref.read(settingsControllerProvider.notifier).saveSettings(settings);
+  }
+
+  Future<void> _copyDiagnostics(BuildContext context, WidgetRef ref) async {
+    final report =
+        await ref.read(settingsControllerProvider.notifier).diagnosticsReport();
+    await Clipboard.setData(ClipboardData(text: report));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Diagnostics copied')),
+    );
+  }
+
+  Future<void> _copyLogs(BuildContext context, WidgetRef ref) async {
+    final logs =
+        await ref.read(settingsControllerProvider.notifier).diagnosticLogs();
+    await Clipboard.setData(ClipboardData(text: logs));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Diagnostic logs copied')),
+    );
+  }
+
+  Future<void> _exportJson(BuildContext context, WidgetRef ref) async {
+    final json =
+        await ref.read(settingsControllerProvider.notifier).exportJson();
+    await Clipboard.setData(ClipboardData(text: json));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Settings JSON copied')),
+    );
   }
 
   Future<void> _importDialog(BuildContext context, WidgetRef ref) async {
@@ -296,9 +386,7 @@ class SettingsScreen extends ConsumerWidget {
     if (!context.mounted) return;
     messenger.hideCurrentSnackBar();
     if (result is Error<AppUpdateInfo?>) {
-      messenger.showSnackBar(
-        SnackBar(content: Text(result.failure.message)),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(result.failure.message)));
       return;
     }
     final update = (result as Success<AppUpdateInfo?>).data;
@@ -398,6 +486,70 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SettingsSection extends StatelessWidget {
+  const _SettingsSection({
+    required this.title,
+    required this.icon,
+    required this.children,
+  });
+
+  final String title;
+  final IconData icon;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border:
+              Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, size: 20),
+                  const SizedBox(width: 8),
+                  Text(title, style: Theme.of(context).textTheme.titleMedium),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ...children,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ActionGrid extends StatelessWidget {
+  const _ActionGrid({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: [
+        for (final child in children)
+          ConstrainedBox(
+            constraints: const BoxConstraints(minWidth: 180),
+            child: child,
+          ),
+      ],
     );
   }
 }

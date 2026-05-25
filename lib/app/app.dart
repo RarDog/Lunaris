@@ -1,9 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../backend/backend.dart';
 import '../core/utils/result.dart';
+import 'motion.dart';
 import 'router.dart';
 import 'theme.dart';
 
@@ -131,7 +134,28 @@ class _AppOverlayState extends ConsumerState<_AppOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    return _DownloadOverlay(child: widget.child);
+    final appSettings = ref.watch(appSettingsProvider).value;
+    final isAndroid = Platform.isAndroid;
+    final deviceInfo =
+        isAndroid ? ref.watch(motionDeviceInfoProvider).value : null;
+    final view = isAndroid ? View.maybeOf(context) : null;
+    final detectedHz = isAndroid ? view?.display.refreshRate ?? 60.0 : 60.0;
+    final motion = resolveMotionSettings(
+      settings: appSettings ?? AppSettings.defaults,
+      detectedHz: detectedHz,
+      device: deviceInfo,
+    );
+    if (isAndroid) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref
+            .read(deviceMotionServiceProvider)
+            .setPreferredRefreshRate(motion.effectiveHz);
+      });
+    }
+    return AppMotionScope(
+      settings: motion,
+      child: _DownloadOverlay(child: widget.child),
+    );
   }
 }
 

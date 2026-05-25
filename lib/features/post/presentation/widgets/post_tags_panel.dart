@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../backend/backend.dart';
@@ -23,17 +24,9 @@ class PostTagsPanel extends StatelessWidget {
               style: Theme.of(context).textTheme.labelLarge,
             ),
           ),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final tag in entry.value.take(80))
-                TagChip(
-                  tag: tag,
-                  onTap: () =>
-                      context.go('/?q=${Uri.encodeQueryComponent(tag)}'),
-                ),
-            ],
+          _HorizontalTagRow(
+            tags: entry.value.take(120).toList(),
+            onTap: (tag) => context.go('/?q=${Uri.encodeQueryComponent(tag)}'),
           ),
         ],
       ],
@@ -72,5 +65,55 @@ class PostTagsPanel extends StatelessWidget {
       'general' => 'General',
       _ => 'Other',
     };
+  }
+}
+
+class _HorizontalTagRow extends StatefulWidget {
+  const _HorizontalTagRow({
+    required this.tags,
+    required this.onTap,
+  });
+
+  final List<String> tags;
+  final ValueChanged<String> onTap;
+
+  @override
+  State<_HorizontalTagRow> createState() => _HorizontalTagRowState();
+}
+
+class _HorizontalTagRowState extends State<_HorizontalTagRow> {
+  final _controller = ScrollController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 36,
+      child: Listener(
+        onPointerSignal: (event) {
+          if (event is! PointerScrollEvent || !_controller.hasClients) return;
+          final target = (_controller.offset + event.scrollDelta.dy)
+              .clamp(0.0, _controller.position.maxScrollExtent)
+              .toDouble();
+          _controller.jumpTo(target);
+        },
+        child: ListView.separated(
+          controller: _controller,
+          scrollDirection: Axis.horizontal,
+          primary: false,
+          itemCount: widget.tags.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (context, index) => TagChip(
+            tag: widget.tags[index],
+            onTap: () => widget.onTap(widget.tags[index]),
+          ),
+        ),
+      ),
+    );
   }
 }

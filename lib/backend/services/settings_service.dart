@@ -30,6 +30,8 @@ class AppSettings {
     required this.smartBlacklistRules,
     required this.hideViewedPosts,
     required this.mediaQualityMode,
+    required this.motionRefreshMode,
+    required this.autoBatterySaver60Hz,
     required this.hiddenPostKeys,
     required this.diagnosticLogLines,
     required this.lastFeedTags,
@@ -60,6 +62,8 @@ class AppSettings {
   final List<String> smartBlacklistRules;
   final bool hideViewedPosts;
   final String mediaQualityMode;
+  final String motionRefreshMode;
+  final bool autoBatterySaver60Hz;
   final List<String> hiddenPostKeys;
   final List<String> diagnosticLogLines;
   final List<String> lastFeedTags;
@@ -90,6 +94,8 @@ class AppSettings {
     smartBlacklistRules: [],
     hideViewedPosts: false,
     mediaQualityMode: 'auto',
+    motionRefreshMode: 'auto',
+    autoBatterySaver60Hz: true,
     hiddenPostKeys: [],
     diagnosticLogLines: [],
     lastFeedTags: [],
@@ -121,6 +127,8 @@ class AppSettings {
     List<String>? smartBlacklistRules,
     bool? hideViewedPosts,
     String? mediaQualityMode,
+    String? motionRefreshMode,
+    bool? autoBatterySaver60Hz,
     List<String>? hiddenPostKeys,
     List<String>? diagnosticLogLines,
     List<String>? lastFeedTags,
@@ -154,6 +162,8 @@ class AppSettings {
       smartBlacklistRules: smartBlacklistRules ?? this.smartBlacklistRules,
       hideViewedPosts: hideViewedPosts ?? this.hideViewedPosts,
       mediaQualityMode: mediaQualityMode ?? this.mediaQualityMode,
+      motionRefreshMode: motionRefreshMode ?? this.motionRefreshMode,
+      autoBatterySaver60Hz: autoBatterySaver60Hz ?? this.autoBatterySaver60Hz,
       hiddenPostKeys: hiddenPostKeys ?? this.hiddenPostKeys,
       diagnosticLogLines: diagnosticLogLines ?? this.diagnosticLogLines,
       lastFeedTags: lastFeedTags ?? this.lastFeedTags,
@@ -187,6 +197,8 @@ class AppSettings {
         'smartBlacklistRules': smartBlacklistRules,
         'hideViewedPosts': hideViewedPosts,
         'mediaQualityMode': mediaQualityMode,
+        'motionRefreshMode': motionRefreshMode,
+        'autoBatterySaver60Hz': autoBatterySaver60Hz,
         'hiddenPostKeys': hiddenPostKeys,
         'diagnosticLogLines': diagnosticLogLines,
         'lastFeedTags': lastFeedTags,
@@ -243,6 +255,10 @@ class AppSettings {
             (json['hideViewedPosts'] as bool?) ?? defaults.hideViewedPosts,
         mediaQualityMode:
             (json['mediaQualityMode'] as String?) ?? defaults.mediaQualityMode,
+        motionRefreshMode: (json['motionRefreshMode'] as String?) ??
+            defaults.motionRefreshMode,
+        autoBatterySaver60Hz: (json['autoBatterySaver60Hz'] as bool?) ??
+            defaults.autoBatterySaver60Hz,
         hiddenPostKeys: List<String>.from(
           (json['hiddenPostKeys'] as List?) ?? defaults.hiddenPostKeys,
         ),
@@ -442,6 +458,8 @@ class SettingsService {
           'nsfwEnabled': settings.nsfwEnabled,
           'blurExplicitContent': settings.blurExplicitContent,
           'mediaQualityMode': settings.mediaQualityMode,
+          'motionRefreshMode': settings.motionRefreshMode,
+          'autoBatterySaver60Hz': settings.autoBatterySaver60Hz,
           'cacheTtlHours': settings.cacheTtlHours,
           'cacheMaxItems': settings.cacheMaxItems,
           'hiddenPosts': settings.hiddenPostKeys.length,
@@ -506,6 +524,7 @@ class SettingsService {
         'blacklistedTags',
         'whitelistedTags',
         'smartBlacklistRules',
+        'hiddenPostKeys',
       ]) {
         settingsJson.putIfAbsent(key, () => filtersJson[key]);
       }

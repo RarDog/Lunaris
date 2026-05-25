@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/app.dart';
+import '../../../app/motion.dart';
 import '../../../app/responsive.dart';
 import '../../../backend/backend.dart';
 import '../../../core/utils/result.dart';
@@ -638,7 +639,7 @@ class _NeighborStrip extends StatelessWidget {
             onTap: () => onOpen(post),
             borderRadius: BorderRadius.circular(8),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 140),
+              duration: AppMotion.duration(context, 140),
               width: 72,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),

@@ -20,11 +20,17 @@ class CollectionDetailsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final posts = ref.watch(collectionPostsProvider(collectionId));
+    final collections = ref.watch(collectionsControllerProvider).valueOrNull;
+    final title = collections
+            ?.where((collection) => collection.id == collectionId)
+            .firstOrNull
+            ?.name ??
+        'Collection';
     final settings =
         ref.watch(appSettingsProvider).value ?? AppSettings.defaults;
     final favoriteKeys = ref.watch(favoriteKeysProvider).value ?? <String>{};
     return AdaptiveScaffold(
-      title: 'Collection',
+      title: title,
       body: posts.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => ErrorView(message: error.toString()),
