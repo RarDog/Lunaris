@@ -222,23 +222,22 @@ class FeedController extends AsyncNotifier<FeedState> {
       }
       return posts;
     }
-    var index = 0;
-    while (true) {
-      var added = false;
-      for (final group in providerResults) {
-        if (index >= group.length) continue;
-        final post = group[index];
-        if (seen.add(post.cacheKey)) {
-          posts.add(post);
-          added = true;
-        }
+    for (final group in providerResults) {
+      for (final post in group) {
+        if (seen.add(post.cacheKey)) posts.add(post);
       }
-      if (!added && providerResults.every((group) => index >= group.length)) {
-        break;
-      }
-      index++;
     }
+    posts.sort((a, b) => _mixKey(a).compareTo(_mixKey(b)));
     return posts;
+  }
+
+  int _mixKey(Post post) {
+    var hash = 0x811c9dc5;
+    for (final code in post.cacheKey.codeUnits) {
+      hash ^= code;
+      hash = (hash * 0x01000193) & 0x7fffffff;
+    }
+    return hash;
   }
 
   Future<List<ContentProviderConfig>> _loadProviders() async {

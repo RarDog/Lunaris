@@ -185,13 +185,14 @@ void main() {
 
     final result = await manager.searchAcrossProviders(tags: [], page: 0)
         as Success<List<Post>>;
-    expect(result.data.map((item) => item.providerId), ['a', 'b']);
+    expect(result.data.map((item) => item.providerId).toSet(), {'a', 'b'});
     expect(repository.health['c']?.status, ProviderStatus.offline);
     expect(repository.diagnostics['a']?.lastResultCount, 1);
     expect(repository.diagnostics['c']?.lastErrorMessage, 'Search failed');
   });
 
-  test('all providers results are interleaved by provider priority', () async {
+  test('all providers results are naturally mixed without provider blocks',
+      () async {
     final repository = FakeProviderRepository()
       ..configs['a'] = config('a', 0)
       ..configs['b'] = config('b', 1)
@@ -208,10 +209,9 @@ void main() {
     final result = await manager.searchAcrossProviders(tags: [], page: 0)
         as Success<List<Post>>;
 
-    expect(
-      result.data.map((item) => item.cacheKey),
-      ['a:1', 'b:1', 'c:1', 'a:2', 'b:2'],
-    );
+    final keys = result.data.map((item) => item.cacheKey).toList();
+    expect(keys.toSet(), {'a:1', 'a:2', 'b:1', 'b:2', 'c:1'});
+    expect(keys, isNot(['a:1', 'a:2', 'b:1', 'b:2', 'c:1']));
   });
 
   test('enable disable provider persists config', () async {

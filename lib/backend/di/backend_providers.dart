@@ -168,7 +168,7 @@ final updateServiceProvider = Provider<UpdateService>((ref) {
         connectTimeout: const Duration(seconds: 12),
         receiveTimeout: const Duration(seconds: 12),
         headers: const {
-          'User-Agent': 'Lunaris/1.1 Flutter local booru browser',
+          'User-Agent': 'Lunaris/2.0 Flutter local booru browser',
           'Accept': 'application/json',
         },
       ),

@@ -50,8 +50,9 @@ class _PostCardState extends State<PostCard> {
   Widget build(BuildContext context) {
     final post = widget.post;
     final sensitive = _isSensitive(post.rating);
-    final aspect =
-        post.width > 0 && post.height > 0 ? post.width / post.height : 0.72;
+    final aspect = post.width > 0 && post.height > 0
+        ? post.width / post.height
+        : _fallbackAspect(post.fileType);
     final mobile = MediaQuery.sizeOf(context).width < 700;
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -111,7 +112,7 @@ class _PostCardState extends State<PostCard> {
           child: Stack(
             children: [
               AspectRatio(
-                aspectRatio: aspect.clamp(0.45, 1.6),
+                aspectRatio: aspect.clamp(0.28, 2.2),
                 child: BlurContent(
                   enabled: widget.blurExplicit && sensitive,
                   child: CachedNetworkImage(
@@ -255,6 +256,15 @@ class _PostCardState extends State<PostCard> {
         normalized.startsWith('q') ||
         normalized.contains('explicit') ||
         normalized.contains('questionable');
+  }
+
+  double _fallbackAspect(String fileType) {
+    final normalized = fileType.toLowerCase();
+    if (normalized.contains('video') || normalized.contains('webm')) {
+      return 16 / 9;
+    }
+    if (normalized.contains('gif')) return 1;
+    return 0.72;
   }
 }
 

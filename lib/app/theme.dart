@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-ThemeData buildTheme(Brightness brightness) {
+ThemeData buildTheme(Brightness brightness, {int seedColor = 0xFFE84D8A}) {
   final dark = brightness == Brightness.dark;
   final scheme = ColorScheme.fromSeed(
-    seedColor: const Color(0xFFE84D8A),
+    seedColor: Color(seedColor),
     brightness: brightness,
   );
   return ThemeData(

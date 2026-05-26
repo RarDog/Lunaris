@@ -1,5 +1,16 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.0.0',
+    title: 'Customization and provider polish',
+    bullets: [
+      'Settings now include app customization: accent color, language, visible tabs and beta update channel.',
+      'The Artists tab disappears automatically when Kemono and Coomer are disabled.',
+      'All-provider feed mixing is more natural instead of provider-by-provider blocks.',
+      'Post cards use wider aspect ranges so images, GIFs and videos leave less empty space.',
+      'Kemono and Coomer creator search uses the current mbahArip keyword endpoints with public API fallbacks.',
+    ],
+  ),
+  LunarisChange(
     version: '1.1.2',
     title: 'Experimental tag and Artists update',
     bullets: [

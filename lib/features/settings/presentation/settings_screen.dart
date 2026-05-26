@@ -60,7 +60,9 @@ class _SettingsContent extends ConsumerWidget {
           children: [
             DropdownButtonFormField<String>(
               initialValue: settings.themeMode,
-              decoration: const InputDecoration(labelText: 'Theme'),
+              decoration: InputDecoration(
+                labelText: settings.languageCode == 'ru' ? 'Тема' : 'Theme',
+              ),
               items: const [
                 DropdownMenuItem(value: 'dark', child: Text('Dark')),
                 DropdownMenuItem(value: 'light', child: Text('Light')),
@@ -92,6 +94,47 @@ class _SettingsContent extends ConsumerWidget {
               title: const Text('Allow manual downloads'),
               onChanged: (value) =>
                   _update(ref, settings.copyWith(allowDownloads: value)),
+            ),
+          ],
+        ),
+        _SettingsSection(
+          title: settings.languageCode == 'ru' ? 'Внешний вид' : 'Appearance',
+          icon: Icons.palette_rounded,
+          children: [
+            DropdownButtonFormField<String>(
+              initialValue: settings.languageCode,
+              decoration: const InputDecoration(labelText: 'Language / Язык'),
+              items: const [
+                DropdownMenuItem(value: 'ru', child: Text('Русский')),
+                DropdownMenuItem(value: 'en', child: Text('English')),
+              ],
+              onChanged: (value) => _update(
+                ref,
+                settings.copyWith(languageCode: value ?? 'ru'),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _ColorSwatches(
+              selected: settings.appSeedColor,
+              onChanged: (color) =>
+                  _update(ref, settings.copyWith(appSeedColor: color)),
+            ),
+            const SizedBox(height: 12),
+            _TabVisibilityEditor(
+              hiddenTabs: settings.hiddenTabs,
+              onChanged: (hiddenTabs) =>
+                  _update(ref, settings.copyWith(hiddenTabs: hiddenTabs)),
+            ),
+            SwitchListTile(
+              value: settings.allowExperimentalUpdates,
+              title: const Text('Receive beta / experimental updates'),
+              subtitle: const Text(
+                'When enabled, the updater also sees prerelease Gitea builds.',
+              ),
+              onChanged: (value) => _update(
+                ref,
+                settings.copyWith(allowExperimentalUpdates: value),
+              ),
             ),
           ],
         ),
@@ -671,6 +714,121 @@ class _TagListEditorState extends State<_TagListEditor> {
     final merged = <String>{...widget.tags, ...incoming}.toList()..sort();
     _controller.clear();
     widget.onChanged(merged);
+  }
+}
+
+class _ColorSwatches extends StatelessWidget {
+  const _ColorSwatches({
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final int selected;
+  final ValueChanged<int> onChanged;
+
+  static const colors = <int>[
+    0xFFE84D8A,
+    0xFF8B5CF6,
+    0xFF3B82F6,
+    0xFF14B8A6,
+    0xFFF97316,
+    0xFFEF4444,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Accent color', style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            for (final value in colors)
+              Tooltip(
+                message:
+                    '#${value.toRadixString(16).substring(2).toUpperCase()}',
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(999),
+                  onTap: () => onChanged(value),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Color(value),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: selected == value
+                            ? Theme.of(context).colorScheme.onSurface
+                            : Theme.of(context).colorScheme.outlineVariant,
+                        width: selected == value ? 3 : 1,
+                      ),
+                    ),
+                    child: SizedBox(
+                      width: 38,
+                      height: 38,
+                      child: selected == value
+                          ? const Icon(Icons.check_rounded, color: Colors.white)
+                          : null,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _TabVisibilityEditor extends StatelessWidget {
+  const _TabVisibilityEditor({
+    required this.hiddenTabs,
+    required this.onChanged,
+  });
+
+  final List<String> hiddenTabs;
+  final ValueChanged<List<String>> onChanged;
+
+  static const tabs = <String, String>{
+    'feed': 'Feed',
+    'search': 'Search',
+    'favorites': 'Favorites',
+    'viewed': 'Viewed',
+    'collections': 'Collections',
+    'artists': 'Artists',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final hidden = hiddenTabs.toSet();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Visible tabs', style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final entry in tabs.entries)
+              FilterChip(
+                selected: !hidden.contains(entry.key),
+                label: Text(entry.value),
+                onSelected: (visible) {
+                  final next = {...hidden};
+                  if (visible) {
+                    next.remove(entry.key);
+                  } else if (entry.key != 'feed') {
+                    next.add(entry.key);
+                  }
+                  onChanged(next.toList()..sort());
+                },
+              ),
+          ],
+        ),
+      ],
+    );
   }
 }
 

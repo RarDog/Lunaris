@@ -31,18 +31,24 @@ class GelRuleApp extends ConsumerWidget {
         themeMode: ThemeMode.dark,
         home: _StartupErrorScreen(error: error),
       ),
-      data: (_) => MaterialApp.router(
-        title: 'Lunaris',
-        debugShowCheckedModeBanner: false,
-        theme: buildTheme(Brightness.light),
-        darkTheme: buildTheme(Brightness.dark),
-        themeMode: settings.maybeWhen(
-          data: (value) => parseThemeMode(value.themeMode),
-          orElse: () => ThemeMode.dark,
-        ),
-        routerConfig: router,
-        builder: (context, child) => _AppOverlay(child: child),
-      ),
+      data: (_) {
+        final appSettings = settings.value ?? AppSettings.defaults;
+        return MaterialApp.router(
+          title: 'Lunaris',
+          debugShowCheckedModeBanner: false,
+          theme: buildTheme(
+            Brightness.light,
+            seedColor: appSettings.appSeedColor,
+          ),
+          darkTheme: buildTheme(
+            Brightness.dark,
+            seedColor: appSettings.appSeedColor,
+          ),
+          themeMode: parseThemeMode(appSettings.themeMode),
+          routerConfig: router,
+          builder: (context, child) => _AppOverlay(child: child),
+        );
+      },
     );
   }
 }
@@ -79,7 +85,9 @@ class _AppOverlayState extends ConsumerState<_AppOverlay> {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Lunaris ${info.version} is available'),
+        title: Text(_ru
+            ? 'Доступен Lunaris ${info.version}'
+            : 'Lunaris ${info.version} is available'),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
           child: SingleChildScrollView(
@@ -106,14 +114,14 @@ class _AppOverlayState extends ConsumerState<_AppOverlay> {
               await ref.read(updateServiceProvider).skipVersion(info);
               if (context.mounted) Navigator.pop(context);
             },
-            child: const Text('Skip this version'),
+            child: Text(_ru ? 'Пропустить' : 'Skip this version'),
           ),
           TextButton(
             onPressed: () async {
               await ref.read(updateServiceProvider).remindLater();
               if (context.mounted) Navigator.pop(context);
             },
-            child: const Text('Later'),
+            child: Text(_ru ? 'Позже' : 'Later'),
           ),
           FilledButton.icon(
             onPressed: () async {
@@ -121,13 +129,18 @@ class _AppOverlayState extends ConsumerState<_AppOverlay> {
               if (context.mounted) Navigator.pop(context);
             },
             icon: const Icon(Icons.download_rounded),
-            label: const Text('Download & open'),
+            label: Text(_ru ? 'Скачать и открыть' : 'Download & open'),
           ),
         ],
       ),
     );
     ref.invalidate(appSettingsProvider);
   }
+
+  bool get _ru =>
+      (ref.read(appSettingsProvider).value ?? AppSettings.defaults)
+          .languageCode ==
+      'ru';
 
   Future<void> _downloadUpdate(AppUpdateInfo info) async {
     final updateService = ref.read(updateServiceProvider);

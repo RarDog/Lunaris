@@ -348,7 +348,7 @@ class _PostMediaViewerState extends State<PostMediaViewer>
 
   Map<String, String> _headersFor(Post post) {
     return {
-      'User-Agent': 'Lunaris/1.1 Flutter local booru browser',
+      'User-Agent': 'Lunaris/2.0 Flutter local booru browser',
       'Accept': '*/*',
       if (post.providerName.toLowerCase().contains('gelbooru') ||
           post.fileUrl.contains('gelbooru.com') ||

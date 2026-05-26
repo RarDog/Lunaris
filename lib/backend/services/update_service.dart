@@ -12,6 +12,8 @@ class UpdateService {
 
   static const latestReleaseUrl =
       'https://gitea.rardogsynapse.online/api/v1/repos/RarDog/RuleGelApp/releases/latest';
+  static const releasesUrl =
+      'https://gitea.rardogsynapse.online/api/v1/repos/RarDog/RuleGelApp/releases';
 
   final Dio _dio;
   final SettingsService _settingsService;
@@ -23,9 +25,7 @@ class UpdateService {
         : AppSettings.defaults;
 
     try {
-      final response = await _dio.get<dynamic>(latestReleaseUrl);
-      final data = Map<String, dynamic>.from(response.data as Map);
-      final info = _releaseFromJson(data);
+      final info = await _latestAllowedRelease(settings);
       final nextSettings = settings.copyWith(
         lastUpdateCheckAt: DateTime.now().toIso8601String(),
       );
@@ -47,6 +47,33 @@ class UpdateService {
         ),
       );
     }
+  }
+
+  Future<AppUpdateInfo> _latestAllowedRelease(AppSettings settings) async {
+    final response = await _dio.get<dynamic>(
+      releasesUrl,
+      queryParameters: {'limit': 30},
+    );
+    final items = (response.data as List?) ?? const [];
+    final releases = items
+        .whereType<Map>()
+        .where((item) => item['draft'] != true)
+        .where((item) =>
+            settings.allowExperimentalUpdates || item['prerelease'] != true)
+        .map((item) => _releaseFromJson(Map<String, dynamic>.from(item)))
+        .toList(growable: false);
+    if (releases.isEmpty) {
+      final latest = await _dio.get<dynamic>(latestReleaseUrl);
+      return _releaseFromJson(Map<String, dynamic>.from(latest.data as Map));
+    }
+    releases.sort((a, b) {
+      final versionCompare = _compareVersions(b.version, a.version);
+      if (versionCompare != 0) return versionCompare;
+      final left = b.publishedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final right = a.publishedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      return left.compareTo(right);
+    });
+    return releases.first;
   }
 
   Future<Result<void>> remindLater() async {
@@ -120,13 +147,17 @@ class UpdateService {
   }
 
   static bool _isNewerVersion(String latest, String current) {
+    return _compareVersions(latest, current) > 0;
+  }
+
+  static int _compareVersions(String latest, String current) {
     final left = _parts(latest);
     final right = _parts(current);
     for (var i = 0; i < 3; i++) {
-      if (left[i] > right[i]) return true;
-      if (left[i] < right[i]) return false;
+      if (left[i] > right[i]) return 1;
+      if (left[i] < right[i]) return -1;
     }
-    return false;
+    return 0;
   }
 
   static List<int> _parts(String value) {

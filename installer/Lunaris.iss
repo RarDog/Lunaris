@@ -1,5 +1,5 @@
 #define MyAppName "Lunaris"
-#define MyAppVersion "1.1.2"
+#define MyAppVersion "2.0.0"
 #define MyAppPublisher "RarDog"
 #define MyAppExeName "gel_rule_app.exe"
 

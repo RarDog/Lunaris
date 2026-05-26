@@ -210,21 +210,22 @@ class ProviderManager {
     Set<String> seen,
   ) {
     final posts = <Post>[];
-    var index = 0;
-    while (true) {
-      var added = false;
-      for (final providerPosts in results) {
-        if (index >= providerPosts.length) continue;
-        final post = providerPosts[index];
-        if (seen.add(post.cacheKey)) {
-          posts.add(post);
-          added = true;
-        }
+    for (final providerPosts in results) {
+      for (final post in providerPosts) {
+        if (seen.add(post.cacheKey)) posts.add(post);
       }
-      if (!added && results.every((items) => index >= items.length)) break;
-      index++;
     }
+    posts.sort((a, b) => _mixKey(a).compareTo(_mixKey(b)));
     return posts;
+  }
+
+  int _mixKey(Post post) {
+    var hash = 0x811c9dc5;
+    for (final code in post.cacheKey.codeUnits) {
+      hash ^= code;
+      hash = (hash * 0x01000193) & 0x7fffffff;
+    }
+    return hash;
   }
 
   Future<Result<List<PostComment>>> getComments(

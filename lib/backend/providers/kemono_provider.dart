@@ -26,7 +26,7 @@ class KemonoProvider
             receiveTimeout: const Duration(seconds: 20),
             headers: const {
               'Accept': 'application/json',
-              'User-Agent': 'Lunaris/1.1 Flutter local booru browser',
+              'User-Agent': 'Lunaris/2.0 Flutter local booru browser',
             },
           ),
         );
@@ -99,11 +99,9 @@ class KemonoProvider
     if (searchText.isNotEmpty) {
       try {
         final response = await _creatorDio.get<dynamic>(
-          '/search',
+          _creatorPath(),
           queryParameters: {
-            'q': searchText,
-            'query': searchText,
-            'site': _isCoomer ? 'coomer' : 'kemono',
+            'keyword': searchText,
             'page': page,
             'itemsPerPage': limit.clamp(1, 100),
           },
@@ -460,7 +458,7 @@ class KemonoProvider
         receiveTimeout: const Duration(seconds: 25),
         headers: const {
           'Accept': 'application/json',
-          'User-Agent': 'Lunaris/1.1 Flutter local booru browser',
+          'User-Agent': 'Lunaris/2.0 Flutter local booru browser',
         },
       ),
     );

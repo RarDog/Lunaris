@@ -18,6 +18,10 @@ class AppSettings {
     required this.cacheMaxItems,
     required this.providerPriority,
     required this.themeMode,
+    required this.languageCode,
+    required this.appSeedColor,
+    required this.hiddenTabs,
+    required this.allowExperimentalUpdates,
     required this.desktopColumns,
     required this.mobileColumns,
     required this.blurExplicitContent,
@@ -54,6 +58,10 @@ class AppSettings {
   final int cacheMaxItems;
   final Map<String, int> providerPriority;
   final String themeMode;
+  final String languageCode;
+  final int appSeedColor;
+  final List<String> hiddenTabs;
+  final bool allowExperimentalUpdates;
   final int desktopColumns;
   final int mobileColumns;
   final bool blurExplicitContent;
@@ -90,6 +98,10 @@ class AppSettings {
     cacheMaxItems: 2000,
     providerPriority: {'gelbooru': 0, 'rule34': 1, 'safebooru': 2},
     themeMode: 'dark',
+    languageCode: 'ru',
+    appSeedColor: 0xFFE84D8A,
+    hiddenTabs: [],
+    allowExperimentalUpdates: false,
     desktopColumns: 5,
     mobileColumns: 2,
     blurExplicitContent: true,
@@ -127,6 +139,10 @@ class AppSettings {
     int? cacheMaxItems,
     Map<String, int>? providerPriority,
     String? themeMode,
+    String? languageCode,
+    int? appSeedColor,
+    List<String>? hiddenTabs,
+    bool? allowExperimentalUpdates,
     int? desktopColumns,
     int? mobileColumns,
     bool? blurExplicitContent,
@@ -164,6 +180,11 @@ class AppSettings {
       cacheMaxItems: cacheMaxItems ?? this.cacheMaxItems,
       providerPriority: providerPriority ?? this.providerPriority,
       themeMode: themeMode ?? this.themeMode,
+      languageCode: languageCode ?? this.languageCode,
+      appSeedColor: appSeedColor ?? this.appSeedColor,
+      hiddenTabs: hiddenTabs ?? this.hiddenTabs,
+      allowExperimentalUpdates:
+          allowExperimentalUpdates ?? this.allowExperimentalUpdates,
       desktopColumns: desktopColumns ?? this.desktopColumns,
       mobileColumns: mobileColumns ?? this.mobileColumns,
       blurExplicitContent: blurExplicitContent ?? this.blurExplicitContent,
@@ -206,6 +227,10 @@ class AppSettings {
         'cacheMaxItems': cacheMaxItems,
         'providerPriority': providerPriority,
         'themeMode': themeMode,
+        'languageCode': languageCode,
+        'appSeedColor': appSeedColor,
+        'hiddenTabs': hiddenTabs,
+        'allowExperimentalUpdates': allowExperimentalUpdates,
         'desktopColumns': desktopColumns,
         'mobileColumns': mobileColumns,
         'blurExplicitContent': blurExplicitContent,
@@ -249,6 +274,14 @@ class AppSettings {
           (json['providerPriority'] as Map?) ?? defaults.providerPriority,
         ),
         themeMode: (json['themeMode'] as String?) ?? defaults.themeMode,
+        languageCode:
+            (json['languageCode'] as String?) ?? defaults.languageCode,
+        appSeedColor:
+            (json['appSeedColor'] as num?)?.toInt() ?? defaults.appSeedColor,
+        hiddenTabs: List<String>.from(
+            (json['hiddenTabs'] as List?) ?? defaults.hiddenTabs),
+        allowExperimentalUpdates: (json['allowExperimentalUpdates'] as bool?) ??
+            defaults.allowExperimentalUpdates,
         desktopColumns: (json['desktopColumns'] as num?)?.toInt() ??
             defaults.desktopColumns,
         mobileColumns:
@@ -488,6 +521,10 @@ class SettingsService {
         },
         'settingsSummary': {
           'themeMode': settings.themeMode,
+          'languageCode': settings.languageCode,
+          'appSeedColor': settings.appSeedColor,
+          'hiddenTabs': settings.hiddenTabs,
+          'allowExperimentalUpdates': settings.allowExperimentalUpdates,
           'nsfwEnabled': settings.nsfwEnabled,
           'blurExplicitContent': settings.blurExplicitContent,
           'mediaQualityMode': settings.mediaQualityMode,
