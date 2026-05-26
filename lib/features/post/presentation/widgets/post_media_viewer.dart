@@ -400,7 +400,9 @@ class _PostMediaViewerState extends State<PostMediaViewer>
           coverVideo: _coverVideo,
           errorMessage: _videoError,
           onRetry: _retryVideo,
-          onChanged: (_) => _emitPlaybackPreferences(),
+          onChanged: (snapshot) {
+            unawaited(_applyPlaybackSnapshot(snapshot));
+          },
         ),
         transitionsBuilder: (_, animation, __, child) => FadeTransition(
           opacity: animation,
@@ -410,20 +412,24 @@ class _PostMediaViewerState extends State<PostMediaViewer>
     );
     if (mounted) setState(() => _inFullscreen = false);
     if (result != null) {
-      _playbackMemory[widget.post.cacheKey] = result;
-      setState(() {
-        _muted = result.muted;
-        _loopVideo = result.loopVideo;
-        _coverVideo = result.coverVideo;
-        _halfVolume = result.halfVolume;
-      });
-      await _applyVolume();
-      await player.setPlaylistMode(
-        _loopVideo ? PlaylistMode.single : PlaylistMode.none,
-      );
-      _emitPlaybackPreferences();
+      await _applyPlaybackSnapshot(result);
       return;
     }
+  }
+
+  Future<void> _applyPlaybackSnapshot(VideoPlaybackSnapshot snapshot) async {
+    if (!mounted) return;
+    setState(() {
+      _muted = snapshot.muted;
+      _loopVideo = snapshot.loopVideo;
+      _coverVideo = snapshot.coverVideo;
+      _halfVolume = snapshot.halfVolume;
+    });
+    await _applyVolume();
+    await _player?.setPlaylistMode(
+      _loopVideo ? PlaylistMode.single : PlaylistMode.none,
+    );
+    _emitPlaybackPreferences();
   }
 
   VideoPlaybackSnapshot _snapshot() {

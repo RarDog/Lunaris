@@ -2,10 +2,12 @@ package com.example.gel_rule_app
 
 import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.os.BatteryManager
 import android.os.Environment
 import android.provider.MediaStore
+import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -18,17 +20,24 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "rulegel/downloads")
             .setMethodCallHandler { call, result ->
-                if (call.method != "saveToDownloads") {
-                    result.notImplemented()
-                    return@setMethodCallHandler
-                }
                 try {
-                    val path = call.argument<String>("path") ?: error("Missing path")
-                    val fileName = call.argument<String>("fileName") ?: File(path).name
-                    val mimeType = call.argument<String>("mimeType") ?: "application/octet-stream"
-                    result.success(saveToDownloads(path, fileName, mimeType))
+                    when (call.method) {
+                        "saveToDownloads" -> {
+                            val path = call.argument<String>("path") ?: error("Missing path")
+                            val fileName = call.argument<String>("fileName") ?: File(path).name
+                            val mimeType = call.argument<String>("mimeType") ?: "application/octet-stream"
+                            result.success(saveToDownloads(path, fileName, mimeType))
+                        }
+                        "openFile" -> {
+                            val path = call.argument<String>("path") ?: error("Missing path")
+                            val mimeType = call.argument<String>("mimeType") ?: "application/octet-stream"
+                            openFile(path, mimeType)
+                            result.success(null)
+                        }
+                        else -> result.notImplemented()
+                    }
                 } catch (error: Throwable) {
-                    result.error("save_failed", error.message, null)
+                    result.error("download_failed", error.message, null)
                 }
             }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "rulegel/device")
@@ -87,6 +96,21 @@ class MainActivity : FlutterActivity() {
         val manager = getSystemService(Context.BATTERY_SERVICE) as? BatteryManager ?: return null
         val level = manager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
         return if (level in 0..100) level else null
+    }
+
+    private fun openFile(path: String, mimeType: String) {
+        val file = File(path)
+        val uri = FileProvider.getUriForFile(
+            this,
+            "${applicationContext.packageName}.fileprovider",
+            file
+        )
+        val intent = Intent(Intent.ACTION_VIEW).apply {
+            setDataAndType(uri, mimeType)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        startActivity(Intent.createChooser(intent, "Open update"))
     }
 
     private fun supportedRefreshRates(): List<Double> {

@@ -35,6 +35,42 @@ class Post {
 
   String get cacheKey => '$providerId:$id';
 
+  Post copyWith({
+    String? id,
+    String? providerId,
+    String? providerName,
+    String? previewUrl,
+    String? sampleUrl,
+    String? fileUrl,
+    List<String>? tags,
+    String? rating,
+    int? width,
+    int? height,
+    String? source,
+    DateTime? createdAt,
+    String? fileType,
+    int? score,
+    Map<String, List<String>>? tagGroups,
+  }) {
+    return Post(
+      id: id ?? this.id,
+      providerId: providerId ?? this.providerId,
+      providerName: providerName ?? this.providerName,
+      previewUrl: previewUrl ?? this.previewUrl,
+      sampleUrl: sampleUrl ?? this.sampleUrl,
+      fileUrl: fileUrl ?? this.fileUrl,
+      tags: tags ?? this.tags,
+      rating: rating ?? this.rating,
+      width: width ?? this.width,
+      height: height ?? this.height,
+      source: source ?? this.source,
+      createdAt: createdAt ?? this.createdAt,
+      fileType: fileType ?? this.fileType,
+      score: score ?? this.score,
+      tagGroups: tagGroups ?? this.tagGroups,
+    );
+  }
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'providerId': providerId,

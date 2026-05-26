@@ -242,8 +242,9 @@ class FeedController extends AsyncNotifier<FeedState> {
   }
 
   Future<List<ContentProviderConfig>> _loadProviders() async {
-    final result =
-        await ref.read(providerManagerProvider).loadConfigs(enabledOnly: true);
+    final result = await ref
+        .read(providerManagerProvider)
+        .loadFeedConfigs(enabledOnly: true);
     return result is Success<List<ContentProviderConfig>>
         ? result.data
         : const [];

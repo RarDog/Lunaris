@@ -2,6 +2,8 @@ export 'di/backend_providers.dart';
 export 'models/collection.dart';
 export 'models/content_provider_config.dart';
 export 'models/app_update_info.dart';
+export 'models/artist_profile.dart';
+export 'models/artist_work_query.dart';
 export 'models/download_task.dart';
 export 'models/favorite.dart';
 export 'models/post.dart';

@@ -8,6 +8,7 @@ class AppUpdateInfo {
     required this.publishedAt,
     this.apkUrl,
     this.windowsInstallerUrl,
+    this.portableZipUrl,
   });
 
   final String version;
@@ -18,6 +19,8 @@ class AppUpdateInfo {
   final DateTime? publishedAt;
   final String? apkUrl;
   final String? windowsInstallerUrl;
+  final String? portableZipUrl;
 
-  bool get hasAssets => apkUrl != null || windowsInstallerUrl != null;
+  bool get hasAssets =>
+      apkUrl != null || windowsInstallerUrl != null || portableZipUrl != null;
 }

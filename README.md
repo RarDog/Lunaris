@@ -1,194 +1,117 @@
-# Lunaris
+﻿# Lunaris
 
-Lunaris — локальное Flutter-приложение для просмотра booru/gelbooru/rule34-подобных источников в Pinterest-стиле.
+Lunaris - Р»РѕРєР°Р»СЊРЅРѕРµ Flutter-РїСЂРёР»РѕР¶РµРЅРёРµ РґР»СЏ РїСЂРѕСЃРјРѕС‚СЂР° booru/gelbooru/rule34-РїРѕРґРѕР±РЅС‹С… РёСЃС‚РѕС‡РЅРёРєРѕРІ РІ Pinterest-СЃС‚РёР»Рµ.
 
-Приложение не использует отдельный backend-сервер. Вся логика работает внутри Flutter: API-провайдеры, metadata-кэш, избранное, коллекции, история, настройки, диагностика и фильтры.
+РџСЂРёР»РѕР¶РµРЅРёРµ РЅРµ РёСЃРїРѕР»СЊР·СѓРµС‚ РѕС‚РґРµР»СЊРЅС‹Р№ backend-СЃРµСЂРІРµСЂ. Р’СЃСЏ Р»РѕРіРёРєР° Р¶РёРІРµС‚ РІРЅСѓС‚СЂРё Flutter: API-РїСЂРѕРІР°Р№РґРµСЂС‹, РєСЌС€ metadata, РёР·Р±СЂР°РЅРЅРѕРµ, РєРѕР»Р»РµРєС†РёРё, РёСЃС‚РѕСЂРёСЏ РїСЂРѕСЃРјРѕС‚СЂРѕРІ, РЅР°СЃС‚СЂРѕР№РєРё, РґРёР°РіРЅРѕСЃС‚РёРєР°, С„РёР»СЊС‚СЂС‹ Рё РѕР±РЅРѕРІР»РµРЅРёСЏ.
 
-## Возможности
+## Р’РѕР·РјРѕР¶РЅРѕСЃС‚Рё
 
-- Masonry feed с несколькими провайдерами и перемешанной выдачей All providers.
-- Поиск по тегам через chip-input: ввёл тег, нажал пробел или Enter, тег стал отдельным элементом.
-- Подсказки тегов из provider API.
-- Избранное, коллекции и история просмотренных постов.
-- Smart blacklist/whitelist с правилами по тегам, рейтингу, провайдеру, типу файла и score.
-- Детальный просмотр фото, GIF, видео и SWF на Windows.
-- Видео-плеер с fullscreen, repeat, mute, half-volume и сохранением выбранных настроек.
-- Управление провайдерами, health-check и provider diagnostics.
-- Экспорт и импорт настроек.
-- Автопроверка обновлений через Gitea releases.
-- Android и Windows сборки.
+- Masonry feed СЃ РЅРµСЃРєРѕР»СЊРєРёРјРё РїСЂРѕРІР°Р№РґРµСЂР°РјРё Рё РїРµСЂРµРјРµС€Р°РЅРЅРѕР№ РІС‹РґР°С‡РµР№ All providers.
+- РџРѕРёСЃРє С‚РµРіРѕРІ С‡РµСЂРµР· chip-input: РІРІРµР» С‚РµРі, РЅР°Р¶Р°Р» РїСЂРѕР±РµР» РёР»Рё Enter, С‚РµРі СЃС‚Р°Р» РѕС‚РґРµР»СЊРЅС‹Рј СЌР»РµРјРµРЅС‚РѕРј.
+- РџРѕРґСЃРєР°Р·РєРё С‚РµРіРѕРІ РёР· API Р°РєС‚РёРІРЅС‹С… РїСЂРѕРІР°Р№РґРµСЂРѕРІ.
+- РР·Р±СЂР°РЅРЅРѕРµ, РєРѕР»Р»РµРєС†РёРё Рё РѕС‚РґРµР»СЊРЅР°СЏ РІРєР»Р°РґРєР° Viewed.
+- Smart blacklist/whitelist РїРѕ С‚РµРіР°Рј, РіСЂСѓРїРїР°Рј С‚РµРіРѕРІ, СЂРµР№С‚РёРЅРіСѓ, РїСЂРѕРІР°Р№РґРµСЂСѓ, С‚РёРїСѓ С„Р°Р№Р»Р° Рё score.
+- Details viewer РґР»СЏ С„РѕС‚Рѕ, GIF, РІРёРґРµРѕ Рё SWF РЅР° Windows.
+- Р’РёРґРµРѕ-РїР»РµРµСЂ СЃ fullscreen, repeat, mute, half-volume Рё СЃРѕС…СЂР°РЅРµРЅРёРµРј РІС‹Р±СЂР°РЅРЅС‹С… РЅР°СЃС‚СЂРѕРµРє.
+- РћС‚РґРµР»СЊРЅР°СЏ РІРєР»Р°РґРєР° Artists РґР»СЏ Kemono/Coomer: РїРѕРёСЃРє Р°РІС‚РѕСЂРѕРІ Рё РїСЂРѕСЃРјРѕС‚СЂ РёС… СЂР°Р±РѕС‚ Р±РµР· СЃРјРµС€РёРІР°РЅРёСЏ СЃ РѕР±С‹С‡РЅС‹Рј booru feed.
+- РЈРїСЂР°РІР»РµРЅРёРµ РїСЂРѕРІР°Р№РґРµСЂР°РјРё, health-check Рё provider diagnostics.
+- Р­РєСЃРїРѕСЂС‚ Рё РёРјРїРѕСЂС‚ РЅР°СЃС‚СЂРѕРµРє JSON.
+- РђРІС‚РѕРїСЂРѕРІРµСЂРєР° РѕР±РЅРѕРІР»РµРЅРёР№ С‡РµСЂРµР· Gitea Releases, СЃРєР°С‡РёРІР°РЅРёРµ Рё РѕС‚РєСЂС‹С‚РёРµ APK/Windows installer РїСЂСЏРјРѕ РёР· РїСЂРёР»РѕР¶РµРЅРёСЏ.
 
-## Скачать
+## РЎРєР°С‡Р°С‚СЊ
 
-Готовые сборки лежат в Gitea Releases:
+Р“РѕС‚РѕРІС‹Рµ СЃР±РѕСЂРєРё Р»РµР¶Р°С‚ РІ Gitea Releases:
 
-[Lunaris v1.1.0](https://gitea.rardogsynapse.online/RarDog/RuleGelApp/releases/tag/v1.1.0)
+[Lunaris v1.1.2 Experimental](https://gitea.rardogsynapse.online/RarDog/RuleGelApp/releases/tag/v1.1.2-experimental)
 
-- `Lunaris-v1.1.0.apk` — APK для Android.
-- `LunarisSetup-v1.1.0.exe` — установщик для Windows.
-- `LunarisPortable-v1.1.0.zip` — portable-версия для Windows.
+- `Lunaris-v1.1.2-experimental.apk` - APK РґР»СЏ Android.
+- `LunarisSetup-v1.1.2-experimental.exe` - СѓСЃС‚Р°РЅРѕРІС‰РёРє РґР»СЏ Windows.
+- `LunarisPortable-v1.1.2-experimental.zip` - portable-РІРµСЂСЃРёСЏ РґР»СЏ Windows.
 
-## Стек
+## РЎС‚РµРє
 
-- Flutter и Dart
-- Riverpod
-- go_router
-- Dio
-- Isar
-- cached_network_image
-- flutter_staggered_grid_view
-- media_kit
-- webview_windows для SWF/Ruffle на Windows
-- connectivity_plus
+- Flutter, Dart, Riverpod, go_router
+- Dio, Isar, connectivity_plus
+- cached_network_image, flutter_staggered_grid_view
+- media_kit РґР»СЏ РІРёРґРµРѕ
+- webview_windows + Ruffle fallback РґР»СЏ SWF РЅР° Windows
 
-## Архитектура
+## РђСЂС…РёС‚РµРєС‚СѓСЂР°
 
-Lunaris — Flutter-монолит. UI не дублирует backend-логику, а вызывает локальные сервисы через Riverpod.
+Lunaris - Flutter-РјРѕРЅРѕР»РёС‚. UI РЅРµ РґСѓР±Р»РёСЂСѓРµС‚ backend-Р»РѕРіРёРєСѓ, Р° РІС‹Р·С‹РІР°РµС‚ Р»РѕРєР°Р»СЊРЅС‹Рµ СЃРµСЂРІРёСЃС‹ С‡РµСЂРµР· Riverpod.
 
-Основные слои:
+- `lib/core` - HTTP, Р±Р°Р·Р°, РєСЌС€, РѕС€РёР±РєРё, Result Рё СѓС‚РёР»РёС‚С‹.
+- `lib/backend/models` - РґРѕРјРµРЅРЅС‹Рµ РјРѕРґРµР»Рё.
+- `lib/backend/providers` - API-РїСЂРѕРІР°Р№РґРµСЂС‹ Рё ProviderManager.
+- `lib/backend/repositories` - РґРѕСЃС‚СѓРї Рє Р»РѕРєР°Р»СЊРЅРѕРјСѓ Isar-С…СЂР°РЅРёР»РёС‰Сѓ.
+- `lib/backend/services` - Feed/Search/Favorites/Collections/Settings/Diagnostics/Downloads/Updates.
+- `lib/backend/di` - Riverpod providers РґР»СЏ backend/core.
+- `lib/app` - РїСЂРёР»РѕР¶РµРЅРёРµ, СЂРѕСѓС‚РµСЂ, С‚РµРјР° Рё responsive helpers.
+- `lib/shared/widgets` - РѕР±С‰РёРµ UI-РєРѕРјРїРѕРЅРµРЅС‚С‹.
+- `lib/features` - СЌРєСЂР°РЅС‹ Рё РєРѕРЅС‚СЂРѕР»Р»РµСЂС‹ С„РёС‡.
 
-- `lib/core` — HTTP, база, кэш, ошибки, Result-тип и утилиты.
-- `lib/backend/models` — доменные модели.
-- `lib/backend/providers` — API-провайдеры и ProviderManager.
-- `lib/backend/repositories` — доступ к локальному Isar-хранилищу.
-- `lib/backend/services` — Feed/Search/Favorites/Collections/Settings/Diagnostics.
-- `lib/backend/di` — Riverpod providers для backend/core.
-- `lib/app` — приложение, роутер, тема и responsive helpers.
-- `lib/shared/widgets` — общие UI-компоненты.
-- `lib/features` — экраны и контроллеры фич.
+## Р­РєСЂР°РЅС‹
 
-## Экраны
+- `/` - РіР»Р°РІРЅС‹Р№ feed.
+- `/search` - РїРѕРёСЃРє Рё recent searches.
+- `/post/:providerId/:postId` - details viewer.
+- `/favorites` - РёР·Р±СЂР°РЅРЅРѕРµ.
+- `/viewed` - РёСЃС‚РѕСЂРёСЏ РїСЂРѕСЃРјРѕС‚СЂРµРЅРЅС‹С… РїРѕСЃС‚РѕРІ.
+- `/collections` - РєРѕР»Р»РµРєС†РёРё.
+- `/artists` - РїРѕРёСЃРє Р°РІС‚РѕСЂРѕРІ Kemono/Coomer.
+- `/artists/:providerId/:service/:artistId` - СЂР°Р±РѕС‚С‹ Р°РІС‚РѕСЂР°.
+- `/providers` - СѓРїСЂР°РІР»РµРЅРёРµ РїСЂРѕРІР°Р№РґРµСЂР°РјРё.
+- `/providers/check` - РґРёР°РіРЅРѕСЃС‚РёРєР° РїСЂРѕРІР°Р№РґРµСЂРѕРІ.
+- `/settings` - РЅР°СЃС‚СЂРѕР№РєРё.
 
-- `/` — главный feed.
-- `/search` — поиск и recent searches.
-- `/post/:providerId/:postId` — детальный просмотр поста.
-- `/favorites` — избранное.
-- `/viewed` — история просмотренных постов.
-- `/collections` — коллекции.
-- `/collections/:collectionId` — посты внутри коллекции.
-- `/providers` — управление провайдерами.
-- `/providers/new` — добавление/редактирование провайдера.
-- `/providers/check` — проверка провайдеров и diagnostics.
-- `/settings` — настройки.
+## РџСЂРѕРІР°Р№РґРµСЂС‹ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ
 
-## Провайдеры по умолчанию
+- Gelbooru - `https://gelbooru.com`
+- Rule34 - `https://api.rule34.xxx`
+- Safebooru - `https://safebooru.org`
+- Konachan - `https://konachan.com`
+- Yande.re - `https://yande.re`
+- e621 - `https://e621.net`
+- e926 - `https://e926.net`
+- Xbooru - `https://xbooru.com`
+- CosBooru - `https://cos.lycore.co`
+- Kemono - `https://kemono.su` (С‚РѕР»СЊРєРѕ Artists)
+- Coomer - `https://coomer.su` (С‚РѕР»СЊРєРѕ Artists, РІС‹РєР»СЋС‡РµРЅ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ)
 
-- Gelbooru — `https://gelbooru.com`
-- Rule34 — `https://api.rule34.xxx`
-- Safebooru — `https://safebooru.org`
-- Konachan — `https://konachan.com`
-- Yande.re — `https://yande.re`
-- e621 — `https://e621.net`
-- e926 — `https://e926.net`
-- Xbooru — `https://xbooru.com`
-- CosBooru — `https://cos.lycore.co`
+Realbooru РѕСЃС‚Р°РІР»РµРЅ РІ СЃРїРёСЃРєРµ, РЅРѕ РІС‹РєР»СЋС‡РµРЅ РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ, РїРѕС‚РѕРјСѓ С‡С‚Рѕ РµРіРѕ РїСѓР±Р»РёС‡РЅС‹Р№ API СЃРµР№С‡Р°СЃ РЅРµСЃС‚Р°Р±РёР»РµРЅ.
 
-Realbooru оставлен в списке провайдеров, но выключен по умолчанию, потому что его публичный API сейчас нестабилен.
+РџРѕРґРґРµСЂР¶РёРІР°РµРјС‹Рµ `apiType`: `gelbooru`, `rule34`, `realbooru`, `danbooru`, `moebooru`, `e621`, `kemono`, `coomer`.
 
-Поддерживаемые `apiType`:
+РћРґРёРЅ СѓРїР°РІС€РёР№ РїСЂРѕРІР°Р№РґРµСЂ РЅРµ Р»РѕРјР°РµС‚ РѕР±С‰РёР№ feed: РѕС€РёР±РєР° СЃРѕС…СЂР°РЅСЏРµС‚СЃСЏ РІ diagnostics, РѕСЃС‚Р°Р»СЊРЅС‹Рµ РёСЃС‚РѕС‡РЅРёРєРё РїСЂРѕРґРѕР»Р¶Р°СЋС‚ РѕС‚РґР°РІР°С‚СЊ РїРѕСЃС‚С‹.
 
-- `gelbooru`
-- `rule34`
-- `realbooru`
-- `danbooru`
-- `moebooru`
-- `e621`
+## РљР°Рє РґРѕР±Р°РІРёС‚СЊ РїСЂРѕРІР°Р№РґРµСЂР°
 
-Один упавший провайдер не ломает общий feed: ошибки сохраняются в diagnostics, остальные провайдеры продолжают отдавать посты.
+1. Р”РѕР±Р°РІРёС‚СЊ mapper РІ `lib/backend/mappers`, РµСЃР»Рё С„РѕСЂРјР°С‚ РѕС‚РІРµС‚Р° РѕС‚Р»РёС‡Р°РµС‚СЃСЏ.
+2. Р РµР°Р»РёР·РѕРІР°С‚СЊ `ContentProvider` РёР»Рё artist-only `ArtistProvider` РІ `lib/backend/providers`.
+3. Р—Р°СЂРµРіРёСЃС‚СЂРёСЂРѕРІР°С‚СЊ РЅРѕРІС‹Р№ `apiType` РІ `ProviderFactory`.
+4. Р”РѕР±Р°РІРёС‚СЊ config С‡РµСЂРµР· Providers UI РёР»Рё seed РІ `ProviderRepository`.
 
-## Как добавить провайдера
-
-1. Добавить mapper в `lib/backend/mappers`, если формат ответа отличается.
-2. Реализовать `ContentProvider` в `lib/backend/providers`.
-3. Зарегистрировать новый `apiType` в `ProviderFactory`.
-4. Добавить config через `ProviderManager` или UI Providers.
-
-Интерфейс провайдера:
-
-```dart
-abstract class ContentProvider {
-  String get id;
-  String get name;
-  String get baseUrl;
-
-  Future<List<Post>> searchPosts({
-    required List<String> tags,
-    required int page,
-    int limit = 50,
-    String? rating,
-  });
-
-  Future<Post?> getPost(String id);
-  Future<ProviderHealth> checkHealth();
-}
-```
-
-## Локальная база
-
-Isar хранит:
-
-- configs провайдеров;
-- health status и diagnostics;
-- cached metadata постов;
-- избранное;
-- коллекции и связи collection-post;
-- историю поиска;
-- историю просмотренных постов;
-- app settings.
-
-Кэш хранит только metadata. Оригинальные медиафайлы не скачиваются автоматически.
-
-## Сборка и запуск
-
-Установить зависимости:
+## Р—Р°РїСѓСЃРє Рё СЃР±РѕСЂРєР°
 
 ```bash
 flutter pub get
-```
-
-Запустить:
-
-```bash
+flutter analyze
+flutter test
 flutter run -d windows
-flutter run -d android
-```
-
-Собрать релиз:
-
-```bash
 flutter build windows
 flutter build apk
 ```
 
-Собрать Windows installer:
-
-```powershell
-& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" installer\Lunaris.iss
-```
-
-## Важные заметки
-
-- На Windows для Flutter plugins может понадобиться Developer Mode.
-- Android-сборка требует Android SDK и принятые `flutter doctor --android-licenses`.
-- Linux build нужно собирать на Linux-хосте.
-- Если путь проекта содержит апостроф, Flutter Windows/test tooling может ломаться. Для сборки можно использовать копию проекта в пути без спецсимволов.
-- SWF работает только на Windows через Ruffle/WebView. На Android он намеренно отключён.
-- Для SWF на Windows может понадобиться Microsoft WebView2 Runtime.
-
-## Безопасность
-
-- Lunaris использует публичные API и metadata.
-- Приложение не обходит ограничения сайтов.
-- Оригинальные файлы скачиваются только вручную по действию пользователя.
-- Dio использует нормальный User-Agent.
-- Retry/backoff ограничены.
-- NSFW/blur/filter настройки работают локально.
-
-## Тесты
+Windows installer СЃРѕР±РёСЂР°РµС‚СЃСЏ С‡РµСЂРµР· Inno Setup:
 
 ```bash
-flutter analyze
-flutter test
+ISCC installer/Lunaris.iss
 ```
 
-Покрыты backend-сервисы, provider parsing, smart blacklist, viewed history, settings migration и tag chip input.
+## Р‘РµР·РѕРїР°СЃРЅРѕСЃС‚СЊ
+
+- Feed СЂР°Р±РѕС‚Р°РµС‚ СЃ preview/sample metadata Рё РЅРµ СЃРєР°С‡РёРІР°РµС‚ full files Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРё.
+- РЎРєР°С‡РёРІР°РЅРёРµ С„РѕС‚Рѕ/РІРёРґРµРѕ/SWF РІС‹РїРѕР»РЅСЏРµС‚СЃСЏ С‚РѕР»СЊРєРѕ РїРѕ СЏРІРЅРѕРјСѓ РґРµР№СЃС‚РІРёСЋ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ.
+- РџСЂРёР»РѕР¶РµРЅРёРµ СѓРІР°Р¶Р°РµС‚ rate limits Рё РёСЃРїРѕР»СЊР·СѓРµС‚ retry/backoff.
+- API keys/user data С…СЂР°РЅСЏС‚СЃСЏ Р»РѕРєР°Р»СЊРЅРѕ Рё РїРѕРїР°РґР°СЋС‚ РІ export JSON С‚РѕР»СЊРєРѕ РїРѕ РґРµР№СЃС‚РІРёСЋ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ.
+

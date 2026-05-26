@@ -6,6 +6,7 @@ import 'package:gel_rule_app/backend/mappers/moebooru_mapper.dart';
 import 'package:gel_rule_app/backend/mappers/rule34_mapper.dart';
 import 'package:gel_rule_app/backend/models/content_provider_config.dart';
 import 'package:gel_rule_app/backend/providers/danbooru_provider.dart';
+import 'package:gel_rule_app/backend/providers/kemono_provider.dart';
 import 'package:gel_rule_app/backend/providers/provider_factory.dart';
 import 'package:gel_rule_app/backend/providers/realbooru_provider.dart';
 import 'package:gel_rule_app/backend/repositories/provider_repository.dart';
@@ -66,6 +67,30 @@ void main() {
     expect(posts.single.providerId, 'realbooru');
     expect(posts.single.tags, ['real', 'booru']);
     expect(posts.single.rating, 'explicit');
+  });
+
+  test('parses Gelbooru compatible tag category fields', () {
+    final posts = GelbooruMapper.postsFromResponse(
+      [
+        {
+          'id': '8',
+          'file_url': 'https://example.test/cat.jpg',
+          'tag_string_artist': 'artist_name',
+          'tag_string_character': 'char_name',
+          'tag_string_copyright': 'source_title',
+          'tag_string_general': 'blue sky',
+          'tag_string_meta': 'highres',
+        }
+      ],
+      providerId: 'gelbooru',
+      providerName: 'Gelbooru',
+    );
+
+    expect(posts.single.tagGroups['artist'], ['artist_name']);
+    expect(posts.single.tagGroups['character'], ['char_name']);
+    expect(posts.single.tagGroups['copyright'], ['source_title']);
+    expect(posts.single.tagGroups['general'], ['blue', 'sky']);
+    expect(posts.single.tagGroups['meta'], ['highres']);
   });
 
   test('parses Rule34 compatible response', () {
@@ -231,6 +256,16 @@ void main() {
     expect(cosbooru.enabled, isTrue);
     expect(cosbooru.apiType, 'danbooru');
     expect(cosbooru.baseUrl, 'https://cos.lycore.co');
+    final kemono = ProviderRepository.seedProviders()
+        .where((provider) => provider.id == 'kemono')
+        .single;
+    final coomer = ProviderRepository.seedProviders()
+        .where((provider) => provider.id == 'coomer')
+        .single;
+    expect(kemono.enabled, isTrue);
+    expect(kemono.apiType, 'kemono');
+    expect(coomer.enabled, isFalse);
+    expect(coomer.apiType, 'coomer');
   });
 
   test('provider factory creates Realbooru provider', () {
@@ -267,5 +302,25 @@ void main() {
     ));
 
     expect(provider, isA<DanbooruProvider>());
+  });
+
+  test('provider factory creates Kemono and Coomer artist providers', () {
+    final now = DateTime(2026);
+    for (final apiType in ['kemono', 'coomer']) {
+      final provider = ProviderFactory().create(ContentProviderConfig(
+        id: apiType,
+        name: apiType,
+        baseUrl: 'https://$apiType.su',
+        apiType: apiType,
+        enabled: true,
+        priority: 10,
+        timeoutSeconds: 20,
+        customHeaders: const {},
+        createdAt: now,
+        updatedAt: now,
+      ));
+
+      expect(provider, isA<KemonoProvider>());
+    }
   });
 }

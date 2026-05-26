@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../backend/backend.dart';
+import '../features/artists/presentation/artist_posts_screen.dart';
+import '../features/artists/presentation/artists_screen.dart';
 import '../features/collections/presentation/collection_details_screen.dart';
 import '../features/collections/presentation/collections_screen.dart';
 import '../features/favorites/presentation/favorites_screen.dart';
@@ -65,6 +67,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: '/collections/:collectionId',
             builder: (context, state) => CollectionDetailsScreen(
               collectionId: state.pathParameters['collectionId']!,
+            ),
+          ),
+          GoRoute(
+            path: '/artists',
+            builder: (context, state) => const ArtistsScreen(),
+          ),
+          GoRoute(
+            path: '/artists/:providerId/:service/:artistId',
+            builder: (context, state) => ArtistPostsScreen(
+              providerId: state.pathParameters['providerId']!,
+              service: state.pathParameters['service']!,
+              artistId: state.pathParameters['artistId']!,
+              artistName: state.uri.queryParameters['name'] ??
+                  state.pathParameters['artistId']!,
             ),
           ),
           GoRoute(

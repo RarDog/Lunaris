@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../app/motion.dart';
 import '../../backend/backend.dart';
 
 class AppSearchBar extends StatefulWidget {
@@ -253,7 +252,6 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
   void _commitDraft(String value) {
     final additions = _parseTags(value);
     if (additions.isEmpty) return;
-    final keepInputVisible = _isInputNearEnd();
     setState(() {
       for (final tag in additions) {
         if (!_tags.contains(tag)) _tags.add(tag);
@@ -261,7 +259,6 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
       _controller.clear();
     });
     _notifyChanged();
-    if (keepInputVisible) _scrollTagsToEnd();
   }
 
   void _submit() {
@@ -301,7 +298,6 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
 
   void _applySuggestion(String suggestion) {
     final draft = _controller.text.trim();
-    final keepInputVisible = _isInputNearEnd();
     setState(() {
       if (draft.isNotEmpty) {
         final draftTags = _parseTags(draft);
@@ -313,7 +309,6 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
     _notifyChanged();
     widget.onSuggestionApplied?.call(_query);
     _focusNode.requestFocus();
-    if (keepInputVisible) _scrollTagsToEnd();
   }
 
   void _notifyChangedDebounced() {
@@ -340,22 +335,6 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
     final draft = _controller.text.trim();
     final all = [..._tags, if (draft.isNotEmpty) draft];
     return all.join(' ');
-  }
-
-  void _scrollTagsToEnd() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_tagScrollController.hasClients) return;
-      _tagScrollController.animateTo(
-        _tagScrollController.position.maxScrollExtent,
-        duration: AppMotion.duration(context, 120),
-        curve: Curves.easeOut,
-      );
-    });
-  }
-
-  bool _isInputNearEnd() {
-    if (!_tagScrollController.hasClients) return true;
-    return _tagScrollController.position.extentAfter < 96;
   }
 }
 

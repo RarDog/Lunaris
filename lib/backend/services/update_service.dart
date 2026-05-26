@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'dart:io';
 
 import '../../app/app_version.dart';
 import '../../core/errors/failure.dart';
@@ -71,12 +72,14 @@ class UpdateService {
     final assets = (json['assets'] as List?) ?? const [];
     String? apkUrl;
     String? installerUrl;
+    String? portableUrl;
     for (final item in assets.whereType<Map>()) {
       final name = (item['name'] ?? '').toString().toLowerCase();
       final url = (item['browser_download_url'] ?? '').toString();
       if (url.isEmpty) continue;
       if (name.endsWith('.apk')) apkUrl = url;
       if (name.endsWith('.exe')) installerUrl = url;
+      if (name.endsWith('.zip')) portableUrl = url;
     }
     return AppUpdateInfo(
       version: _versionFromTag(tag),
@@ -87,7 +90,28 @@ class UpdateService {
       publishedAt: DateTime.tryParse((json['published_at'] ?? '').toString()),
       apkUrl: apkUrl,
       windowsInstallerUrl: installerUrl,
+      portableZipUrl: portableUrl,
     );
+  }
+
+  String? assetUrlForCurrentPlatform(AppUpdateInfo info) {
+    if (Platform.isAndroid) {
+      return info.apkUrl;
+    }
+    if (Platform.isWindows) {
+      return info.windowsInstallerUrl ?? info.portableZipUrl;
+    }
+    return info.portableZipUrl;
+  }
+
+  String assetFileName(AppUpdateInfo info, String url) {
+    final parsed = Uri.tryParse(url);
+    final fromUrl =
+        parsed?.pathSegments.isEmpty ?? true ? '' : parsed!.pathSegments.last;
+    if (fromUrl.contains('.')) return fromUrl;
+    if (Platform.isAndroid) return 'Lunaris-v${info.version}.apk';
+    if (Platform.isWindows) return 'LunarisSetup-v${info.version}.exe';
+    return 'LunarisPortable-v${info.version}.zip';
   }
 
   static String _versionFromTag(String tag) {

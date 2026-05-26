@@ -1,5 +1,25 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '1.1.2',
+    title: 'Experimental tag and Artists update',
+    bullets: [
+      'Details tags now use category blocks with wrapping chips again.',
+      'Gelbooru-compatible providers can enrich tag categories when their tag API exposes metadata.',
+      'Kemono and Coomer Artists use improved creator search and public API fallbacks.',
+      'This is an experimental release for checking the new tag and Artists behavior.',
+    ],
+  ),
+  LunarisChange(
+    version: '1.1.1',
+    title: 'Artists and in-app updates',
+    bullets: [
+      'Disabled providers now disappear from feed chips, search suggestions and feed loading immediately.',
+      'Kemono and Coomer are available as a separate Artists flow, without mixing into the normal booru feed.',
+      'Update dialogs can download and open the APK or Windows installer directly from the app.',
+      'Tag input keeps its scroll position steadier while typing and committing chips.',
+    ],
+  ),
+  LunarisChange(
     version: '1.1.0',
     title: 'Lunaris rebrand and CosBooru',
     bullets: [

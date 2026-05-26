@@ -3,6 +3,8 @@ import '../models/post_comment.dart';
 import '../models/provider_health.dart';
 import '../models/tag_suggestion.dart';
 import '../models/top_period_filter.dart';
+import '../models/artist_profile.dart';
+import '../models/artist_work_query.dart';
 
 abstract class ContentProvider {
   String get id;
@@ -28,4 +30,36 @@ abstract class CommentProvider {
 
 abstract class TagSuggestionProvider {
   Future<List<TagSuggestion>> suggestTags(String query, {int limit = 20});
+}
+
+abstract class TagMetadataProvider {
+  Future<Map<String, List<String>>> categorizeTags(List<String> tags);
+}
+
+abstract class ArtistProvider {
+  Future<List<ArtistProfile>> listArtists({
+    String? service,
+    String? query,
+    int page = 1,
+    int limit = 30,
+  });
+
+  Future<List<ArtistProfile>> searchArtists(
+    String query, {
+    String? service,
+    int page = 1,
+    int limit = 30,
+  });
+
+  Future<List<Post>> getArtistPosts({
+    required ArtistWorkQuery query,
+    int page = 0,
+    int limit = 50,
+  });
+
+  Future<List<PostComment>> getArtistPostComments(
+    String service,
+    String artistId,
+    String postId,
+  );
 }

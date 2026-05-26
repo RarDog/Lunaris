@@ -26,6 +26,36 @@ class ProviderManager {
     return _repository.getProviders(enabledOnly: enabledOnly);
   }
 
+  Future<Result<List<ContentProviderConfig>>> loadFeedConfigs({
+    bool enabledOnly = true,
+  }) async {
+    final result = await loadConfigs(enabledOnly: enabledOnly);
+    if (result is Error<List<ContentProviderConfig>>) {
+      return Error(result.failure);
+    }
+    final configs = (result as Success<List<ContentProviderConfig>>)
+        .data
+        .where(_isFeedConfig)
+        .toList()
+      ..sort((a, b) => a.priority.compareTo(b.priority));
+    return Success(configs);
+  }
+
+  Future<Result<List<ContentProviderConfig>>> loadArtistConfigs({
+    bool enabledOnly = true,
+  }) async {
+    final result = await loadConfigs(enabledOnly: enabledOnly);
+    if (result is Error<List<ContentProviderConfig>>) {
+      return Error(result.failure);
+    }
+    final configs = (result as Success<List<ContentProviderConfig>>)
+        .data
+        .where(_isArtistConfig)
+        .toList()
+      ..sort((a, b) => a.priority.compareTo(b.priority));
+    return Success(configs);
+  }
+
   Future<Result<List<ContentProvider>>> activeProviders() async {
     final result = await loadConfigs();
     if (result is Error<List<ContentProviderConfig>>) {
@@ -34,6 +64,28 @@ class ProviderManager {
     final configs = (result as Success<List<ContentProviderConfig>>).data
       ..sort((a, b) => a.priority.compareTo(b.priority));
     return Success(configs.map(_factory.create).toList());
+  }
+
+  Future<Result<List<ContentProvider>>> activeFeedProviders() async {
+    final result = await loadFeedConfigs();
+    if (result is Error<List<ContentProviderConfig>>) {
+      return Error(result.failure);
+    }
+    final configs = (result as Success<List<ContentProviderConfig>>).data;
+    return Success(configs.map(_factory.create).toList());
+  }
+
+  Future<Result<List<ArtistProvider>>> activeArtistProviders() async {
+    final result = await loadArtistConfigs();
+    if (result is Error<List<ContentProviderConfig>>) {
+      return Error(result.failure);
+    }
+    final configs = (result as Success<List<ContentProviderConfig>>).data;
+    final providers = configs
+        .map(_factory.create)
+        .whereType<ArtistProvider>()
+        .toList(growable: false);
+    return Success(providers);
   }
 
   Future<Result<void>> enableProvider(String id, bool enabled) async {
@@ -87,7 +139,7 @@ class ProviderManager {
     String? providerId,
     TopPeriodFilter topPeriod = TopPeriodFilter.none,
   }) async {
-    final providersResult = await activeProviders();
+    final providersResult = await activeFeedProviders();
     if (providersResult is Error<List<ContentProvider>>) {
       return Error(providersResult.failure);
     }
@@ -229,11 +281,38 @@ class ProviderManager {
     }
   }
 
+  Future<Result<Post>> enrichPostTags(Post post) async {
+    final hasUsefulGroups = post.tagGroups.entries.any(
+      (entry) => entry.key != 'general' && entry.value.isNotEmpty,
+    );
+    if (hasUsefulGroups || post.tags.isEmpty) return Success(post);
+
+    final providersResult = await activeFeedProviders();
+    if (providersResult is Error<List<ContentProvider>>) {
+      return Error(providersResult.failure);
+    }
+    final providers = (providersResult as Success<List<ContentProvider>>).data;
+    final matches =
+        providers.where((provider) => provider.id == post.providerId);
+    if (matches.isEmpty || matches.first is! TagMetadataProvider) {
+      return Success(post);
+    }
+
+    try {
+      final groups = await (matches.first as TagMetadataProvider)
+          .categorizeTags(post.tags);
+      if (groups.isEmpty) return Success(post);
+      return Success(post.copyWith(tagGroups: groups));
+    } catch (error) {
+      return Success(post);
+    }
+  }
+
   Future<Result<List<TagSuggestion>>> suggestTags(
     String query, {
     int limit = 20,
   }) async {
-    final providersResult = await activeProviders();
+    final providersResult = await activeFeedProviders();
     if (providersResult is Error<List<ContentProvider>>) {
       return Error(providersResult.failure);
     }
@@ -278,5 +357,14 @@ class ProviderManager {
       List.generate(concurrency.clamp(1, items.length), (_) => worker()),
     );
     return results;
+  }
+
+  static bool _isArtistConfig(ContentProviderConfig config) {
+    final type = config.apiType.toLowerCase();
+    return type == 'kemono' || type == 'coomer';
+  }
+
+  static bool _isFeedConfig(ContentProviderConfig config) {
+    return !_isArtistConfig(config);
   }
 }

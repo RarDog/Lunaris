@@ -139,6 +139,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         },
         child: AdaptiveScaffold(
           title: 'Feed',
+          titleWidget: const _FeedTitle(),
           body: feed.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (error, _) => ErrorView(
@@ -429,6 +430,34 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
 class _RefreshIntent extends Intent {
   const _RefreshIntent();
+}
+
+class _FeedTitle extends StatelessWidget {
+  const _FeedTitle();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'Lunaris',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          'Feed',
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _ClearSelectionIntent extends Intent {

@@ -29,6 +29,25 @@ class DownloadManagerService {
     return task;
   }
 
+  Future<DownloadTask> startUrl({
+    required String url,
+    required String fileName,
+    bool openAfterDownload = false,
+  }) async {
+    final id = 'url:$url:${DateTime.now().microsecondsSinceEpoch}';
+    final task = DownloadTask(
+      id: id,
+      sourceUrl: url,
+      fileName: fileName,
+      progress: 0,
+      status: DownloadTaskStatus.queued,
+      openAfterDownload: openAfterDownload,
+    );
+    _set(task);
+    unawaited(_run(task));
+    return task;
+  }
+
   Future<void> retry(String taskId) async {
     final existing = _tasks[taskId];
     if (existing == null) return;
@@ -51,18 +70,22 @@ class DownloadManagerService {
     if (_tasks[task.id]?.status == DownloadTaskStatus.canceled) return;
     _set(task.copyWith(status: DownloadTaskStatus.running));
     try {
-      final saved = await _downloadService.downloadPost(
-        task.post,
-        onProgress: (received, total) {
-          if (total <= 0) return;
-          final current = _tasks[task.id];
-          if (current == null ||
-              current.status == DownloadTaskStatus.canceled) {
-            return;
-          }
-          _set(current.copyWith(progress: received / total));
-        },
-      );
+      final saved = task.sourceUrl == null
+          ? await _downloadService.downloadPost(
+              task.post!,
+              onProgress: (received, total) {
+                _updateProgress(task.id, received, total);
+              },
+            )
+          : await _downloadService.downloadUrl(
+              task.sourceUrl!,
+              fileName: task.fileName,
+              mimeType: _mimeType(task.fileName),
+              openAfterDownload: task.openAfterDownload,
+              onProgress: (received, total) {
+                _updateProgress(task.id, received, total);
+              },
+            );
       final current = _tasks[task.id];
       if (current == null || current.status == DownloadTaskStatus.canceled) {
         return;
@@ -94,6 +117,15 @@ class DownloadManagerService {
     _controller.add(tasks);
   }
 
+  void _updateProgress(String taskId, int received, int total) {
+    if (total <= 0) return;
+    final current = _tasks[taskId];
+    if (current == null || current.status == DownloadTaskStatus.canceled) {
+      return;
+    }
+    _set(current.copyWith(progress: received / total));
+  }
+
   void _scheduleAutoRemove(String taskId, Duration delay) {
     Future<void>.delayed(delay, () {
       final current = _tasks[taskId];
@@ -110,5 +142,19 @@ class DownloadManagerService {
         parsed?.pathSegments.isEmpty ?? true ? '' : parsed!.pathSegments.last;
     if (last.contains('.')) return last;
     return '${post.providerId}_${post.id}';
+  }
+
+  String _mimeType(String fileName) {
+    final lower = fileName.toLowerCase();
+    if (lower.endsWith('.apk')) {
+      return 'application/vnd.android.package-archive';
+    }
+    if (lower.endsWith('.exe')) {
+      return 'application/vnd.microsoft.portable-executable';
+    }
+    if (lower.endsWith('.zip')) {
+      return 'application/zip';
+    }
+    return 'application/octet-stream';
   }
 }

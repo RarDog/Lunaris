@@ -1,34 +1,42 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/gestures.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../backend/backend.dart';
 import '../../../../shared/widgets/tag_chip.dart';
 
-class PostTagsPanel extends StatelessWidget {
+class PostTagsPanel extends StatefulWidget {
   const PostTagsPanel({required this.post, super.key});
 
   final Post post;
 
   @override
+  State<PostTagsPanel> createState() => _PostTagsPanelState();
+}
+
+class _PostTagsPanelState extends State<PostTagsPanel> {
+  final _expandedGroups = <String>{};
+
+  @override
   Widget build(BuildContext context) {
-    final groups = _groups(post);
+    final groups = _groups(widget.post);
+    if (groups.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (final entry in groups.entries) ...[
-          Padding(
-            padding: const EdgeInsets.only(top: 8, bottom: 6),
-            child: Text(
-              _label(entry.key),
-              style: Theme.of(context).textTheme.labelLarge,
-            ),
-          ),
-          _HorizontalTagRow(
-            tags: entry.value.take(120).toList(),
+        for (final entry in groups.entries)
+          _TagGroupBlock(
+            label: _label(entry.key),
+            tags: entry.value,
+            expanded: _expandedGroups.contains(entry.key),
+            onToggleExpanded: () {
+              setState(() {
+                if (!_expandedGroups.add(entry.key)) {
+                  _expandedGroups.remove(entry.key);
+                }
+              });
+            },
             onTap: (tag) => context.go('/?q=${Uri.encodeQueryComponent(tag)}'),
           ),
-        ],
       ],
     );
   }
@@ -48,11 +56,13 @@ class PostTagsPanel extends StatelessWidget {
         if (tags != null && tags.isNotEmpty) ordered[key] = tags;
       }
       for (final entry in post.tagGroups.entries) {
-        ordered.putIfAbsent(entry.key, () => entry.value);
+        if (entry.value.isNotEmpty) {
+          ordered.putIfAbsent(entry.key, () => entry.value);
+        }
       }
       return ordered;
     }
-    return {'general': post.tags};
+    return post.tags.isEmpty ? const {} : {'general': post.tags};
   }
 
   String _label(String key) {
@@ -68,51 +78,71 @@ class PostTagsPanel extends StatelessWidget {
   }
 }
 
-class _HorizontalTagRow extends StatefulWidget {
-  const _HorizontalTagRow({
+class _TagGroupBlock extends StatelessWidget {
+  const _TagGroupBlock({
+    required this.label,
     required this.tags,
+    required this.expanded,
+    required this.onToggleExpanded,
     required this.onTap,
   });
 
+  static const _collapsedLimit = 36;
+
+  final String label;
   final List<String> tags;
+  final bool expanded;
+  final VoidCallback onToggleExpanded;
   final ValueChanged<String> onTap;
 
   @override
-  State<_HorizontalTagRow> createState() => _HorizontalTagRowState();
-}
-
-class _HorizontalTagRowState extends State<_HorizontalTagRow> {
-  final _controller = ScrollController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 36,
-      child: Listener(
-        onPointerSignal: (event) {
-          if (event is! PointerScrollEvent || !_controller.hasClients) return;
-          final target = (_controller.offset + event.scrollDelta.dy)
-              .clamp(0.0, _controller.position.maxScrollExtent)
-              .toDouble();
-          _controller.jumpTo(target);
-        },
-        child: ListView.separated(
-          controller: _controller,
-          scrollDirection: Axis.horizontal,
-          primary: false,
-          itemCount: widget.tags.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 8),
-          itemBuilder: (context, index) => TagChip(
-            tag: widget.tags[index],
-            onTap: () => widget.onTap(widget.tags[index]),
+    final visibleTags = expanded || tags.length <= _collapsedLimit
+        ? tags
+        : tags.take(_collapsedLimit).toList(growable: false);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(label, style: Theme.of(context).textTheme.labelLarge),
+              const SizedBox(width: 8),
+              Text(
+                '${tags.length}',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ],
           ),
-        ),
+          const SizedBox(height: 7),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final tag in visibleTags)
+                TagChip(
+                  tag: tag,
+                  onTap: () => onTap(tag),
+                ),
+              if (tags.length > _collapsedLimit)
+                ActionChip(
+                  avatar: Icon(
+                    expanded
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    size: 18,
+                  ),
+                  label: Text(
+                    expanded ? 'Collapse' : '+${tags.length - _collapsedLimit}',
+                  ),
+                  onPressed: onToggleExpanded,
+                ),
+            ],
+          ),
+        ],
       ),
     );
   }

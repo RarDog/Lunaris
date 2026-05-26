@@ -43,6 +43,54 @@ class DownloadService {
     return location.path;
   }
 
+  Future<String?> downloadUrl(
+    String url, {
+    required String fileName,
+    String mimeType = 'application/octet-stream',
+    bool openAfterDownload = false,
+    void Function(int received, int total)? onProgress,
+  }) async {
+    if (Platform.isAndroid) {
+      final tempDir = await getTemporaryDirectory();
+      final tempPath = p.join(tempDir.path, fileName);
+      await _dio.download(url, tempPath, onReceiveProgress: onProgress);
+      if (openAfterDownload) {
+        await openFile(tempPath, mimeType: mimeType);
+        return tempPath;
+      }
+      final saved = await _channel.invokeMethod<String>('saveToDownloads', {
+        'path': tempPath,
+        'fileName': fileName,
+        'mimeType': mimeType,
+      });
+      return saved ?? fileName;
+    }
+
+    final downloads =
+        await getDownloadsDirectory() ?? await getTemporaryDirectory();
+    final path = p.join(downloads.path, fileName);
+    await _dio.download(url, path, onReceiveProgress: onProgress);
+    if (openAfterDownload) await openFile(path, mimeType: mimeType);
+    return path;
+  }
+
+  Future<void> openFile(String path, {String? mimeType}) async {
+    if (Platform.isAndroid) {
+      await _channel.invokeMethod<void>('openFile', {
+        'path': path,
+        'mimeType': mimeType ?? _mimeType(path, ''),
+      });
+      return;
+    }
+    if (Platform.isWindows) {
+      await Process.start('explorer.exe', [path]);
+      return;
+    }
+    if (Platform.isLinux) {
+      await Process.start('xdg-open', [path]);
+    }
+  }
+
   String? _downloadUrl(Post post) {
     return MediaUrlSelector.download(post);
   }

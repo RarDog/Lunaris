@@ -76,6 +76,8 @@ void main() {
       'realbooru',
       'xbooru',
       'cosbooru',
+      'kemono',
+      'coomer',
     ]);
     expect(
       providers.singleWhere((provider) => provider.id == 'realbooru').enabled,
@@ -93,6 +95,12 @@ void main() {
         providers.singleWhere((provider) => provider.id == 'cosbooru');
     expect(cosbooru.baseUrl, 'https://cos.lycore.co');
     expect(cosbooru.apiType, 'danbooru');
+    final kemono = providers.singleWhere((provider) => provider.id == 'kemono');
+    final coomer = providers.singleWhere((provider) => provider.id == 'coomer');
+    expect(kemono.enabled, isTrue);
+    expect(kemono.apiType, 'kemono');
+    expect(coomer.enabled, isFalse);
+    expect(coomer.apiType, 'coomer');
   });
 
   test('provider repository migrates old CosBooru config', () async {

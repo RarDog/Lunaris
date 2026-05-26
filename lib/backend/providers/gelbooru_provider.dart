@@ -6,10 +6,16 @@ import '../mappers/gelbooru_mapper.dart';
 import '../models/post.dart';
 import '../models/post_comment.dart';
 import '../models/provider_health.dart';
+import '../models/tag_suggestion.dart';
 import '../models/top_period_filter.dart';
 import 'content_provider.dart';
 
-class GelbooruProvider implements ContentProvider, CommentProvider {
+class GelbooruProvider
+    implements
+        ContentProvider,
+        CommentProvider,
+        TagSuggestionProvider,
+        TagMetadataProvider {
   GelbooruProvider({
     required this.id,
     required this.name,
@@ -134,6 +140,72 @@ class GelbooruProvider implements ContentProvider, CommentProvider {
     return _commentsFromResponse(response.data, postId);
   }
 
+  @override
+  Future<List<TagSuggestion>> suggestTags(String query,
+      {int limit = 20}) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return const [];
+    final response = await _dio.get<dynamic>(
+      '/index.php',
+      queryParameters: {
+        'page': 'dapi',
+        's': 'tag',
+        'q': 'index',
+        'json': '1',
+        'name_pattern': '$trimmed*',
+        'limit': limit.clamp(1, 100),
+        ..._queryParameters,
+      },
+    );
+    return _tagItems(response.data)
+        .whereType<Map>()
+        .map((item) {
+          final json = Map<String, dynamic>.from(item);
+          return TagSuggestion(
+            name: (json['name'] ?? '').toString(),
+            category: tagCategoryFromString(
+              (json['type'] ?? json['tag_type'] ?? json['category']).toString(),
+            ),
+            postCount: _int(json['count'] ?? json['post_count']),
+            providerId: id,
+          );
+        })
+        .where((tag) => tag.name.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  @override
+  Future<Map<String, List<String>>> categorizeTags(List<String> tags) async {
+    final cleaned = tags
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toSet()
+        .take(80)
+        .toList(growable: false);
+    if (cleaned.isEmpty) return const {};
+
+    final groups = <String, List<String>>{};
+    for (final tag in cleaned) {
+      try {
+        final suggestions = await suggestTags(tag, limit: 3);
+        final exact = suggestions.where((item) => item.name == tag).firstOrNull;
+        final category = exact?.category ?? TagCategory.general;
+        final key = switch (category) {
+          TagCategory.artist => 'artist',
+          TagCategory.copyright => 'copyright',
+          TagCategory.character => 'character',
+          TagCategory.meta => 'meta',
+          TagCategory.species => 'species',
+          TagCategory.general || TagCategory.unknown => 'general',
+        };
+        groups.putIfAbsent(key, () => <String>[]).add(tag);
+      } catch (_) {
+        groups.putIfAbsent('general', () => <String>[]).add(tag);
+      }
+    }
+    return groups;
+  }
+
   Never unavailable(String message) =>
       throw ProviderUnavailableException(message);
 
@@ -193,6 +265,29 @@ class GelbooruProvider implements ContentProvider, CommentProvider {
     return const [];
   }
 
+  List<dynamic> _tagItems(dynamic data) {
+    if (data is List) return data;
+    if (data is String) return _tagItemsFromText(data);
+    if (data is! Map) return const [];
+    final json = Map<String, dynamic>.from(data);
+    final tags = json['tag'] ?? json['tags'];
+    if (tags is List) return tags;
+    if (tags is Map && tags['tag'] is List) return tags['tag'] as List;
+    if (tags is Map) return [tags];
+    return const [];
+  }
+
+  List<Map<String, dynamic>> _tagItemsFromText(String text) {
+    final items = <Map<String, dynamic>>[];
+    for (final match
+        in RegExp(r'<tag\b([^>]*)/?>', caseSensitive: false, dotAll: true)
+            .allMatches(text)) {
+      final attrs = _attributes(match.group(1) ?? '');
+      if (attrs.isNotEmpty) items.add(attrs);
+    }
+    return items;
+  }
+
   List<Map<String, dynamic>> _commentItemsFromText(String text) {
     final items = <Map<String, dynamic>>[];
     for (final match in RegExp(r'<comment\b([^>]*)>(.*?)</comment>',
@@ -239,5 +334,11 @@ class GelbooruProvider implements ContentProvider, CommentProvider {
         .replaceAll('&quot;', '"')
         .replaceAll('&#039;', "'")
         .replaceAll('&apos;', "'");
+  }
+
+  int _int(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 }

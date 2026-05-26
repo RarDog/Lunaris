@@ -143,6 +143,34 @@ class ProviderRepository {
         createdAt: now,
         updatedAt: now,
       ),
+      ContentProviderConfig(
+        id: 'kemono',
+        name: 'Kemono',
+        baseUrl: 'https://kemono.su',
+        apiType: 'kemono',
+        enabled: true,
+        priority: 10,
+        timeoutSeconds: 20,
+        customHeaders: const {
+          'query.creator_api_base': 'https://kemono-api.mbaharip.com',
+        },
+        createdAt: now,
+        updatedAt: now,
+      ),
+      ContentProviderConfig(
+        id: 'coomer',
+        name: 'Coomer',
+        baseUrl: 'https://coomer.su',
+        apiType: 'coomer',
+        enabled: false,
+        priority: 11,
+        timeoutSeconds: 20,
+        customHeaders: const {
+          'query.creator_api_base': 'https://kemono-api.mbaharip.com',
+        },
+        createdAt: now,
+        updatedAt: now,
+      ),
     ];
   }
 
@@ -151,9 +179,7 @@ class ProviderRepository {
       final existingProviders =
           await isar.providerConfigEntitys.where().findAll();
       for (final provider in existingProviders) {
-        if (provider.providerId == 'kemono' ||
-            provider.providerId == 'coomer' ||
-            provider.providerId == 'paheal') {
+        if (provider.providerId == 'paheal') {
           await isar.providerConfigEntitys.delete(provider.isarId);
         }
       }

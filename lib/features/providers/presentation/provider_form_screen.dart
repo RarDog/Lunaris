@@ -95,6 +95,8 @@ class _ProviderFormScreenState extends ConsumerState<ProviderFormScreen> {
               DropdownMenuItem(
                   value: 'moebooru', child: Text('moebooru-compatible')),
               DropdownMenuItem(value: 'e621', child: Text('e621/e926')),
+              DropdownMenuItem(value: 'kemono', child: Text('Kemono artists')),
+              DropdownMenuItem(value: 'coomer', child: Text('Coomer artists')),
               DropdownMenuItem(value: 'custom', child: Text('custom')),
             ],
             onChanged: (value) =>

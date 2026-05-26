@@ -16,7 +16,12 @@ class AppShell extends StatelessWidget {
     _Destination('Favorites', Icons.favorite_rounded, '/favorites'),
     _Destination('Viewed', Icons.history_rounded, '/viewed'),
     _Destination(
-        'Collections', Icons.collections_bookmark_rounded, '/collections'),
+      'Collections',
+      Icons.collections_bookmark_rounded,
+      '/collections',
+      mobileLabel: 'Boards',
+    ),
+    _Destination('Artists', Icons.person_search_rounded, '/artists'),
     _Destination('Providers', Icons.hub_rounded, '/providers'),
     _Destination('Settings', Icons.settings_rounded, '/settings'),
   ];
@@ -38,8 +43,10 @@ class AppShell extends StatelessWidget {
         LogicalKeySet(LogicalKeyboardKey.digit5):
             const _NavigateIntent('/collections'),
         LogicalKeySet(LogicalKeyboardKey.digit6):
-            const _NavigateIntent('/providers'),
+            const _NavigateIntent('/artists'),
         LogicalKeySet(LogicalKeyboardKey.digit7):
+            const _NavigateIntent('/providers'),
+        LogicalKeySet(LogicalKeyboardKey.digit8):
             const _NavigateIntent('/settings'),
       },
       child: Actions(
@@ -216,7 +223,11 @@ class _MobileShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = AppShell.destinations.take(5).toList();
+    final items = AppShell.destinations
+        .where((item) =>
+            item.location != '/providers' && item.location != '/settings')
+        .take(6)
+        .toList();
     final location = GoRouterState.of(context).uri.path;
     final selected = items.indexWhere(
       (item) => item.location == '/'
@@ -239,7 +250,10 @@ class _MobileShell extends StatelessWidget {
         onDestinationSelected: (index) => context.go(items[index].location),
         destinations: [
           for (final item in items)
-            NavigationDestination(icon: Icon(item.icon), label: item.label),
+            NavigationDestination(
+              icon: Icon(item.icon),
+              label: item.mobileLabel,
+            ),
         ],
       ),
     );
@@ -247,8 +261,15 @@ class _MobileShell extends StatelessWidget {
 }
 
 class _Destination {
-  const _Destination(this.label, this.icon, this.location);
+  const _Destination(
+    this.label,
+    this.icon,
+    this.location, {
+    String? mobileLabel,
+  }) : mobileLabel = mobileLabel ?? label;
+
   final String label;
+  final String mobileLabel;
   final IconData icon;
   final String location;
 }

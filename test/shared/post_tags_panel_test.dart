@@ -5,7 +5,7 @@ import 'package:gel_rule_app/features/post/presentation/widgets/post_tags_panel.
 import 'package:go_router/go_router.dart';
 
 void main() {
-  testWidgets('post tags panel renders category rows compactly',
+  testWidgets('post tags panel renders category blocks with wrapping chips',
       (tester) async {
     final router = GoRouter(
       routes: [
@@ -31,7 +31,10 @@ void main() {
     expect(find.text('Artist'), findsOneWidget);
     expect(find.text('Character'), findsOneWidget);
     expect(find.text('General'), findsOneWidget);
+    expect(find.text('artist_name'), findsOneWidget);
+    expect(find.text('hero'), findsOneWidget);
     expect(find.text('tag_0'), findsOneWidget);
+    expect(find.text('+'), findsNothing);
   });
 }
 

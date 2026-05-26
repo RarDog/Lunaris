@@ -117,19 +117,33 @@ class _AppOverlayState extends ConsumerState<_AppOverlay> {
           ),
           FilledButton.icon(
             onPressed: () async {
-              final url = Uri.tryParse(info.htmlUrl);
-              if (url != null) {
-                await launchUrl(url, mode: LaunchMode.externalApplication);
-              }
+              await _downloadUpdate(info);
               if (context.mounted) Navigator.pop(context);
             },
-            icon: const Icon(Icons.open_in_new_rounded),
-            label: const Text('Update'),
+            icon: const Icon(Icons.download_rounded),
+            label: const Text('Download & open'),
           ),
         ],
       ),
     );
     ref.invalidate(appSettingsProvider);
+  }
+
+  Future<void> _downloadUpdate(AppUpdateInfo info) async {
+    final updateService = ref.read(updateServiceProvider);
+    final assetUrl = updateService.assetUrlForCurrentPlatform(info);
+    if (assetUrl == null) {
+      final url = Uri.tryParse(info.htmlUrl);
+      if (url != null) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      }
+      return;
+    }
+    await ref.read(downloadManagerServiceProvider).startUrl(
+          url: assetUrl,
+          fileName: updateService.assetFileName(info, assetUrl),
+          openAfterDownload: true,
+        );
   }
 
   @override
