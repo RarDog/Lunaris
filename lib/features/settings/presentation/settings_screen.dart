@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/app_version.dart';
 import '../../../app/changelog.dart';
+import '../../../app/app_strings.dart';
 import '../../../app/motion.dart';
 import '../../../backend/backend.dart';
 import '../../../core/utils/result.dart';
@@ -21,8 +22,10 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsControllerProvider);
+    final strings = AppStrings(
+        settings.value?.languageCode ?? AppSettings.defaults.languageCode);
     return AdaptiveScaffold(
-      title: 'Settings',
+      title: strings.settings,
       body: settings.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => ErrorView(message: error.toString()),
@@ -40,6 +43,7 @@ class _SettingsContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isAndroid = Platform.isAndroid;
+    final strings = AppStrings(settings.languageCode);
     final deviceInfo =
         isAndroid ? ref.watch(motionDeviceInfoProvider).value : null;
     final detectedHz =
@@ -55,13 +59,13 @@ class _SettingsContent extends ConsumerWidget {
       padding: const EdgeInsets.all(16),
       children: [
         _SettingsSection(
-          title: 'General',
+          title: strings.general,
           icon: Icons.tune_rounded,
           children: [
             DropdownButtonFormField<String>(
               initialValue: settings.themeMode,
               decoration: InputDecoration(
-                labelText: settings.languageCode == 'ru' ? 'Тема' : 'Theme',
+                labelText: strings.theme,
               ),
               items: const [
                 DropdownMenuItem(value: 'dark', child: Text('Dark')),
@@ -73,37 +77,46 @@ class _SettingsContent extends ConsumerWidget {
             ),
             SwitchListTile(
               value: settings.nsfwEnabled,
-              title: const Text('Allow NSFW content'),
+              title: Text(strings.allowNsfw),
               onChanged: (value) =>
                   _update(ref, settings.copyWith(nsfwEnabled: value)),
             ),
             SwitchListTile(
               value: settings.blurExplicitContent,
-              title: const Text('Blur sensitive previews'),
+              title: Text(strings.blurSensitive),
               onChanged: (value) =>
                   _update(ref, settings.copyWith(blurExplicitContent: value)),
             ),
             SwitchListTile(
               value: settings.showPostBadges,
-              title: const Text('Show post badges'),
+              title: Text(strings.showPostBadges),
               onChanged: (value) =>
                   _update(ref, settings.copyWith(showPostBadges: value)),
             ),
             SwitchListTile(
               value: settings.allowDownloads,
-              title: const Text('Allow manual downloads'),
+              title: Text(strings.allowDownloads),
               onChanged: (value) =>
                   _update(ref, settings.copyWith(allowDownloads: value)),
+            ),
+            SwitchListTile(
+              value: settings.autoDownloadFavorites,
+              title: Text(strings.autoDownloadFavorites),
+              subtitle: Text(strings.autoDownloadFavoritesHint),
+              onChanged: (value) => _update(
+                ref,
+                settings.copyWith(autoDownloadFavorites: value),
+              ),
             ),
           ],
         ),
         _SettingsSection(
-          title: settings.languageCode == 'ru' ? 'Внешний вид' : 'Appearance',
+          title: strings.appearance,
           icon: Icons.palette_rounded,
           children: [
             DropdownButtonFormField<String>(
               initialValue: settings.languageCode,
-              decoration: const InputDecoration(labelText: 'Language / Язык'),
+              decoration: InputDecoration(labelText: strings.language),
               items: const [
                 DropdownMenuItem(value: 'ru', child: Text('Русский')),
                 DropdownMenuItem(value: 'en', child: Text('English')),
@@ -127,10 +140,12 @@ class _SettingsContent extends ConsumerWidget {
             ),
             SwitchListTile(
               value: settings.allowExperimentalUpdates,
-              title: const Text('Receive beta / experimental updates'),
-              subtitle: const Text(
-                'When enabled, the updater also sees prerelease Gitea builds.',
-              ),
+              title: Text(settings.languageCode == 'ru'
+                  ? 'Получать beta / experimental обновления'
+                  : 'Receive beta / experimental updates'),
+              subtitle: Text(settings.languageCode == 'ru'
+                  ? 'Обновлятор будет видеть prerelease-сборки Gitea.'
+                  : 'When enabled, the updater also sees prerelease Gitea builds.'),
               onChanged: (value) => _update(
                 ref,
                 settings.copyWith(allowExperimentalUpdates: value),
@@ -139,12 +154,12 @@ class _SettingsContent extends ConsumerWidget {
           ],
         ),
         _SettingsSection(
-          title: 'Feed & Layout',
+          title: strings.feedLayout,
           icon: Icons.dashboard_customize_rounded,
           children: [
             DropdownButtonFormField<String>(
               initialValue: settings.mediaQualityMode,
-              decoration: const InputDecoration(labelText: 'Media quality'),
+              decoration: InputDecoration(labelText: strings.mediaQuality),
               items: [
                 for (final mode in MediaQualityMode.values)
                   DropdownMenuItem(value: mode.name, child: Text(mode.label)),
@@ -185,7 +200,7 @@ class _SettingsContent extends ConsumerWidget {
               ),
             ],
             _StepperTile(
-              title: 'Desktop columns',
+              title: strings.desktopColumns,
               value: settings.desktopColumns,
               min: 3,
               max: 8,
@@ -195,7 +210,7 @@ class _SettingsContent extends ConsumerWidget {
               ),
             ),
             _StepperTile(
-              title: 'Mobile columns',
+              title: strings.mobileColumns,
               value: settings.mobileColumns,
               min: 1,
               max: 3,
@@ -207,17 +222,17 @@ class _SettingsContent extends ConsumerWidget {
           ],
         ),
         _SettingsSection(
-          title: 'Filters',
+          title: strings.filters,
           icon: Icons.filter_alt_rounded,
           children: [
             SwitchListTile(
               value: settings.hideViewedPosts,
-              title: const Text('Hide viewed posts'),
+              title: Text(strings.hideViewed),
               onChanged: (value) =>
                   _update(ref, settings.copyWith(hideViewedPosts: value)),
             ),
             _TagListEditor(
-              title: 'Smart blacklist',
+              title: strings.smartBlacklist,
               icon: Icons.visibility_off_rounded,
               tags: settings.smartBlacklistRules,
               helper:
@@ -229,7 +244,7 @@ class _SettingsContent extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             _TagListEditor(
-              title: 'Whitelisted tags',
+              title: strings.whitelistedTags,
               icon: Icons.verified_rounded,
               tags: settings.whitelistedTags,
               onChanged: (tags) => _update(
@@ -240,11 +255,11 @@ class _SettingsContent extends ConsumerWidget {
           ],
         ),
         _SettingsSection(
-          title: 'Storage',
+          title: strings.storage,
           icon: Icons.storage_rounded,
           children: [
             _StepperTile(
-              title: 'Cache max items',
+              title: strings.cacheMaxItems,
               value: settings.cacheMaxItems,
               min: 100,
               max: 10000,
@@ -259,14 +274,14 @@ class _SettingsContent extends ConsumerWidget {
                       .read(settingsControllerProvider.notifier)
                       .clearCache(),
                   icon: const Icon(Icons.cleaning_services_rounded),
-                  label: const Text('Clear cache'),
+                  label: Text(strings.clearCache),
                 ),
                 FilledButton.tonalIcon(
                   onPressed: () => ref
                       .read(settingsControllerProvider.notifier)
                       .clearViewedHistory(),
                   icon: const Icon(Icons.history_toggle_off_rounded),
-                  label: const Text('Clear viewed'),
+                  label: Text(strings.clearViewed),
                 ),
                 FilledButton.tonalIcon(
                   onPressed: () => ref
@@ -318,7 +333,7 @@ class _SettingsContent extends ConsumerWidget {
           ],
         ),
         _SettingsSection(
-          title: 'About',
+          title: strings.about,
           icon: Icons.info_rounded,
           children: [
             _ActionGrid(
@@ -326,7 +341,7 @@ class _SettingsContent extends ConsumerWidget {
                 FilledButton.tonalIcon(
                   onPressed: () => _checkUpdates(context, ref),
                   icon: const Icon(Icons.system_update_alt_rounded),
-                  label: const Text('Check updates'),
+                  label: Text(strings.checkUpdates),
                 ),
                 FilledButton.tonalIcon(
                   onPressed: () => _showChangelog(context),
@@ -336,12 +351,12 @@ class _SettingsContent extends ConsumerWidget {
                 FilledButton.tonalIcon(
                   onPressed: () => _exportJson(context, ref),
                   icon: const Icon(Icons.upload_file_rounded),
-                  label: const Text('Export JSON'),
+                  label: Text(strings.exportJson),
                 ),
                 FilledButton.tonalIcon(
                   onPressed: () => _importDialog(context, ref),
                   icon: const Icon(Icons.download_for_offline_rounded),
-                  label: const Text('Import JSON'),
+                  label: Text(strings.importJson),
                 ),
               ],
             ),

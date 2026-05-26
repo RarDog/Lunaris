@@ -13,6 +13,7 @@ class PostMasonryGrid extends StatelessWidget {
     required this.blurExplicit,
     required this.showBadges,
     required this.nsfwEnabled,
+    required this.mediaQualityMode,
     required this.onOpen,
     required this.onFavorite,
     this.onAddToCollection,
@@ -23,6 +24,7 @@ class PostMasonryGrid extends StatelessWidget {
     this.selectedKeys = const {},
     this.favoriteKeys = const {},
     this.viewedKeys = const {},
+    this.downloadedKeys = const {},
     this.loading = false,
     this.controller,
     super.key,
@@ -33,6 +35,7 @@ class PostMasonryGrid extends StatelessWidget {
   final bool blurExplicit;
   final bool showBadges;
   final bool nsfwEnabled;
+  final MediaQualityMode mediaQualityMode;
   final ValueChanged<Post> onOpen;
   final ValueChanged<Post> onFavorite;
   final ValueChanged<Post>? onAddToCollection;
@@ -43,6 +46,7 @@ class PostMasonryGrid extends StatelessWidget {
   final Set<String> selectedKeys;
   final Set<String> favoriteKeys;
   final Set<String> viewedKeys;
+  final Set<String> downloadedKeys;
   final bool loading;
   final ScrollController? controller;
 
@@ -65,6 +69,8 @@ class PostMasonryGrid extends StatelessWidget {
           showBadges: showBadges,
           isFavorite: favoriteKeys.contains(post.cacheKey),
           isViewed: viewedKeys.contains(post.cacheKey),
+          isDownloaded: downloadedKeys.contains(post.cacheKey),
+          mediaQualityMode: mediaQualityMode,
           onOpen: () => onOpen(post),
           onFavorite: () => onFavorite(post),
           onPreview: onPreview == null ? null : () => onPreview!(post),

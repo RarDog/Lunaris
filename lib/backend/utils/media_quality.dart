@@ -24,8 +24,19 @@ enum MediaQualityMode {
 class MediaUrlSelector {
   const MediaUrlSelector._();
 
-  static List<String> feed(Post post) {
-    return _compact([post.previewUrl, post.sampleUrl]);
+  static List<String> feed(
+    Post post, {
+    MediaQualityMode mode = MediaQualityMode.auto,
+    bool mobile = false,
+  }) {
+    return switch (mode) {
+      MediaQualityMode.dataSaver => _compact([post.previewUrl, post.sampleUrl]),
+      MediaQualityMode.highQuality =>
+        _compact([post.sampleUrl, post.previewUrl]),
+      MediaQualityMode.auto => mobile
+          ? _compact([post.previewUrl, post.sampleUrl])
+          : _compact([post.sampleUrl, post.previewUrl]),
+    };
   }
 
   static List<String> preview(Post post) {

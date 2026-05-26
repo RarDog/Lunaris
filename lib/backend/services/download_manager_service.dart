@@ -4,11 +4,16 @@ import '../models/download_task.dart';
 import '../models/post.dart';
 import '../utils/media_quality.dart';
 import 'download_service.dart';
+import 'downloaded_media_service.dart';
 
 class DownloadManagerService {
-  DownloadManagerService(this._downloadService);
+  DownloadManagerService(
+    this._downloadService, {
+    DownloadedMediaService? downloadedMediaService,
+  }) : _downloadedMediaService = downloadedMediaService;
 
   final DownloadService _downloadService;
+  final DownloadedMediaService? _downloadedMediaService;
   final _controller = StreamController<List<DownloadTask>>.broadcast();
   final Map<String, DownloadTask> _tasks = {};
 
@@ -97,6 +102,13 @@ class DownloadManagerService {
           savedPath: saved,
         ),
       );
+      if (task.post != null && saved != null && saved.isNotEmpty) {
+        await _downloadedMediaService?.markDownloaded(
+          task.post!,
+          savedPath: saved,
+          fileName: task.fileName,
+        );
+      }
       _scheduleAutoRemove(task.id, const Duration(seconds: 6));
     } catch (error) {
       final current = _tasks[task.id];

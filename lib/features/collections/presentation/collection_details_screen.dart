@@ -46,6 +46,8 @@ class CollectionDetailsScreen extends ConsumerWidget {
                 blurExplicit: settings.blurExplicitContent,
                 showBadges: settings.showPostBadges,
                 nsfwEnabled: settings.nsfwEnabled,
+                mediaQualityMode:
+                    MediaQualityMode.fromName(settings.mediaQualityMode),
                 favoriteKeys: favoriteKeys,
                 onOpen: (post) => context.push(
                   '/post/${post.providerId}/${post.id}',
@@ -57,7 +59,12 @@ class CollectionDetailsScreen extends ConsumerWidget {
                         .read(favoriteServiceProvider)
                         .removeFavorite(post.id, post.providerId);
                   } else {
-                    await ref.read(favoriteServiceProvider).addFavorite(post);
+                    await ref.read(favoriteServiceProvider).addFavorite(
+                          post,
+                          settings: settings,
+                          downloadManager:
+                              ref.read(downloadManagerServiceProvider),
+                        );
                   }
                   ref.invalidate(favoriteKeysProvider);
                   ref.invalidate(favoritesControllerProvider);

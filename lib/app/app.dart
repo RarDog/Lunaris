@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../backend/backend.dart';
 import '../core/utils/result.dart';
+import 'app_strings.dart';
 import 'motion.dart';
 import 'router.dart';
 import 'theme.dart';
@@ -82,12 +83,11 @@ class _AppOverlayState extends ConsumerState<_AppOverlay> {
   }
 
   Future<void> _showUpdateDialog(AppUpdateInfo info) async {
+    final strings = ref.read(appStringsProvider);
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(_ru
-            ? 'Доступен Lunaris ${info.version}'
-            : 'Lunaris ${info.version} is available'),
+        title: Text('${strings.appUpdateAvailable}: Lunaris ${info.version}'),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
           child: SingleChildScrollView(
@@ -114,14 +114,14 @@ class _AppOverlayState extends ConsumerState<_AppOverlay> {
               await ref.read(updateServiceProvider).skipVersion(info);
               if (context.mounted) Navigator.pop(context);
             },
-            child: Text(_ru ? 'Пропустить' : 'Skip this version'),
+            child: Text(strings.skipThisVersion),
           ),
           TextButton(
             onPressed: () async {
               await ref.read(updateServiceProvider).remindLater();
               if (context.mounted) Navigator.pop(context);
             },
-            child: Text(_ru ? 'Позже' : 'Later'),
+            child: Text(strings.later),
           ),
           FilledButton.icon(
             onPressed: () async {
@@ -129,18 +129,13 @@ class _AppOverlayState extends ConsumerState<_AppOverlay> {
               if (context.mounted) Navigator.pop(context);
             },
             icon: const Icon(Icons.download_rounded),
-            label: Text(_ru ? 'Скачать и открыть' : 'Download & open'),
+            label: Text(strings.downloadAndOpen),
           ),
         ],
       ),
     );
     ref.invalidate(appSettingsProvider);
   }
-
-  bool get _ru =>
-      (ref.read(appSettingsProvider).value ?? AppSettings.defaults)
-          .languageCode ==
-      'ru';
 
   Future<void> _downloadUpdate(AppUpdateInfo info) async {
     final updateService = ref.read(updateServiceProvider);
@@ -225,6 +220,7 @@ class _DownloadPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
+    final strings = ref.watch(appStringsProvider);
     return Material(
       elevation: 12,
       borderRadius: BorderRadius.circular(16),
@@ -250,7 +246,7 @@ class _DownloadPanel extends ConsumerWidget {
                     ),
                     if (task.status == DownloadTaskStatus.failed)
                       IconButton(
-                        tooltip: 'Retry',
+                        tooltip: strings.retry,
                         onPressed: () => ref
                             .read(downloadManagerServiceProvider)
                             .retry(task.id),
@@ -304,6 +300,11 @@ final appSettingsProvider = FutureProvider<AppSettings>((ref) {
       );
 });
 
+final appStringsProvider = Provider<AppStrings>((ref) {
+  final settings = ref.watch(appSettingsProvider).value ?? AppSettings.defaults;
+  return AppStrings(settings.languageCode);
+});
+
 class _StartupLoadingScreen extends StatelessWidget {
   const _StartupLoadingScreen();
 
@@ -330,6 +331,7 @@ class _StartupErrorScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final strings = ref.watch(appStringsProvider);
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -341,7 +343,9 @@ class _StartupErrorScreen extends ConsumerWidget {
                 const Icon(Icons.storage_rounded, size: 48),
                 const SizedBox(height: 16),
                 Text(
-                  'Could not start local database',
+                  strings.ru
+                      ? 'Не удалось открыть локальную базу'
+                      : 'Could not start local database',
                   style: Theme.of(context).textTheme.titleLarge,
                   textAlign: TextAlign.center,
                 ),
@@ -356,7 +360,7 @@ class _StartupErrorScreen extends ConsumerWidget {
                 FilledButton.icon(
                   onPressed: () => ref.invalidate(appDatabaseProvider),
                   icon: const Icon(Icons.refresh_rounded),
-                  label: const Text('Retry'),
+                  label: Text(strings.retry),
                 ),
               ],
             ),

@@ -235,6 +235,8 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                             blurExplicit: settings.blurExplicitContent,
                             showBadges: settings.showPostBadges,
                             nsfwEnabled: settings.nsfwEnabled,
+                            mediaQualityMode: MediaQualityMode.fromName(
+                                settings.mediaQualityMode),
                             loading: state.isLoadingMore,
                             favoriteKeys: favoriteKeys,
                             viewedKeys: viewedKeys,
@@ -309,6 +311,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     for (final post in _selectedPosts(posts)) {
       if (!favoriteKeys.contains(post.cacheKey)) {
         await ref.read(favoriteServiceProvider).addFavorite(post);
+        await _maybeAutoDownloadFavorite(ref, post);
       }
     }
     ref.invalidate(favoriteKeysProvider);
@@ -398,6 +401,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
           .removeFavorite(post.id, post.providerId);
     } else {
       await ref.read(favoriteServiceProvider).addFavorite(post);
+      await _maybeAutoDownloadFavorite(ref, post);
     }
     ref.invalidate(favoriteKeysProvider);
     ref.invalidate(favoritesControllerProvider);
@@ -426,6 +430,13 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       ),
     );
   }
+
+  Future<void> _maybeAutoDownloadFavorite(WidgetRef ref, Post post) async {
+    final settings =
+        ref.read(appSettingsProvider).value ?? AppSettings.defaults;
+    if (!settings.autoDownloadFavorites || !settings.allowDownloads) return;
+    await ref.read(downloadManagerServiceProvider).start(post);
+  }
 }
 
 class _RefreshIntent extends Intent {
@@ -448,13 +459,17 @@ class _FeedTitle extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 12),
-        Text(
-          'Feed',
-          style: theme.textTheme.titleMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        Builder(builder: (context) {
+          return Consumer(
+            builder: (context, ref, _) => Text(
+              ref.watch(appStringsProvider).feed,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          );
+        }),
       ],
     );
   }

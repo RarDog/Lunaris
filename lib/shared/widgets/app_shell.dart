@@ -330,7 +330,7 @@ class _Destination {
       'favorites' => 'Избранное',
       'viewed' => 'История',
       'collections' => 'Коллекции',
-      'artists' => 'Авторы',
+      'artists' => 'Артисты',
       'providers' => 'Провайдеры',
       'settings' => 'Настройки',
       _ => label,
@@ -340,7 +340,8 @@ class _Destination {
   String mobileLabelFor(bool ru) {
     if (!ru) return mobileLabel;
     return switch (id) {
-      'collections' => 'Колл.',
+      'collections' => 'Доски',
+      'favorites' => 'Любимое',
       _ => labelFor(true),
     };
   }

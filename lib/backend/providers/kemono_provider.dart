@@ -26,7 +26,7 @@ class KemonoProvider
             receiveTimeout: const Duration(seconds: 20),
             headers: const {
               'Accept': 'application/json',
-              'User-Agent': 'Lunaris/2.0 Flutter local booru browser',
+              'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
             },
           ),
         );
@@ -458,7 +458,7 @@ class KemonoProvider
         receiveTimeout: const Duration(seconds: 25),
         headers: const {
           'Accept': 'application/json',
-          'User-Agent': 'Lunaris/2.0 Flutter local booru browser',
+          'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
         },
       ),
     );

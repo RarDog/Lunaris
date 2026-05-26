@@ -229,7 +229,7 @@ class _PostMediaViewerState extends State<PostMediaViewer>
       },
     );
     final allowPinchZoom = MediaQuery.sizeOf(context).width < 700;
-    return allowPinchZoom ? InteractiveViewer(child: image) : image;
+    return allowPinchZoom ? _ZoomableImage(child: image) : image;
   }
 
   void _initializeVideo() {
@@ -348,7 +348,7 @@ class _PostMediaViewerState extends State<PostMediaViewer>
 
   Map<String, String> _headersFor(Post post) {
     return {
-      'User-Agent': 'Lunaris/2.0 Flutter local booru browser',
+      'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
       'Accept': '*/*',
       if (post.providerName.toLowerCase().contains('gelbooru') ||
           post.fileUrl.contains('gelbooru.com') ||
@@ -1167,6 +1167,61 @@ class VideoErrorOverlay extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _ZoomableImage extends StatefulWidget {
+  const _ZoomableImage({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_ZoomableImage> createState() => _ZoomableImageState();
+}
+
+class _ZoomableImageState extends State<_ZoomableImage> {
+  final _controller = TransformationController();
+  TapDownDetails? _doubleTapDetails;
+  bool _zoomed = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onDoubleTapDown: (details) => _doubleTapDetails = details,
+      onDoubleTap: _toggleZoom,
+      child: InteractiveViewer(
+        transformationController: _controller,
+        minScale: 1,
+        maxScale: 5,
+        panEnabled: _zoomed,
+        scaleEnabled: true,
+        clipBehavior: Clip.none,
+        onInteractionEnd: (_) {
+          final scale = _controller.value.getMaxScaleOnAxis();
+          if (mounted) setState(() => _zoomed = scale > 1.03);
+        },
+        child: widget.child,
+      ),
+    );
+  }
+
+  void _toggleZoom() {
+    final tap = _doubleTapDetails?.localPosition ?? Offset.zero;
+    if (_zoomed) {
+      _controller.value = Matrix4.identity();
+      setState(() => _zoomed = false);
+      return;
+    }
+    _controller.value = Matrix4.identity()
+      ..translateByDouble(-tap.dx * 1.3, -tap.dy * 1.3, 0, 1)
+      ..scaleByDouble(2.3, 2.3, 1, 1);
+    setState(() => _zoomed = true);
   }
 }
 

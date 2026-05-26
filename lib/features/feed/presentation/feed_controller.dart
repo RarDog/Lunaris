@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/app.dart';
@@ -9,8 +11,12 @@ final feedControllerProvider =
     AsyncNotifierProvider<FeedController, FeedState>(FeedController.new);
 
 class FeedController extends AsyncNotifier<FeedState> {
+  Timer? _providerDebounce;
+  int _loadRequestId = 0;
+
   @override
   Future<FeedState> build() async {
+    ref.onDispose(() => _providerDebounce?.cancel());
     final providers = await _loadProviders();
     final settings = await _settings();
     final providerIds = providers.map((provider) => provider.id).toSet();
@@ -32,23 +38,29 @@ class FeedController extends AsyncNotifier<FeedState> {
 
   Future<void> loadInitial() async {
     final current = state.value ?? const FeedState();
+    final requestId = ++_loadRequestId;
     state = const AsyncLoading();
     final posts = await _load(refresh: true, current: current);
+    if (requestId != _loadRequestId) return;
     state = AsyncData(current.copyWith(posts: posts, clearError: true));
   }
 
   Future<void> refresh() async {
     final current = state.value ?? const FeedState();
+    final requestId = ++_loadRequestId;
     state = AsyncData(current.copyWith(isLoadingMore: true, clearError: true));
     final posts = await _load(refresh: true, current: current);
+    if (requestId != _loadRequestId) return;
     state = AsyncData(current.copyWith(posts: posts, isLoadingMore: false));
   }
 
   Future<void> loadNextPage() async {
     final current = state.value;
     if (current == null || current.isLoadingMore || !current.hasMore) return;
+    final requestId = ++_loadRequestId;
     state = AsyncData(current.copyWith(isLoadingMore: true, clearError: true));
     final posts = await _load(refresh: false, current: current);
+    if (requestId != _loadRequestId) return;
     final existingKeys = current.posts.map((post) => post.cacheKey).toSet();
     final newPosts = posts
         .where((post) => existingKeys.add(post.cacheKey))
@@ -98,16 +110,21 @@ class FeedController extends AsyncNotifier<FeedState> {
 
   Future<void> setProviders(List<String> providerIds) async {
     final current = state.value ?? const FeedState();
-    state = AsyncData(
-        current.copyWith(selectedProviderIds: providerIds, posts: []));
+    final enabledIds = current.providers.map((provider) => provider.id).toSet();
+    final selected = providerIds.where(enabledIds.contains).toList();
+    state =
+        AsyncData(current.copyWith(selectedProviderIds: selected, posts: []));
     final settings = await _settings();
     await ref.read(settingsServiceProvider).updateSettings(
           settings.copyWith(
-            selectedFeedProviderIds: providerIds,
-            lastFeedProviderIds: providerIds,
+            selectedFeedProviderIds: selected,
+            lastFeedProviderIds: selected,
           ),
         );
-    await refresh();
+    _providerDebounce?.cancel();
+    _providerDebounce = Timer(const Duration(milliseconds: 320), () {
+      refresh();
+    });
   }
 
   Future<void> setTopPeriod(TopPeriodFilter period) async {

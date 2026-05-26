@@ -40,7 +40,7 @@ class DioClient {
       receiveTimeout: timeout,
       sendTimeout: timeout,
       headers: {
-        'User-Agent': 'Lunaris/2.0 Flutter local booru browser',
+        'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
         'Accept': 'application/json, text/xml;q=0.9, */*;q=0.8',
         ...?headers,
       },

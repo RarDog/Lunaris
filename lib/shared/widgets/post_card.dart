@@ -14,6 +14,8 @@ class PostCard extends StatefulWidget {
     required this.showBadges,
     required this.isFavorite,
     required this.isViewed,
+    required this.isDownloaded,
+    required this.mediaQualityMode,
     required this.onOpen,
     required this.onFavorite,
     this.onAddToCollection,
@@ -30,6 +32,8 @@ class PostCard extends StatefulWidget {
   final bool showBadges;
   final bool isFavorite;
   final bool isViewed;
+  final bool isDownloaded;
+  final MediaQualityMode mediaQualityMode;
   final VoidCallback onOpen;
   final VoidCallback onFavorite;
   final VoidCallback? onAddToCollection;
@@ -54,6 +58,12 @@ class _PostCardState extends State<PostCard> {
         ? post.width / post.height
         : _fallbackAspect(post.fileType);
     final mobile = MediaQuery.sizeOf(context).width < 700;
+    final urls = MediaUrlSelector.feed(
+      post,
+      mode: widget.mediaQualityMode,
+      mobile: mobile,
+    );
+    final imageUrl = urls.isEmpty ? post.previewUrl : urls.first;
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
@@ -115,18 +125,27 @@ class _PostCardState extends State<PostCard> {
                 aspectRatio: aspect.clamp(0.28, 2.2),
                 child: BlurContent(
                   enabled: widget.blurExplicit && sensitive,
-                  child: CachedNetworkImage(
-                    imageUrl: post.previewUrl.isNotEmpty
-                        ? post.previewUrl
-                        : post.sampleUrl,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => const LoadingSkeleton(),
-                    errorWidget: (context, url, error) => ColoredBox(
-                      color:
-                          Theme.of(context).colorScheme.surfaceContainerHighest,
-                      child:
-                          const Center(child: Icon(Icons.broken_image_rounded)),
-                    ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final dpr = MediaQuery.devicePixelRatioOf(context);
+                      final cacheWidth =
+                          (constraints.maxWidth * dpr).round().clamp(320, 1800);
+                      return CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        memCacheWidth: cacheWidth,
+                        maxWidthDiskCache: cacheWidth,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => const LoadingSkeleton(),
+                        errorWidget: (context, url, error) => ColoredBox(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
+                          child: const Center(
+                            child: Icon(Icons.broken_image_rounded),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
@@ -151,6 +170,12 @@ class _PostCardState extends State<PostCard> {
                     right: 8,
                     bottom: 8,
                     child: _SeenBadge(),
+                  ),
+                if (widget.isDownloaded)
+                  Positioned(
+                    right: widget.isViewed ? 72 : 8,
+                    bottom: 8,
+                    child: const _DownloadedBadge(),
                   ),
               ],
               if (widget.selected)
@@ -385,6 +410,24 @@ class _SeenBadge extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _DownloadedBadge extends StatelessWidget {
+  const _DownloadedBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        child: Icon(Icons.download_done_rounded, size: 13, color: Colors.white),
       ),
     );
   }

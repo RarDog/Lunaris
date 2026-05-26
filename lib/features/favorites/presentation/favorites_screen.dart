@@ -19,8 +19,15 @@ class FavoritesScreen extends ConsumerWidget {
     final state = ref.watch(favoritesControllerProvider);
     final settings =
         ref.watch(appSettingsProvider).value ?? AppSettings.defaults;
+    final posts = state.value?.posts ?? const <Post>[];
+    final downloaded = ref
+            .watch(downloadedMediaByKeysProvider(
+              posts.map((post) => post.cacheKey).toList(growable: false),
+            ))
+            .value ??
+        const <String, DownloadedMedia>{};
     return AdaptiveScaffold(
-      title: 'Favorites',
+      title: settings.languageCode == 'ru' ? 'Избранное' : 'Favorites',
       body: state.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => ErrorView(message: error.toString()),
@@ -36,7 +43,10 @@ class FavoritesScreen extends ConsumerWidget {
                 blurExplicit: settings.blurExplicitContent,
                 showBadges: settings.showPostBadges,
                 nsfwEnabled: settings.nsfwEnabled,
+                mediaQualityMode:
+                    MediaQualityMode.fromName(settings.mediaQualityMode),
                 favoriteKeys: data.posts.map((post) => post.cacheKey).toSet(),
+                downloadedKeys: downloaded.keys.toSet(),
                 onOpen: (post) => context.push(
                   '/post/${post.providerId}/${post.id}',
                   extra: post,

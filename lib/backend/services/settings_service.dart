@@ -26,6 +26,7 @@ class AppSettings {
     required this.mobileColumns,
     required this.blurExplicitContent,
     required this.allowDownloads,
+    required this.autoDownloadFavorites,
     required this.selectedFeedProviderIds,
     required this.showPostBadges,
     required this.defaultTopPeriodFilter,
@@ -66,6 +67,7 @@ class AppSettings {
   final int mobileColumns;
   final bool blurExplicitContent;
   final bool allowDownloads;
+  final bool autoDownloadFavorites;
   final List<String> selectedFeedProviderIds;
   final bool showPostBadges;
   final String defaultTopPeriodFilter;
@@ -106,6 +108,7 @@ class AppSettings {
     mobileColumns: 2,
     blurExplicitContent: true,
     allowDownloads: true,
+    autoDownloadFavorites: false,
     selectedFeedProviderIds: [],
     showPostBadges: true,
     defaultTopPeriodFilter: 'none',
@@ -147,6 +150,7 @@ class AppSettings {
     int? mobileColumns,
     bool? blurExplicitContent,
     bool? allowDownloads,
+    bool? autoDownloadFavorites,
     List<String>? selectedFeedProviderIds,
     bool? showPostBadges,
     String? defaultTopPeriodFilter,
@@ -189,6 +193,8 @@ class AppSettings {
       mobileColumns: mobileColumns ?? this.mobileColumns,
       blurExplicitContent: blurExplicitContent ?? this.blurExplicitContent,
       allowDownloads: allowDownloads ?? this.allowDownloads,
+      autoDownloadFavorites:
+          autoDownloadFavorites ?? this.autoDownloadFavorites,
       selectedFeedProviderIds:
           selectedFeedProviderIds ?? this.selectedFeedProviderIds,
       showPostBadges: showPostBadges ?? this.showPostBadges,
@@ -235,6 +241,7 @@ class AppSettings {
         'mobileColumns': mobileColumns,
         'blurExplicitContent': blurExplicitContent,
         'allowDownloads': allowDownloads,
+        'autoDownloadFavorites': autoDownloadFavorites,
         'selectedFeedProviderIds': selectedFeedProviderIds,
         'showPostBadges': showPostBadges,
         'defaultTopPeriodFilter': defaultTopPeriodFilter,
@@ -290,6 +297,8 @@ class AppSettings {
             defaults.blurExplicitContent,
         allowDownloads:
             (json['allowDownloads'] as bool?) ?? defaults.allowDownloads,
+        autoDownloadFavorites: (json['autoDownloadFavorites'] as bool?) ??
+            defaults.autoDownloadFavorites,
         selectedFeedProviderIds: List<String>.from(
           (json['selectedFeedProviderIds'] as List?) ??
               defaults.selectedFeedProviderIds,

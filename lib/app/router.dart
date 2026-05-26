@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../backend/backend.dart';
@@ -27,7 +28,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         routes: [
           GoRoute(
             path: '/',
-            pageBuilder: (context, state) => NoTransitionPage(
+            pageBuilder: (context, state) => _transitionPage(
+              state,
               child: FeedScreen(initialQuery: state.uri.queryParameters['q']),
             ),
           ),
@@ -108,3 +110,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+CustomTransitionPage<void> _transitionPage(
+  GoRouterState state, {
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 180),
+    reverseTransitionDuration: const Duration(milliseconds: 140),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curve = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      );
+      return FadeTransition(
+        opacity: curve,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0.015, 0),
+            end: Offset.zero,
+          ).animate(curve),
+          child: child,
+        ),
+      );
+    },
+  );
+}

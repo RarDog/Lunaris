@@ -8,6 +8,9 @@ class PostActionBar extends StatelessWidget {
     required this.onCopy,
     required this.isFavorite,
     this.onDownload,
+    this.onDeleteLocalFile,
+    this.downloaded = false,
+    this.labels,
     this.onSimilar,
     this.onHide,
     super.key,
@@ -19,11 +22,15 @@ class PostActionBar extends StatelessWidget {
   final VoidCallback onCopy;
   final bool isFavorite;
   final VoidCallback? onDownload;
+  final VoidCallback? onDeleteLocalFile;
   final VoidCallback? onSimilar;
   final VoidCallback? onHide;
+  final bool downloaded;
+  final PostActionLabels? labels;
 
   @override
   Widget build(BuildContext context) {
+    final text = labels ?? const PostActionLabels();
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -33,42 +40,74 @@ class PostActionBar extends StatelessWidget {
           icon: Icon(
             isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
           ),
-          label: Text(isFavorite ? 'Unfavorite' : 'Favorite'),
+          label: Text(isFavorite ? text.unfavorite : text.favorite),
         ),
         FilledButton.tonalIcon(
           onPressed: onCollection,
           icon: const Icon(Icons.add_rounded),
-          label: const Text('Collection'),
+          label: Text(text.collection),
         ),
         if (onSimilar != null)
           FilledButton.tonalIcon(
             onPressed: onSimilar,
             icon: const Icon(Icons.auto_awesome_rounded),
-            label: const Text('Similar'),
+            label: Text(text.similar),
           ),
         IconButton.filledTonal(
-          tooltip: 'Open original',
+          tooltip: text.openOriginal,
           onPressed: onOpen,
           icon: const Icon(Icons.open_in_new_rounded),
         ),
         IconButton.filledTonal(
-          tooltip: 'Copy link',
+          tooltip: text.copyLink,
           onPressed: onCopy,
           icon: const Icon(Icons.copy_rounded),
         ),
         if (onDownload != null)
           IconButton.filledTonal(
-            tooltip: 'Download',
+            tooltip: text.download,
             onPressed: onDownload,
-            icon: const Icon(Icons.download_rounded),
+            icon: Icon(
+              downloaded ? Icons.download_done_rounded : Icons.download_rounded,
+            ),
+          ),
+        if (downloaded && onDeleteLocalFile != null)
+          IconButton.filledTonal(
+            tooltip: text.deleteLocalFile,
+            onPressed: onDeleteLocalFile,
+            icon: const Icon(Icons.delete_sweep_rounded),
           ),
         if (onHide != null)
           IconButton.filledTonal(
-            tooltip: 'Hide post locally',
+            tooltip: text.hidePost,
             onPressed: onHide,
             icon: const Icon(Icons.visibility_off_rounded),
           ),
       ],
     );
   }
+}
+
+class PostActionLabels {
+  const PostActionLabels({
+    this.favorite = 'Favorite',
+    this.unfavorite = 'Unfavorite',
+    this.collection = 'Collection',
+    this.similar = 'Similar',
+    this.openOriginal = 'Open original',
+    this.copyLink = 'Copy link',
+    this.download = 'Download',
+    this.deleteLocalFile = 'Delete local file',
+    this.hidePost = 'Hide post locally',
+  });
+
+  final String favorite;
+  final String unfavorite;
+  final String collection;
+  final String similar;
+  final String openOriginal;
+  final String copyLink;
+  final String download;
+  final String deleteLocalFile;
+  final String hidePost;
 }

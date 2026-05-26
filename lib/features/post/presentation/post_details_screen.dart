@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/app.dart';
+import '../../../app/app_strings.dart';
 import '../../../app/motion.dart';
 import '../../../app/responsive.dart';
 import '../../../backend/backend.dart';
@@ -55,14 +56,15 @@ class PostDetailsScreen extends ConsumerWidget {
     final post = ref.watch(postDetailsControllerProvider(args));
     final settings =
         ref.watch(appSettingsProvider).value ?? AppSettings.defaults;
+    final strings = ref.watch(appStringsProvider);
     final feedPosts =
         ref.watch(feedControllerProvider).value?.posts ?? const <Post>[];
     final favoriteKeys = ref.watch(favoriteKeysProvider).value ?? <String>{};
     return AdaptiveScaffold(
-      title: 'Post',
+      title: strings.post,
       actions: [
         IconButton(
-          tooltip: 'Close',
+          tooltip: strings.close,
           onPressed: () => _close(context),
           icon: const Icon(Icons.close_rounded),
         ),
@@ -99,6 +101,7 @@ class PostDetailsScreen extends ConsumerWidget {
                   settings,
                   favoriteKeys,
                   qualityMode,
+                  strings,
                 ),
               );
             }
@@ -109,6 +112,7 @@ class PostDetailsScreen extends ConsumerWidget {
               settings,
               favoriteKeys,
               qualityMode,
+              strings,
             );
           }
           return Shortcuts(
@@ -174,7 +178,8 @@ class PostDetailsScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         IconButton.filledTonal(
-                          tooltip: 'Previous',
+                          tooltip:
+                              strings.ru ? 'РџСЂРµРґС‹РґСѓС‰РёР№' : 'Previous',
                           onPressed: previous == null
                               ? null
                               : () => _openPost(context, previous),
@@ -200,7 +205,7 @@ class PostDetailsScreen extends ConsumerWidget {
                           ),
                         ),
                         IconButton.filledTonal(
-                          tooltip: 'Next',
+                          tooltip: strings.ru ? 'РЎР»РµРґСѓСЋС‰РёР№' : 'Next',
                           onPressed: next == null
                               ? null
                               : () => _openPost(context, next),
@@ -219,6 +224,12 @@ class PostDetailsScreen extends ConsumerWidget {
                     const SizedBox(height: 16),
                     PostActionBar(
                       isFavorite: favoriteKeys.contains(post.cacheKey),
+                      labels: _postActionLabels(strings),
+                      downloaded: ref
+                              .watch(
+                                  downloadedMediaByKeyProvider(post.cacheKey))
+                              .value !=
+                          null,
                       onFavorite: () =>
                           _toggleFavorite(ref, post, favoriteKeys),
                       onCollection: () => _addToCollection(context, ref, post),
@@ -230,6 +241,8 @@ class PostDetailsScreen extends ConsumerWidget {
                       onDownload: settings.allowDownloads
                           ? () => _download(context, ref, post)
                           : null,
+                      onDeleteLocalFile: () =>
+                          _deleteLocalFile(context, ref, post),
                     ),
                     const SizedBox(height: 16),
                     Wrap(
@@ -242,13 +255,14 @@ class PostDetailsScreen extends ConsumerWidget {
                         Chip(label: Text('${post.width} x ${post.height}')),
                         if (post.source != null && post.source!.isNotEmpty)
                           ActionChip(
-                            label: const Text('Source'),
+                            label: Text(strings.source),
                             onPressed: () => launchUrl(Uri.parse(post.source!)),
                           ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Text('Tags', style: Theme.of(context).textTheme.titleLarge),
+                    Text(strings.tags,
+                        style: Theme.of(context).textTheme.titleLarge),
                     const SizedBox(height: 8),
                     PostTagsPanel(post: post),
                     const SizedBox(height: 16),
@@ -270,6 +284,7 @@ class PostDetailsScreen extends ConsumerWidget {
     AppSettings settings,
     Set<String> favoriteKeys,
     MediaQualityMode qualityMode,
+    AppStrings strings,
   ) {
     final isVideo = MediaUrlSelector.isVideo(post);
     return GestureDetector(
@@ -310,6 +325,10 @@ class PostDetailsScreen extends ConsumerWidget {
           const SizedBox(height: 12),
           PostActionBar(
             isFavorite: favoriteKeys.contains(post.cacheKey),
+            labels: _postActionLabels(strings),
+            downloaded:
+                ref.watch(downloadedMediaByKeyProvider(post.cacheKey)).value !=
+                    null,
             onFavorite: () => _toggleFavorite(ref, post, favoriteKeys),
             onCollection: () => _addToCollection(context, ref, post),
             onOpen: () => launchUrl(Uri.parse(post.fileUrl)),
@@ -319,6 +338,7 @@ class PostDetailsScreen extends ConsumerWidget {
             onDownload: settings.allowDownloads
                 ? () => _download(context, ref, post)
                 : null,
+            onDeleteLocalFile: () => _deleteLocalFile(context, ref, post),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -330,7 +350,7 @@ class PostDetailsScreen extends ConsumerWidget {
               Chip(label: Text('${post.width} x ${post.height}')),
               if (post.source != null && post.source!.isNotEmpty)
                 ActionChip(
-                  label: const Text('Source'),
+                  label: Text(strings.source),
                   onPressed: () => launchUrl(Uri.parse(post.source!)),
                 ),
             ],
@@ -339,7 +359,8 @@ class PostDetailsScreen extends ConsumerWidget {
           ExpansionTile(
             tilePadding: EdgeInsets.zero,
             initiallyExpanded: false,
-            title: Text('Tags', style: Theme.of(context).textTheme.titleMedium),
+            title: Text(strings.tags,
+                style: Theme.of(context).textTheme.titleMedium),
             children: [
               Align(
                 alignment: Alignment.centerLeft,
@@ -378,9 +399,17 @@ class PostDetailsScreen extends ConsumerWidget {
     if (!context.mounted) return;
     await ref.read(downloadManagerServiceProvider).start(post);
     if (!context.mounted) return;
+    final strings = ref.read(appStringsProvider);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Download started')),
+      SnackBar(
+        content: Text(strings.ru
+            ? 'РЎРєР°С‡РёРІР°РЅРёРµ РЅР°С‡Р°Р»РѕСЃСЊ'
+            : 'Download started'),
+      ),
     );
+    Future<void>.delayed(const Duration(seconds: 2), () {
+      ref.invalidate(downloadedMediaByKeyProvider(post.cacheKey));
+    });
   }
 
   Future<void> _showMobileQuickActions(
@@ -453,9 +482,47 @@ class PostDetailsScreen extends ConsumerWidget {
           .removeFavorite(post.id, post.providerId);
     } else {
       await ref.read(favoriteServiceProvider).addFavorite(post);
+      await _maybeAutoDownloadFavorite(ref, post);
     }
     ref.invalidate(favoriteKeysProvider);
     ref.invalidate(favoritesControllerProvider);
+  }
+
+  Future<void> _maybeAutoDownloadFavorite(WidgetRef ref, Post post) async {
+    final settings =
+        ref.read(appSettingsProvider).value ?? AppSettings.defaults;
+    if (!settings.autoDownloadFavorites || !settings.allowDownloads) return;
+    await ref.read(downloadManagerServiceProvider).start(post);
+  }
+
+  Future<void> _deleteLocalFile(
+    BuildContext context,
+    WidgetRef ref,
+    Post post,
+  ) async {
+    final strings = ref.read(appStringsProvider);
+    await ref.read(downloadedMediaServiceProvider).deleteLocalFile(
+          post.cacheKey,
+        );
+    ref.invalidate(downloadedMediaByKeyProvider(post.cacheKey));
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(strings.deleteLocalFile)),
+    );
+  }
+
+  PostActionLabels _postActionLabels(AppStrings strings) {
+    return PostActionLabels(
+      favorite: strings.favorite,
+      unfavorite: strings.removeFavorite,
+      collection: strings.collection,
+      similar: strings.similar,
+      openOriginal: strings.open,
+      copyLink: strings.ru ? 'РљРѕРїРёСЂРѕРІР°С‚СЊ СЃСЃС‹Р»РєСѓ' : 'Copy link',
+      download: strings.download,
+      deleteLocalFile: strings.deleteLocalFile,
+      hidePost: strings.hidePost,
+    );
   }
 
   Future<void> _hidePost(
@@ -610,7 +677,7 @@ class _MobilePostPagerState extends State<_MobilePostPager> {
 
   Map<String, String> _headersFor(Post post) {
     return {
-      'User-Agent': 'Lunaris/2.0 Flutter local booru browser',
+      'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
       'Accept': '*/*',
       if (post.providerName.toLowerCase().contains('gelbooru') ||
           post.fileUrl.contains('gelbooru.com') ||
@@ -742,6 +809,7 @@ class _CommentsSectionState extends ConsumerState<_CommentsSection> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = ref.watch(appStringsProvider);
     final comments = _expanded
         ? ref.watch(
             postCommentsProvider(
@@ -756,27 +824,28 @@ class _CommentsSectionState extends ConsumerState<_CommentsSection> {
       tilePadding: EdgeInsets.zero,
       initiallyExpanded: false,
       onExpansionChanged: (value) => setState(() => _expanded = value),
-      title: Text('Comments', style: Theme.of(context).textTheme.titleMedium),
+      title: Text(strings.comments,
+          style: Theme.of(context).textTheme.titleMedium),
       children: [
         (comments ?? const AsyncValue<List<PostComment>>.data([])).when(
           loading: () => const Padding(
             padding: EdgeInsets.all(12),
             child: CircularProgressIndicator(),
           ),
-          error: (_, __) => const Align(
+          error: (_, __) => Align(
             alignment: Alignment.centerLeft,
             child: Padding(
-              padding: EdgeInsets.only(bottom: 12),
-              child: Text('Comments unavailable'),
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(strings.commentsUnavailable),
             ),
           ),
           data: (items) {
             if (items.isEmpty) {
-              return const Align(
+              return Align(
                 alignment: Alignment.centerLeft,
                 child: Padding(
-                  padding: EdgeInsets.only(bottom: 12),
-                  child: Text('No comments'),
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(strings.noComments),
                 ),
               );
             }
@@ -788,7 +857,7 @@ class _CommentsSectionState extends ConsumerState<_CommentsSection> {
                     contentPadding: EdgeInsets.zero,
                     title: Text(
                       comment.authorName.isEmpty
-                          ? 'Anonymous'
+                          ? strings.anonymous
                           : comment.authorName,
                     ),
                     subtitle: Text(comment.body),

@@ -82,6 +82,8 @@ class ArtistPostsScreen extends ConsumerWidget {
                 blurExplicit: settings.blurExplicitContent,
                 showBadges: settings.showPostBadges,
                 nsfwEnabled: settings.nsfwEnabled,
+                mediaQualityMode:
+                    MediaQualityMode.fromName(settings.mediaQualityMode),
                 favoriteKeys: favoriteKeys,
                 viewedKeys: viewedKeys,
                 onOpen: (post) => context.push(
@@ -94,7 +96,12 @@ class ArtistPostsScreen extends ConsumerWidget {
                         .read(favoriteServiceProvider)
                         .removeFavorite(post.id, post.providerId);
                   } else {
-                    await ref.read(favoriteServiceProvider).addFavorite(post);
+                    await ref.read(favoriteServiceProvider).addFavorite(
+                          post,
+                          settings: settings,
+                          downloadManager:
+                              ref.read(downloadManagerServiceProvider),
+                        );
                   }
                   ref.invalidate(favoriteKeysProvider);
                   ref.invalidate(favoritesControllerProvider);

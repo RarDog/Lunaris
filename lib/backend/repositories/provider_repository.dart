@@ -88,7 +88,7 @@ class ProviderRepository {
         priority: 5,
         timeoutSeconds: 20,
         customHeaders: const {
-          'User-Agent': 'Lunaris/2.0 Flutter local booru browser',
+          'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
         },
         createdAt: now,
         updatedAt: now,
@@ -102,7 +102,7 @@ class ProviderRepository {
         priority: 6,
         timeoutSeconds: 20,
         customHeaders: const {
-          'User-Agent': 'Lunaris/2.0 Flutter local booru browser',
+          'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
         },
         createdAt: now,
         updatedAt: now,

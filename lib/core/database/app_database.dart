@@ -11,6 +11,7 @@ import '../../backend/models/provider_diagnostics.dart';
 import '../../backend/models/provider_health.dart';
 import '../../backend/models/search_history.dart';
 import '../../backend/models/viewed_post.dart';
+import '../../backend/models/downloaded_media.dart';
 
 part 'app_database.g.dart';
 
@@ -33,6 +34,7 @@ class AppDatabase {
         AppSettingEntitySchema,
         ViewedPostEntitySchema,
         ProviderDiagnosticsEntitySchema,
+        DownloadedMediaEntitySchema,
       ],
       directory: dir,
       name: 'gel_rule_app',
@@ -331,5 +333,41 @@ class ProviderDiagnosticsEntity {
       ..lastSearchAt = model.lastSearchAt
       ..lastResultCount = model.lastResultCount
       ..lastErrorMessage = model.lastErrorMessage;
+  }
+}
+
+@collection
+class DownloadedMediaEntity {
+  Id isarId = Isar.autoIncrement;
+
+  @Index(unique: true, replace: true)
+  late String cacheKey;
+  @Index(composite: [CompositeIndex('postId')])
+  late String providerId;
+  late String postId;
+  late String savedPath;
+  late String fileName;
+  late DateTime downloadedAt;
+  late String status;
+
+  DownloadedMedia toModel() => DownloadedMedia(
+        cacheKey: cacheKey,
+        providerId: providerId,
+        postId: postId,
+        savedPath: savedPath,
+        fileName: fileName,
+        downloadedAt: downloadedAt,
+        status: status,
+      );
+
+  static DownloadedMediaEntity fromModel(DownloadedMedia model) {
+    return DownloadedMediaEntity()
+      ..cacheKey = model.cacheKey
+      ..providerId = model.providerId
+      ..postId = model.postId
+      ..savedPath = model.savedPath
+      ..fileName = model.fileName
+      ..downloadedAt = model.downloadedAt
+      ..status = model.status;
   }
 }

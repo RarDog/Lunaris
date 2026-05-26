@@ -1,5 +1,16 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.0.1',
+    title: 'Localization, zoom and favorite downloads',
+    bullets: [
+      'Russian and English UI labels were expanded across the main screens and settings.',
+      'Mobile image details now support pinch and double-tap zoom without restoring desktop wheel zoom.',
+      'Provider chips in the feed update immediately and debounce network reloads to avoid stale results.',
+      'Feed previews choose smarter URLs and cache widths for cleaner high-quality thumbnails.',
+      'Favorites can optionally auto-download media in the background, with local files tracked separately from favorites.',
+    ],
+  ),
+  LunarisChange(
     version: '2.0.0',
     title: 'Customization and provider polish',
     bullets: [

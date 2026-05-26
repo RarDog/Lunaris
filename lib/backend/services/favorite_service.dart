@@ -3,6 +3,8 @@ import '../models/favorite.dart';
 import '../models/post.dart';
 import '../repositories/favorite_repository.dart';
 import '../repositories/post_repository.dart';
+import 'download_manager_service.dart';
+import 'settings_service.dart';
 
 class FavoriteService {
   FavoriteService(this._repository, [this._postRepository]);
@@ -10,7 +12,20 @@ class FavoriteService {
   final FavoriteRepository _repository;
   final PostRepository? _postRepository;
 
-  Future<Result<void>> addFavorite(Post post) => _repository.add(post);
+  Future<Result<void>> addFavorite(
+    Post post, {
+    AppSettings settings = AppSettings.defaults,
+    DownloadManagerService? downloadManager,
+  }) async {
+    final result = await _repository.add(post);
+    if (result is Success<void> &&
+        settings.autoDownloadFavorites &&
+        settings.allowDownloads) {
+      await downloadManager?.start(post);
+    }
+    return result;
+  }
+
   Future<Result<void>> removeFavorite(String postId, String providerId) {
     return _repository.remove(postId, providerId);
   }

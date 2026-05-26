@@ -11,7 +11,9 @@ import '../../core/utils/result.dart';
 import '../providers/provider_factory.dart';
 import '../providers/provider_manager.dart';
 import '../models/download_task.dart';
+import '../models/downloaded_media.dart';
 import '../repositories/collection_repository.dart';
+import '../repositories/downloaded_media_repository.dart';
 import '../repositories/favorite_repository.dart';
 import '../repositories/post_repository.dart';
 import '../repositories/provider_repository.dart';
@@ -20,6 +22,7 @@ import '../repositories/viewed_post_repository.dart';
 import '../services/collection_service.dart';
 import '../services/download_service.dart';
 import '../services/download_manager_service.dart';
+import '../services/downloaded_media_service.dart';
 import '../services/favorite_service.dart';
 import '../services/feed_service.dart';
 import '../services/provider_check_service.dart';
@@ -63,6 +66,11 @@ final searchRepositoryProvider = Provider<SearchRepository>((ref) {
 
 final viewedPostRepositoryProvider = Provider<ViewedPostRepository>((ref) {
   return ViewedPostRepository(ref.watch(databaseServiceProvider));
+});
+
+final downloadedMediaRepositoryProvider =
+    Provider<DownloadedMediaRepository>((ref) {
+  return DownloadedMediaRepository(ref.watch(databaseServiceProvider));
 });
 
 final favoriteRepositoryProvider = Provider<FavoriteRepository>((ref) {
@@ -152,8 +160,32 @@ final downloadServiceProvider = Provider<DownloadService>((ref) {
   return DownloadService();
 });
 
+final downloadedMediaServiceProvider = Provider<DownloadedMediaService>((ref) {
+  return DownloadedMediaService(ref.watch(downloadedMediaRepositoryProvider));
+});
+
 final downloadManagerServiceProvider = Provider<DownloadManagerService>((ref) {
-  return DownloadManagerService(ref.watch(downloadServiceProvider));
+  return DownloadManagerService(
+    ref.watch(downloadServiceProvider),
+    downloadedMediaService: ref.watch(downloadedMediaServiceProvider),
+  );
+});
+
+final downloadedMediaByKeysProvider =
+    FutureProvider.family<Map<String, DownloadedMedia>, Iterable<String>>(
+        (ref, keys) async {
+  final result =
+      await ref.watch(downloadedMediaServiceProvider).allByKeys(keys);
+  return result is Success<Map<String, DownloadedMedia>>
+      ? result.data
+      : const {};
+});
+
+final downloadedMediaByKeyProvider =
+    FutureProvider.family<DownloadedMedia?, String>((ref, cacheKey) async {
+  final result =
+      await ref.watch(downloadedMediaServiceProvider).getByCacheKey(cacheKey);
+  return result is Success<DownloadedMedia?> ? result.data : null;
 });
 
 final downloadTasksProvider = StreamProvider<List<DownloadTask>>((ref) {
@@ -168,7 +200,7 @@ final updateServiceProvider = Provider<UpdateService>((ref) {
         connectTimeout: const Duration(seconds: 12),
         receiveTimeout: const Duration(seconds: 12),
         headers: const {
-          'User-Agent': 'Lunaris/2.0 Flutter local booru browser',
+          'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
           'Accept': 'application/json',
         },
       ),

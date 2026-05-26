@@ -23,7 +23,7 @@ class ViewedScreen extends ConsumerWidget {
     final favoriteKeys = ref.watch(favoriteKeysProvider).value ?? <String>{};
     final viewedKeys = ref.watch(viewedKeysProvider).value ?? <String>{};
     return AdaptiveScaffold(
-      title: 'Viewed',
+      title: settings.languageCode == 'ru' ? 'История' : 'Viewed',
       actions: [
         IconButton(
           tooltip: 'Clear viewed history',
@@ -49,6 +49,8 @@ class ViewedScreen extends ConsumerWidget {
                   blurExplicit: settings.blurExplicitContent,
                   showBadges: settings.showPostBadges,
                   nsfwEnabled: settings.nsfwEnabled,
+                  mediaQualityMode:
+                      MediaQualityMode.fromName(settings.mediaQualityMode),
                   favoriteKeys: favoriteKeys,
                   viewedKeys: viewedKeys,
                   onOpen: (post) => context.push(
@@ -61,7 +63,12 @@ class ViewedScreen extends ConsumerWidget {
                           .read(favoriteServiceProvider)
                           .removeFavorite(post.id, post.providerId);
                     } else {
-                      await ref.read(favoriteServiceProvider).addFavorite(post);
+                      await ref.read(favoriteServiceProvider).addFavorite(
+                            post,
+                            settings: settings,
+                            downloadManager:
+                                ref.read(downloadManagerServiceProvider),
+                          );
                     }
                     ref.invalidate(favoriteKeysProvider);
                   },

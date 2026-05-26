@@ -94,6 +94,8 @@ class SimilarPostsScreen extends ConsumerWidget {
                       blurExplicit: settings.blurExplicitContent,
                       showBadges: settings.showPostBadges,
                       nsfwEnabled: settings.nsfwEnabled,
+                      mediaQualityMode:
+                          MediaQualityMode.fromName(settings.mediaQualityMode),
                       favoriteKeys: favorites,
                       viewedKeys: viewed,
                       onOpen: (post) => context.push(
@@ -123,7 +125,13 @@ class SimilarPostsScreen extends ConsumerWidget {
           .read(favoriteServiceProvider)
           .removeFavorite(post.id, post.providerId);
     } else {
-      await ref.read(favoriteServiceProvider).addFavorite(post);
+      final settings =
+          ref.read(appSettingsProvider).value ?? AppSettings.defaults;
+      await ref.read(favoriteServiceProvider).addFavorite(
+            post,
+            settings: settings,
+            downloadManager: ref.read(downloadManagerServiceProvider),
+          );
     }
     ref.invalidate(favoriteKeysProvider);
     ref.invalidate(viewedControllerProvider);
