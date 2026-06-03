@@ -1,3 +1,4 @@
+import 'dart:ffi' show Abi;
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -15,6 +16,7 @@ import 'package:gel_rule_app/core/cache/cache_service.dart';
 import 'package:gel_rule_app/core/database/app_database.dart';
 import 'package:gel_rule_app/core/database/database_service.dart';
 import 'package:gel_rule_app/core/utils/result.dart';
+import 'package:isar/isar.dart';
 
 void main() {
   late Directory directory;
@@ -24,6 +26,14 @@ void main() {
   late File copiedIsarDll;
 
   setUpAll(() async {
+    if (Platform.isLinux) {
+      await Isar.initializeIsarCore(
+        libraries: {
+          Abi.linuxX64:
+              '${Directory.current.path}/third_party/isar_flutter_libs/linux/libisar.so',
+        },
+      );
+    }
     copiedIsarDll =
         File('${Directory.current.path}${Platform.pathSeparator}isar.dll');
     if (Platform.isWindows && !copiedIsarDll.existsSync()) {

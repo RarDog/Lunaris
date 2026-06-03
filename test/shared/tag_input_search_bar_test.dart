@@ -57,6 +57,48 @@ void main() {
     expect(changed, 'video');
   });
 
+  testWidgets('clear button removes all committed tags', (tester) async {
+    String? changed;
+    await tester.pumpWidget(_Harness(
+      child: TagInputSearchBar(
+        initialValue: 'touhou video',
+        onSubmitted: (_) {},
+        onChanged: (value) {
+          changed = value;
+        },
+      ),
+    ));
+
+    await tester.tap(find.byTooltip('Clear'));
+    await tester.pump();
+
+    expect(find.text('touhou'), findsNothing);
+    expect(find.text('video'), findsNothing);
+    expect(changed, '');
+  });
+
+  testWidgets('external initial value replaces committed tags', (tester) async {
+    await tester.pumpWidget(_Harness(
+      child: TagInputSearchBar(
+        initialValue: 'old_tag',
+        onSubmitted: (_) {},
+      ),
+    ));
+
+    expect(find.text('old_tag'), findsOneWidget);
+
+    await tester.pumpWidget(_Harness(
+      child: TagInputSearchBar(
+        initialValue: 'new_tag',
+        onSubmitted: (_) {},
+      ),
+    ));
+    await tester.pump();
+
+    expect(find.text('old_tag'), findsNothing);
+    expect(find.text('new_tag'), findsOneWidget);
+  });
+
   testWidgets('suggestion appends active tag as a chip', (tester) async {
     String? applied;
     await tester.pumpWidget(_Harness(

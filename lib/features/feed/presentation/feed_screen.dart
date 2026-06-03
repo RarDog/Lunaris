@@ -32,7 +32,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
   final _scrollController = ScrollController();
   final Set<String> _selectedKeys = {};
   bool _selectionMode = false;
-  bool _usedInitialQuery = false;
+  String? _appliedInitialQuery;
   Timer? _scrollSaveDebounce;
 
   @override
@@ -70,10 +70,10 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     if (nextQuery != null &&
         nextQuery.isNotEmpty &&
         nextQuery != oldWidget.initialQuery) {
-      _usedInitialQuery = true;
+      _appliedInitialQuery = nextQuery;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        ref.read(feedControllerProvider.notifier).search(nextQuery);
+        _applySearchQuery(nextQuery);
       });
     }
   }
@@ -93,10 +93,16 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
     final favoriteKeys = ref.watch(favoriteKeysProvider).value ?? <String>{};
     final viewedKeys = ref.watch(viewedKeysProvider).value ?? <String>{};
 
-    if (!_usedInitialQuery && (widget.initialQuery?.isNotEmpty ?? false)) {
-      _usedInitialQuery = true;
+    final initialQuery = widget.initialQuery?.trim();
+    final currentTags = feed.value?.selectedTags.join(' ');
+    if (initialQuery != null &&
+        initialQuery.isNotEmpty &&
+        _appliedInitialQuery != initialQuery &&
+        currentTags != initialQuery) {
+      _appliedInitialQuery = initialQuery;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(feedControllerProvider.notifier).search(widget.initialQuery!);
+        if (!mounted) return;
+        _applySearchQuery(initialQuery);
       });
     }
 
@@ -159,17 +165,14 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   onSearchChanged: (query) => ref
                       .read(feedControllerProvider.notifier)
                       .updateTagSuggestions(query),
-                  onSuggestionTap: (query) =>
-                      ref.read(feedControllerProvider.notifier).search(query),
+                  onSuggestionTap: _submitSearch,
                   onTopPeriodChanged: (period) => ref
                       .read(feedControllerProvider.notifier)
                       .setTopPeriod(period),
-                  onSearch: (query) =>
-                      ref.read(feedControllerProvider.notifier).search(query),
+                  onSearch: _submitSearch,
                   onRefresh: () =>
                       ref.read(feedControllerProvider.notifier).refresh(),
-                  onClearFilters: () =>
-                      ref.read(feedControllerProvider.notifier).clearFilters(),
+                  onClearFilters: _clearFilters,
                   selectionMode: _selectionMode,
                   onToggleSelectionMode: () {
                     setState(() {
@@ -277,6 +280,35 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
         ),
       ),
     );
+  }
+
+  void _submitSearch(String query) {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
+      _clearFilters();
+      return;
+    }
+    final location = '/?q=${Uri.encodeQueryComponent(trimmed)}';
+    if (widget.initialQuery?.trim() == trimmed) {
+      _applySearchQuery(trimmed);
+      return;
+    }
+    context.go(location);
+  }
+
+  Future<void> _applySearchQuery(String query) async {
+    await ref.read(feedControllerProvider.notifier).search(query);
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0);
+    }
+  }
+
+  Future<void> _clearFilters() async {
+    _appliedInitialQuery = null;
+    await ref.read(feedControllerProvider.notifier).clearFilters();
+    if (mounted && widget.initialQuery != null) {
+      context.go('/');
+    }
   }
 
   void _toggleSelected(Post post) {

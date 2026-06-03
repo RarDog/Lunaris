@@ -178,8 +178,7 @@ class PostDetailsScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         IconButton.filledTonal(
-                          tooltip:
-                              strings.ru ? 'РџСЂРµРґС‹РґСѓС‰РёР№' : 'Previous',
+                          tooltip: strings.ru ? 'Предыдущий' : 'Previous',
                           onPressed: previous == null
                               ? null
                               : () => _openPost(context, previous),
@@ -205,7 +204,7 @@ class PostDetailsScreen extends ConsumerWidget {
                           ),
                         ),
                         IconButton.filledTonal(
-                          tooltip: strings.ru ? 'РЎР»РµРґСѓСЋС‰РёР№' : 'Next',
+                          tooltip: strings.ru ? 'Следующий' : 'Next',
                           onPressed: next == null
                               ? null
                               : () => _openPost(context, next),
@@ -402,9 +401,7 @@ class PostDetailsScreen extends ConsumerWidget {
     final strings = ref.read(appStringsProvider);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(strings.ru
-            ? 'РЎРєР°С‡РёРІР°РЅРёРµ РЅР°С‡Р°Р»РѕСЃСЊ'
-            : 'Download started'),
+        content: Text(strings.ru ? 'Скачивание началось' : 'Download started'),
       ),
     );
     Future<void>.delayed(const Duration(seconds: 2), () {
@@ -518,7 +515,7 @@ class PostDetailsScreen extends ConsumerWidget {
       collection: strings.collection,
       similar: strings.similar,
       openOriginal: strings.open,
-      copyLink: strings.ru ? 'РљРѕРїРёСЂРѕРІР°С‚СЊ СЃСЃС‹Р»РєСѓ' : 'Copy link',
+      copyLink: strings.ru ? 'Копировать ссылку' : 'Copy link',
       download: strings.download,
       deleteLocalFile: strings.deleteLocalFile,
       hidePost: strings.hidePost,
@@ -602,12 +599,10 @@ class _MobilePostPager extends StatefulWidget {
 
 class _MobilePostPagerState extends State<_MobilePostPager> {
   late final PageController _controller;
-  late int _currentIndex;
 
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialIndex;
     _controller = PageController(initialPage: widget.initialIndex);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _prefetchAround(widget.initialIndex);
@@ -617,10 +612,10 @@ class _MobilePostPagerState extends State<_MobilePostPager> {
   @override
   void didUpdateWidget(covariant _MobilePostPager oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.initialIndex != _currentIndex &&
+    // Исправленная проверка: сравниваем старый и новый initialIndex, а не текущий свайп
+    if (oldWidget.initialIndex != widget.initialIndex &&
         widget.initialIndex >= 0 &&
         widget.initialIndex < widget.posts.length) {
-      _currentIndex = widget.initialIndex;
       if (_controller.hasClients) {
         _controller.jumpToPage(widget.initialIndex);
       }
@@ -642,7 +637,6 @@ class _MobilePostPagerState extends State<_MobilePostPager> {
       controller: _controller,
       itemCount: widget.posts.length,
       onPageChanged: (index) {
-        _currentIndex = index;
         _prefetchAround(index);
       },
       itemBuilder: (context, index) {
