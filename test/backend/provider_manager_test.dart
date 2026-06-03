@@ -3,6 +3,7 @@ import 'package:gel_rule_app/backend/models/content_provider_config.dart';
 import 'package:gel_rule_app/backend/models/post.dart';
 import 'package:gel_rule_app/backend/models/provider_diagnostics.dart';
 import 'package:gel_rule_app/backend/models/provider_health.dart';
+import 'package:gel_rule_app/backend/models/tag_suggestion.dart';
 import 'package:gel_rule_app/backend/models/top_period_filter.dart';
 import 'package:gel_rule_app/backend/providers/content_provider.dart';
 import 'package:gel_rule_app/backend/providers/provider_factory.dart';
@@ -76,8 +77,14 @@ class FakeProviderFactory extends ProviderFactory {
   ContentProvider create(ContentProviderConfig config) => providers[config.id]!;
 }
 
-class FakeProvider implements ContentProvider {
-  FakeProvider(this.id, this.name, this.posts, {this.failSearch = false});
+class FakeProvider implements ContentProvider, TagSuggestionProvider {
+  FakeProvider(
+    this.id,
+    this.name,
+    this.posts, {
+    this.failSearch = false,
+    this.suggestions = const [],
+  });
 
   @override
   final String id;
@@ -87,6 +94,7 @@ class FakeProvider implements ContentProvider {
   String get baseUrl => 'https://example.test';
   final List<Post> posts;
   final bool failSearch;
+  final List<TagSuggestion> suggestions;
 
   @override
   Future<ProviderHealth> checkHealth() async => ProviderHealth(
@@ -110,6 +118,15 @@ class FakeProvider implements ContentProvider {
   }) async {
     if (failSearch) throw Exception('fail');
     return posts;
+  }
+
+  @override
+  Future<List<TagSuggestion>> suggestTags(String query,
+      {int limit = 20}) async {
+    return suggestions
+        .where((suggestion) => suggestion.name.startsWith(query))
+        .take(limit)
+        .toList(growable: false);
   }
 }
 
@@ -223,5 +240,67 @@ void main() {
 
     await manager.enableProvider('a', false);
     expect(repository.configs['a']!.enabled, isFalse);
+  });
+
+  test('tag suggestions query every active suggestion provider before limiting',
+      () async {
+    final repository = FakeProviderRepository()
+      ..configs['gelbooru'] = config('gelbooru', 0)
+      ..configs['e621'] = config('e621', 1)
+      ..configs['e926'] = config('e926', 2);
+    final manager = ProviderManager(
+      repository,
+      FakeProviderFactory({
+        'gelbooru': FakeProvider(
+          'gelbooru',
+          'Gelbooru',
+          [],
+          suggestions: [
+            for (var i = 0; i < 4; i++)
+              TagSuggestion(
+                name: 'cat_$i',
+                category: TagCategory.general,
+                postCount: 100 - i,
+                providerId: 'gelbooru',
+              ),
+          ],
+        ),
+        'e621': FakeProvider(
+          'e621',
+          'e621',
+          [],
+          suggestions: const [
+            TagSuggestion(
+              name: 'cat_tail',
+              category: TagCategory.general,
+              postCount: 1000,
+              providerId: 'e621',
+            ),
+          ],
+        ),
+        'e926': FakeProvider(
+          'e926',
+          'e926',
+          [],
+          suggestions: const [
+            TagSuggestion(
+              name: 'cat_ears',
+              category: TagCategory.general,
+              postCount: 900,
+              providerId: 'e926',
+            ),
+          ],
+        ),
+      }),
+    );
+
+    final result = await manager.suggestTags('cat', limit: 4)
+        as Success<List<TagSuggestion>>;
+
+    expect(result.data.map((item) => item.providerId).toSet(), {
+      'gelbooru',
+      'e621',
+      'e926',
+    });
   });
 }

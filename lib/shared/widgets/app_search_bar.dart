@@ -46,9 +46,12 @@ class TagInputSearchBar extends StatefulWidget {
 }
 
 class _TagInputSearchBarState extends State<TagInputSearchBar> {
+  final _fieldKey = GlobalKey();
+  final _layerLink = LayerLink();
   late final TextEditingController _controller;
   late final FocusNode _focusNode;
   late final ScrollController _tagScrollController;
+  OverlayEntry? _suggestionsOverlay;
   Timer? _debounce;
   List<String> _tags = [];
 
@@ -69,11 +72,15 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
     if (!_focusNode.hasFocus && oldWidget.initialValue != next) {
       _setFromQuery(next);
     }
+    if (oldWidget.suggestions != widget.suggestions) {
+      _syncSuggestionsOverlay();
+    }
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
+    _removeSuggestionsOverlay();
     _tagScrollController.dispose();
     _focusNode.removeListener(_handleFocusChanged);
     _focusNode.dispose();
@@ -82,112 +89,139 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
   }
 
   void _handleFocusChanged() {
-    if (mounted) setState(() {});
+    if (!mounted) return;
+    setState(() {});
+    _syncSuggestionsOverlay();
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        DecoratedBox(
-          decoration: BoxDecoration(
-            color: Theme.of(context).inputDecorationTheme.fillColor ??
-                scheme.surfaceContainerHighest.withValues(alpha: 0.38),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: _focusNode.hasFocus
-                  ? scheme.primary.withValues(alpha: 0.45)
-                  : Colors.transparent,
-            ),
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _syncSuggestionsOverlay();
+    });
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: DecoratedBox(
+        key: _fieldKey,
+        decoration: BoxDecoration(
+          color: Theme.of(context).inputDecorationTheme.fillColor ??
+              scheme.surfaceContainerHighest.withValues(alpha: 0.38),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: _focusNode.hasFocus
+                ? scheme.primary.withValues(alpha: 0.45)
+                : Colors.transparent,
           ),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: _focusNode.requestFocus,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Icon(Icons.search_rounded, color: scheme.onSurfaceVariant),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: SizedBox(
-                      height: 38,
-                      child: Scrollbar(
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: _focusNode.requestFocus,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Icon(Icons.search_rounded, color: scheme.onSurfaceVariant),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SizedBox(
+                    height: 38,
+                    child: Scrollbar(
+                      controller: _tagScrollController,
+                      thumbVisibility: false,
+                      child: SingleChildScrollView(
                         controller: _tagScrollController,
-                        thumbVisibility: false,
-                        child: SingleChildScrollView(
-                          controller: _tagScrollController,
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              for (final tag in _tags) ...[
-                                _buildTagChip(context, tag),
-                                const SizedBox(width: 6),
-                              ],
-                              ConstrainedBox(
-                                constraints: const BoxConstraints(
-                                  minWidth: 120,
-                                  maxWidth: 300,
-                                ),
-                                child: Focus(
-                                  onKeyEvent: _handleKeyEvent,
-                                  child: TextField(
-                                    controller: _controller,
-                                    focusNode: _focusNode,
-                                    autocorrect: false,
-                                    enableSuggestions: false,
-                                    textInputAction: TextInputAction.search,
-                                    onSubmitted: (_) => _submit(),
-                                    onChanged: _handleDraftChanged,
-                                    decoration: InputDecoration(
-                                      isDense: true,
-                                      border: InputBorder.none,
-                                      enabledBorder: InputBorder.none,
-                                      focusedBorder: InputBorder.none,
-                                      filled: false,
-                                      contentPadding:
-                                          const EdgeInsets.symmetric(
-                                        vertical: 8,
-                                      ),
-                                      hintText: _tags.isEmpty
-                                          ? widget.hintText
-                                          : 'tag',
-                                      prefixIcon: null,
-                                      suffixIcon: null,
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (final tag in _tags) ...[
+                              _buildTagChip(context, tag),
+                              const SizedBox(width: 6),
+                            ],
+                            ConstrainedBox(
+                              constraints: const BoxConstraints(
+                                minWidth: 120,
+                                maxWidth: 300,
+                              ),
+                              child: Focus(
+                                onKeyEvent: _handleKeyEvent,
+                                child: TextField(
+                                  controller: _controller,
+                                  focusNode: _focusNode,
+                                  autocorrect: false,
+                                  enableSuggestions: false,
+                                  textInputAction: TextInputAction.search,
+                                  onSubmitted: (_) => _submit(),
+                                  onChanged: _handleDraftChanged,
+                                  decoration: InputDecoration(
+                                    isDense: true,
+                                    border: InputBorder.none,
+                                    enabledBorder: InputBorder.none,
+                                    focusedBorder: InputBorder.none,
+                                    filled: false,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      vertical: 8,
                                     ),
+                                    hintText:
+                                        _tags.isEmpty ? widget.hintText : 'tag',
+                                    prefixIcon: null,
+                                    suffixIcon: null,
                                   ),
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
-                  IconButton(
-                    tooltip: 'Clear',
-                    visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.close_rounded),
-                    onPressed: _clear,
-                  ),
-                ],
-              ),
+                ),
+                IconButton(
+                  tooltip: 'Clear',
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: _clear,
+                ),
+              ],
             ),
           ),
         ),
-        if (widget.suggestions.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          _TagSuggestionDropdown(
-            suggestions: widget.suggestions,
-            onSelected: _applySuggestion,
-          ),
-        ],
-      ],
+      ),
     );
+  }
+
+  void _syncSuggestionsOverlay() {
+    if (!_focusNode.hasFocus || widget.suggestions.isEmpty) {
+      _removeSuggestionsOverlay();
+      return;
+    }
+    final overlay = Overlay.maybeOf(context);
+    final renderBox =
+        _fieldKey.currentContext?.findRenderObject() as RenderBox?;
+    if (overlay == null || renderBox == null || !renderBox.hasSize) return;
+
+    final size = renderBox.size;
+    if (_suggestionsOverlay == null) {
+      _suggestionsOverlay = OverlayEntry(
+        builder: (context) => _TagSuggestionOverlay(
+          link: _layerLink,
+          width: size.width,
+          yOffset: size.height + 8,
+          suggestions: widget.suggestions,
+          onSelected: _applySuggestion,
+        ),
+      );
+      overlay.insert(_suggestionsOverlay!);
+      return;
+    }
+    _suggestionsOverlay?.markNeedsBuild();
+  }
+
+  void _removeSuggestionsOverlay() {
+    _suggestionsOverlay?.remove();
+    _suggestionsOverlay = null;
   }
 
   Widget _buildTagChip(BuildContext context, String tag) {
@@ -264,6 +298,7 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
   void _submit() {
     _debounce?.cancel();
     _commitDraft(_controller.text);
+    _removeSuggestionsOverlay();
     widget.onSubmitted(_query);
   }
 
@@ -307,6 +342,7 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
       _controller.clear();
     });
     _notifyChanged();
+    _removeSuggestionsOverlay();
     widget.onSuggestionApplied?.call(_query);
     _focusNode.requestFocus();
   }
@@ -335,6 +371,40 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
     final draft = _controller.text.trim();
     final all = [..._tags, if (draft.isNotEmpty) draft];
     return all.join(' ');
+  }
+}
+
+class _TagSuggestionOverlay extends StatelessWidget {
+  const _TagSuggestionOverlay({
+    required this.link,
+    required this.width,
+    required this.yOffset,
+    required this.suggestions,
+    required this.onSelected,
+  });
+
+  final LayerLink link;
+  final double width;
+  final double yOffset;
+  final List<TagSuggestion> suggestions;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: CompositedTransformFollower(
+        link: link,
+        showWhenUnlinked: false,
+        offset: Offset(0, yOffset),
+        child: SizedBox(
+          width: width.clamp(280, 620).toDouble(),
+          child: _TagSuggestionDropdown(
+            suggestions: suggestions,
+            onSelected: onSelected,
+          ),
+        ),
+      ),
+    );
   }
 }
 

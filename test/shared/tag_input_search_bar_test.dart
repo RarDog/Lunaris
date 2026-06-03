@@ -127,6 +127,41 @@ void main() {
     expect(applied, 'touhou');
   });
 
+  testWidgets('suggestions overlay does not resize search bar', (tester) async {
+    await tester.pumpWidget(_Harness(
+      child: SizedBox(
+        width: 360,
+        child: TagInputSearchBar(
+          suggestions: const [
+            TagSuggestion(
+              name: 'touhou',
+              category: TagCategory.copyright,
+              postCount: 1200,
+              providerId: 'gelbooru',
+            ),
+            TagSuggestion(
+              name: 'tail',
+              category: TagCategory.general,
+              postCount: 900,
+              providerId: 'e621',
+            ),
+          ],
+          onSubmitted: (_) {},
+        ),
+      ),
+    ));
+
+    final initialHeight = tester.getSize(find.byType(TagInputSearchBar)).height;
+    await tester.tap(find.byType(TextField));
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('touhou'), findsOneWidget);
+    expect(find.text('tail'), findsOneWidget);
+    expect(
+        tester.getSize(find.byType(TagInputSearchBar)).height, initialHeight);
+  });
+
   testWidgets('many chips stay in a single compact row', (tester) async {
     await tester.pumpWidget(_Harness(
       child: SizedBox(

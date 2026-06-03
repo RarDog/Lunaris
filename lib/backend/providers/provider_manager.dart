@@ -332,7 +332,6 @@ class ProviderManager {
       } catch (_) {
         // Suggestions are non-critical; a failed provider should not affect UI.
       }
-      if (suggestions.length >= limit) break;
     }
     final values = suggestions.values.toList()
       ..sort((a, b) => b.postCount.compareTo(a.postCount));
