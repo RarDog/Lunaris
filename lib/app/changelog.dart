@@ -1,5 +1,16 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.0.7',
+    title: 'Independent Multi-Tag Search Streams, Local "and" Connector, Pawchive in Main Feed & Reverts',
+    bullets: [
+      'Independent multi-tag search: separate tags query providers individually and interleave results so each tag brings its own content without mutual exclusion.',
+      'Local "and" tag connector: typing "and" between tags groups them into a strict intersection query (e.g. "genshin and raiden").',
+      'Enabled Pawchive in the main feed alongside Rule34, Gelbooru, e621, and Realbooru.',
+      'Restored instantaneous client-side media type filtering in artist posts.',
+      'Removed external linked accounts bar from artist posts screen.',
+    ],
+  ),
+  LunarisChange(
     version: '2.0.6',
     title: 'Pawchive Deep Integration: Global Posts Feed, Artist Tags, Announcements, Links & Server Media Filter',
     bullets: [

@@ -49,7 +49,6 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
   final Set<String> _selectedTypes = <String>{};
 
   List<ArtistTag> _tags = [];
-  List<ArtistLink> _links = [];
   List<ArtistAnnouncement> _announcements = [];
   String? _selectedTag;
 
@@ -87,15 +86,14 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
         (item) => (item as ContentProvider).id == widget.providerId,
       );
 
-      final tagsRes = await provider.getArtistTags(widget.service, widget.artistId);
-      final linksRes = await provider.getArtistLinks(widget.service, widget.artistId);
+      final tagsRes =
+          await provider.getArtistTags(widget.service, widget.artistId);
       final annRes =
           await provider.getArtistAnnouncements(widget.service, widget.artistId);
 
       if (!mounted) return;
       setState(() {
         _tags = tagsRes;
-        _links = linksRes;
         _announcements = annRes;
       });
     } catch (_) {}
@@ -118,18 +116,11 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
       _error = null;
     });
 
-    String? queryText;
-    if (_selectedTypes.length == 1) {
-      if (_selectedTypes.contains('video')) queryText = 'mp4';
-      if (_selectedTypes.contains('gif')) queryText = 'gif';
-    }
-
     final query = ArtistWorkQuery(
       providerId: widget.providerId,
       service: widget.service,
       artistId: widget.artistId,
       artistName: widget.artistName,
-      queryText: queryText,
       tagFilter: _selectedTag,
     );
 
@@ -183,21 +174,6 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
     if (_selectedTag == tag) return;
     setState(() {
       _selectedTag = tag;
-      _posts.clear();
-      _page = 0;
-      _hasMore = true;
-      _error = null;
-    });
-    _loadMore();
-  }
-
-  void _onMediaTypeToggled(String type, bool selected) {
-    setState(() {
-      if (selected) {
-        _selectedTypes.add(type);
-      } else {
-        _selectedTypes.remove(type);
-      }
       _posts.clear();
       _page = 0;
       _hasMore = true;
@@ -299,18 +275,7 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
             FilterChip(
               selected: _selectedTypes.isEmpty,
               label: Text('Все (${_posts.length})'),
-              onSelected: (_) {
-                if (_selectedTypes.isNotEmpty) {
-                  setState(() {
-                    _selectedTypes.clear();
-                    _posts.clear();
-                    _page = 0;
-                    _hasMore = true;
-                    _error = null;
-                  });
-                  _loadMore();
-                }
-              },
+              onSelected: (_) => setState(() => _selectedTypes.clear()),
             ),
             const SizedBox(width: 8),
             FilterChip(
@@ -321,7 +286,15 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
                       ? scheme.onPrimaryContainer
                       : scheme.onSurfaceVariant),
               label: Text('Фото ($photoCount)'),
-              onSelected: (selected) => _onMediaTypeToggled('photo', selected),
+              onSelected: (selected) {
+                setState(() {
+                  if (selected) {
+                    _selectedTypes.add('photo');
+                  } else {
+                    _selectedTypes.remove('photo');
+                  }
+                });
+              },
             ),
             const SizedBox(width: 8),
             FilterChip(
@@ -332,7 +305,15 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
                       ? scheme.onPrimaryContainer
                       : scheme.onSurfaceVariant),
               label: Text('Видео ($videoCount)'),
-              onSelected: (selected) => _onMediaTypeToggled('video', selected),
+              onSelected: (selected) {
+                setState(() {
+                  if (selected) {
+                    _selectedTypes.add('video');
+                  } else {
+                    _selectedTypes.remove('video');
+                  }
+                });
+              },
             ),
             const SizedBox(width: 8),
             FilterChip(
@@ -343,7 +324,15 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
                       ? scheme.onPrimaryContainer
                       : scheme.onSurfaceVariant),
               label: Text('GIF ($gifCount)'),
-              onSelected: (selected) => _onMediaTypeToggled('gif', selected),
+              onSelected: (selected) {
+                setState(() {
+                  if (selected) {
+                    _selectedTypes.add('gif');
+                  } else {
+                    _selectedTypes.remove('gif');
+                  }
+                });
+              },
             ),
           ],
         ),
@@ -380,58 +369,6 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
         ),
       ),
     );
-  }
-
-  Widget _buildLinksBar() {
-    if (_links.isEmpty) return const SizedBox.shrink();
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            for (final link in _links) ...[
-              ActionChip(
-                avatar: Icon(
-                  _serviceIcon(link.service),
-                  size: 16,
-                  color: theme.colorScheme.primary,
-                ),
-                label: Text('${_serviceLabel(link.service)}: ${link.name}'),
-                onPressed: () {
-                  context.push(
-                    '/artists/${widget.providerId}/${link.service}/${link.id}?name=${Uri.encodeComponent(link.name)}',
-                  );
-                },
-              ),
-              const SizedBox(width: 8),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  IconData _serviceIcon(String service) {
-    return switch (service.toLowerCase()) {
-      'patreon' => Icons.loyalty_rounded,
-      'fanbox' => Icons.favorite_border_rounded,
-      'discord' => Icons.chat_bubble_outline_rounded,
-      'boosty' => Icons.bolt_rounded,
-      _ => Icons.link_rounded,
-    };
-  }
-
-  String _serviceLabel(String service) {
-    return switch (service.toLowerCase()) {
-      'patreon' => 'Patreon',
-      'fanbox' => 'Pixiv Fanbox',
-      'discord' => 'Discord',
-      'boosty' => 'Boosty',
-      'fantia' => 'Fantia',
-      _ => service,
-    };
   }
 
   @override
@@ -472,7 +409,6 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
               : _posts.isEmpty
                   ? Column(
                       children: [
-                        _buildLinksBar(),
                         _buildTagsBar(),
                         const Expanded(
                           child: EmptyView(
@@ -486,7 +422,6 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
                       children: [
                         _buildMediaTypeFilters(),
                         _buildTagsBar(),
-                        _buildLinksBar(),
                         Expanded(
                           child: displayedPosts.isEmpty
                               ? Center(
@@ -510,11 +445,7 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
                                             setState(() {
                                               _selectedTypes.clear();
                                               _selectedTag = null;
-                                              _posts.clear();
-                                              _page = 0;
-                                              _hasMore = true;
                                             });
-                                            _loadMore();
                                           },
                                           child: const Text('Сбросить фильтры'),
                                         ),

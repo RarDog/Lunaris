@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2.0.6-blueviolet?style=for-the-badge" alt="Version 2.0.6" />
+  <img src="https://img.shields.io/badge/Version-2.0.7-blueviolet?style=for-the-badge" alt="Version 2.0.7" />
   <img src="https://img.shields.io/badge/Flutter-3.47+-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter" />
   <img src="https://img.shields.io/badge/Platform-Android%20%7C%20Linux%20%7C%20Windows-brightgreen?style=for-the-badge" alt="Platforms" />
   <img src="https://img.shields.io/badge/Gitea-RarDog%2FLunaris-orange?style=for-the-badge&logo=gitea&logoColor=white" alt="Gitea" />
@@ -20,11 +20,12 @@
 
 ## ✨ Основные возможности
 
-- **🌐 Общая лента Pawchive**: Недавние посты со всех платформ прямо в главной ленте (Feed) с поддержкой поиска.
+- **🔀 Раздельный мульти-поиск по тегам**: Ввод нескольких тегов через пробел обрабатывает каждый тег независимо, выдавая контент по обоим тегам в одной ленте.
+- **➕ Локальный оператор `and`**: Для строгого объединения тегов на одном арте достаточно написать между ними `and` (например: `genshin and raiden`).
+- **🌐 Pawchive в главной ленте**: Глобальная лента недавних постов с Pawchive подключена прямо в общий Feed наравне с Rule34, Gelbooru, e621 и Realbooru.
 - **🏷️ Интерактивные теги автора**: Быстрая фильтрация по темам с живыми счётчиками постов (`#tag (count)`).
 - **📢 Анонсы и новости авторов**: Всплывающее окно анонсов автора с датами и текстом обращений к аудитории.
-- **🔗 Связанные аккаунты**: Удобный переход между профилями автора на разных платформах (Patreon, Fanbox, Discord и др.).
-- **🎬 Серверная фильтрация по типу медиа**: Поиск фото, видео и GIF по всей глубине архива автора через API.
+- **⚡ Мгновенный фильтр фото, видео и GIF**: Локальная быстрая фильтрация постов автора без задержек.
 - **📱 Плавная лента в стиле Pinterest**: Masonry-сетка с переключением режима (Masonry, 1:1 Сетка, Список) в шапке ленты.
 - **⚡ Сверхбыстрые видео-превью**: Мгновенная загрузка превью без фризов и лишней нагрузки на процессор и память смартфона.
 - **↔️ Листание постов влево и вправо**: Полноэкранный пейджер с плавными свайпами между фото и видео во всех разделах.
@@ -65,9 +66,9 @@
 
 🔗 **[Gitea Releases (RarDog/Lunaris)](https://gitea.rardogsynapse.online/RarDog/Lunaris/releases)**
 
-- **Android**: `Lunaris-v2.0.6.apk`
-- **Linux (x64)**: `Lunaris-v2.0.6-linux-x64.tar.gz`
-- **Windows**: `LunarisSetup-v2.0.6.exe` / `LunarisPortable-v2.0.6.zip`
+- **Android**: `Lunaris-v2.0.7.apk`
+- **Linux (x64)**: `Lunaris-v2.0.7-linux-x64.tar.gz`
+- **Windows**: `LunarisSetup-v2.0.7.exe` / `LunarisPortable-v2.0.7.zip`
 
 ---
 

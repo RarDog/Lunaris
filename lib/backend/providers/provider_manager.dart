@@ -163,6 +163,36 @@ class ProviderManager {
     return Success(results);
   }
 
+  static List<List<String>> splitTagGroups(List<String> rawTags) {
+    final groups = <List<String>>[];
+    List<String> currentAndGroup = [];
+
+    for (int i = 0; i < rawTags.length; i++) {
+      final token = rawTags[i].trim();
+      if (token.isEmpty) continue;
+
+      if (token.toLowerCase() == 'and') {
+        continue;
+      }
+
+      final prevWasAnd = i > 0 && rawTags[i - 1].trim().toLowerCase() == 'and';
+      if (prevWasAnd) {
+        currentAndGroup.add(token);
+      } else {
+        if (currentAndGroup.isNotEmpty) {
+          groups.add(currentAndGroup);
+        }
+        currentAndGroup = [token];
+      }
+    }
+
+    if (currentAndGroup.isNotEmpty) {
+      groups.add(currentAndGroup);
+    }
+
+    return groups.isEmpty ? [const []] : groups;
+  }
+
   Future<Result<List<Post>>> searchAcrossProviders({
     required List<String> tags,
     required int page,
@@ -181,6 +211,57 @@ class ProviderManager {
           providers.where((provider) => provider.id == providerId).toList();
     }
 
+    final tagGroups = splitTagGroups(tags);
+
+    if (tagGroups.length <= 1) {
+      final effectiveTags = tagGroups.isEmpty ? tags : tagGroups.first;
+      return _searchForTagGroup(
+        providers: providers,
+        tags: effectiveTags,
+        page: page,
+        limit: limit,
+        rating: rating,
+        providerId: providerId,
+        topPeriod: topPeriod,
+      );
+    }
+
+    // Multiple independent tag groups: query each tag group as if other tags are not present, then interleave
+    final seen = <String>{};
+    final groupPerLimit = (limit / tagGroups.length).ceil().clamp(10, 50);
+    final groupFutures = tagGroups.map((groupTags) {
+      return _searchForTagGroup(
+        providers: providers,
+        tags: groupTags,
+        page: page,
+        limit: groupPerLimit,
+        rating: rating,
+        providerId: providerId,
+        topPeriod: topPeriod,
+      );
+    }).toList(growable: false);
+
+    final results = await Future.wait(groupFutures);
+    final validGroupPosts = <List<Post>>[];
+    for (final res in results) {
+      if (res is Success<List<Post>>) {
+        validGroupPosts.add(res.data);
+      }
+    }
+
+    final interleaved = _interleaveTagGroupResults(validGroupPosts, seen);
+    return Success(interleaved);
+  }
+
+  Future<Result<List<Post>>> _searchForTagGroup({
+    required List<ContentProvider> providers,
+    required List<String> tags,
+    required int page,
+    required int limit,
+    required String? rating,
+    required String? providerId,
+    required TopPeriodFilter topPeriod,
+  }) async {
     final seen = <String>{};
     final providerResults = <List<Post>>[];
     for (final provider in providers) {
@@ -232,6 +313,29 @@ class ProviderManager {
         ? _interleaveProviderResults(providerResults, seen)
         : _flattenProviderResults(providerResults, seen);
     return Success(posts);
+  }
+
+  List<Post> _interleaveTagGroupResults(
+      List<List<Post>> groupResults, Set<String> seen) {
+    final combined = <Post>[];
+    var hasMore = true;
+    var index = 0;
+
+    while (hasMore) {
+      hasMore = false;
+      for (final group in groupResults) {
+        if (index < group.length) {
+          hasMore = true;
+          final post = group[index];
+          if (seen.add(post.cacheKey)) {
+            combined.add(post);
+          }
+        }
+      }
+      index++;
+    }
+
+    return combined;
   }
 
   List<Post> _flattenProviderResults(
@@ -584,7 +688,8 @@ class ProviderManager {
   }
 
   static bool _isFeedConfig(ContentProviderConfig config) {
-    return !_isArtistConfig(config);
+    final type = config.apiType.toLowerCase();
+    return type != 'kemono' && type != 'coomer';
   }
 
   static bool _isLegacyRemovedConfig(ContentProviderConfig config) {
