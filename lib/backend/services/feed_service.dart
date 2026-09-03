@@ -112,20 +112,29 @@ class FeedService {
 }
 
 bool postMatchesRequestedTags(Post post, List<String> requestedTags) {
-  final requested = requestedTags
-      .map((tag) => tag.trim().toLowerCase())
-      .where((tag) => tag.isNotEmpty && !tag.startsWith('-'))
-      .toList(growable: false);
-  if (requested.isEmpty) return true;
+  if (post.providerId == 'pawchive') return true;
+
+  final groups = ProviderManager.splitTagGroups(requestedTags);
+  if (groups.isEmpty) return true;
+
   final postTags = _postTagSet(post);
-  return requested.every(
-    (requestedTag) => postTags.any(
-      (postTag) =>
-          postTag == requestedTag ||
-          postTag.startsWith('${requestedTag}_') ||
-          postTag.startsWith('$requestedTag-'),
-    ),
-  );
+  if (postTags.isEmpty) return true;
+
+  return groups.any((group) {
+    final cleanGroup = group
+        .map((tag) => tag.trim().toLowerCase())
+        .where((tag) => tag.isNotEmpty && !tag.startsWith('-') && tag != 'and')
+        .toList(growable: false);
+    if (cleanGroup.isEmpty) return true;
+    return cleanGroup.every(
+      (requestedTag) => postTags.any(
+        (postTag) =>
+            postTag == requestedTag ||
+            postTag.startsWith('${requestedTag}_') ||
+            postTag.startsWith('$requestedTag-'),
+      ),
+    );
+  });
 }
 
 bool postPassesTagFilters(Post post, AppSettings settings) {

@@ -257,12 +257,17 @@ class ProviderManager {
     required String? providerId,
     required TopPeriodFilter topPeriod,
   }) async {
+    final cleanTags = tags
+        .map((t) => t.trim())
+        .where((t) => t.isNotEmpty && t.toLowerCase() != 'and')
+        .toList(growable: false);
+
     final seen = <String>{};
     final providerResults = <List<Post>>[];
     for (final provider in providers) {
       try {
         final providerPosts = await provider.searchPosts(
-          tags: tags,
+          tags: cleanTags,
           page: page,
           limit: limit,
           rating: rating,

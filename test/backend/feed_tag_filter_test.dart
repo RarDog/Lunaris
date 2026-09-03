@@ -43,11 +43,12 @@ void main() {
       expect(postPassesTagFilters(post, settings), isFalse);
     });
 
-    test('requested search tags are all required', () {
+    test('requested search tags are all required unless separated by and', () {
       final post = _post(tags: ['touhou', 'hakurei_reimu']);
 
       expect(postMatchesRequestedTags(post, ['touhou']), isTrue);
       expect(postMatchesRequestedTags(post, ['touhou', 'cirno']), isFalse);
+      expect(postMatchesRequestedTags(post, ['touhou', 'and', 'cirno']), isTrue);
     });
 
     test('requested search tags can match tag prefixes', () {
