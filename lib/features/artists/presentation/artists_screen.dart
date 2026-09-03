@@ -107,16 +107,23 @@ class _ArtistsScreenState extends ConsumerState<ArtistsScreen> {
         .whereType<_FavoriteArtistItem>()
         .toList();
     final favoriteKeys = favoriteItems.map((e) => e.key).toSet();
-    final selectedFav = favoriteItems.firstWhere(
-      (e) => e.key == _selectedFavoriteArtistKey,
-      orElse: () => favoriteItems.isNotEmpty
-          ? favoriteItems.first
-          : const _FavoriteArtistItem.empty(),
-    );
 
     return AdaptiveScaffold(
       title: 'Artists',
       actions: [
+        IconButton(
+          tooltip: 'Любимые авторы',
+          icon: Badge(
+            isLabelVisible: favoriteItems.isNotEmpty,
+            label: Text('${favoriteItems.length}'),
+            child: const Icon(Icons.star_rounded, color: Colors.amber),
+          ),
+          onPressed: () => _showFavoriteArtistsModal(
+            context,
+            settings,
+            favoriteItems,
+          ),
+        ),
         IconButton(
           tooltip: 'Refresh',
           onPressed: () => _refresh(configs.valueOrNull ?? const []),
@@ -150,32 +157,6 @@ class _ArtistsScreenState extends ConsumerState<ArtistsScreen> {
                 },
                 onSearch: () => _refresh(items),
               ),
-              _FavoriteArtistsSection(
-                favorites: favoriteItems,
-                selectedKey: selectedFav.isEmpty ? null : selectedFav.key,
-                onSelect: (fav) =>
-                    setState(() => _selectedFavoriteArtistKey = fav.key),
-                onOpenArtist: (fav) => context.push(
-                  '/artists/${fav.providerId}/${fav.service}/${fav.id}?name=${Uri.encodeComponent(fav.name)}',
-                ),
-                onRemoveFavorite: (fav) async {
-                  final updated = List<String>.from(settings.favoriteArtists)
-                    ..removeWhere((e) {
-                      try {
-                        return _FavoriteArtistItem.fromJson(
-                                    jsonDecode(e) as Map<String, dynamic>)
-                                .key ==
-                            fav.key;
-                      } catch (_) {
-                        return false;
-                      }
-                    });
-                  await ref
-                      .read(settingsControllerProvider.notifier)
-                      .saveSettings(
-                          settings.copyWith(favoriteArtists: updated));
-                },
-              ),
               Expanded(
                 child: _error != null
                     ? ErrorView(
@@ -206,7 +187,7 @@ class _ArtistsScreenState extends ConsumerState<ArtistsScreen> {
                                   crossAxisSpacing: 12,
                                   mainAxisSpacing: 12,
                                   mainAxisExtent:
-                                      Responsive.isMobile(context) ? 88 : 104,
+                                      Responsive.isMobile(context) ? 104 : 116,
                                 ),
                                 itemCount: _artists.length + (_loading ? 1 : 0),
                                 itemBuilder: (context, index) {
@@ -284,6 +265,50 @@ class _ArtistsScreenState extends ConsumerState<ArtistsScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _showFavoriteArtistsModal(
+    BuildContext context,
+    AppSettings settings,
+    List<_FavoriteArtistItem> favorites,
+  ) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return _FavoriteArtistsModal(
+          favorites: favorites,
+          initialSelectedKey: _selectedFavoriteArtistKey,
+          onSelect: (fav) =>
+              setState(() => _selectedFavoriteArtistKey = fav.key),
+          onOpenArtist: (fav) => context.push(
+            '/artists/${fav.providerId}/${fav.service}/${fav.id}?name=${Uri.encodeComponent(fav.name)}',
+          ),
+          onRemoveFavorite: (fav) async {
+            final updated = List<String>.from(settings.favoriteArtists)
+              ..removeWhere((e) {
+                try {
+                  return _FavoriteArtistItem.fromJson(
+                              jsonDecode(e) as Map<String, dynamic>)
+                          .key ==
+                      fav.key;
+                } catch (_) {
+                  return false;
+                }
+              });
+            await ref
+                .read(settingsControllerProvider.notifier)
+                .saveSettings(settings.copyWith(favoriteArtists: updated));
+            setState(() {});
+          },
+        );
+      },
+    );
   }
 }
 
@@ -388,7 +413,7 @@ class _ArtistCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             children: [
               _ArtistAvatar(artist: artist),
@@ -490,6 +515,176 @@ class _FavoriteArtistItem {
         name: (json['name'] ?? '').toString(),
         avatarUrl: json['avatarUrl'] as String?,
       );
+}
+
+class _FavoriteArtistsModal extends StatefulWidget {
+  const _FavoriteArtistsModal({
+    required this.favorites,
+    required this.initialSelectedKey,
+    required this.onSelect,
+    required this.onOpenArtist,
+    required this.onRemoveFavorite,
+  });
+
+  final List<_FavoriteArtistItem> favorites;
+  final String? initialSelectedKey;
+  final ValueChanged<_FavoriteArtistItem> onSelect;
+  final ValueChanged<_FavoriteArtistItem> onOpenArtist;
+  final ValueChanged<_FavoriteArtistItem> onRemoveFavorite;
+
+  @override
+  State<_FavoriteArtistsModal> createState() => _FavoriteArtistsModalState();
+}
+
+class _FavoriteArtistsModalState extends State<_FavoriteArtistsModal> {
+  late String? _selectedKey;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedKey = widget.initialSelectedKey;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final selectedFav = widget.favorites.firstWhere(
+      (e) => e.key == _selectedKey,
+      orElse: () => widget.favorites.isNotEmpty
+          ? widget.favorites.first
+          : const _FavoriteArtistItem.empty(),
+    );
+
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: widget.favorites.isEmpty ? 0.35 : 0.65,
+      minChildSize: 0.25,
+      maxChildSize: 0.92,
+      builder: (context, scroll) {
+        return SingleChildScrollView(
+          controller: scroll,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: scheme.onSurfaceVariant.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                child: Row(
+                  children: [
+                    const Icon(Icons.star_rounded,
+                        color: Colors.amber, size: 26),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Любимые авторы',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    if (widget.favorites.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${widget.favorites.length}',
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: Colors.amber.shade900,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                        ),
+                      ),
+                    ],
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1),
+              if (widget.favorites.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 36, 24, 40),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.star_border_rounded,
+                          size: 52,
+                          color: scheme.onSurfaceVariant.withValues(alpha: 0.4),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Список пуст',
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Нажмите на иконку звёздочки ★ на карточке любого автора, чтобы добавить его в избранное и быстро смотреть свежие работы.',
+                          textAlign: TextAlign.center,
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else ...[
+                _FavoriteArtistsSection(
+                  favorites: widget.favorites,
+                  selectedKey: selectedFav.isEmpty ? null : selectedFav.key,
+                  onSelect: (fav) {
+                    setState(() => _selectedKey = fav.key);
+                    widget.onSelect(fav);
+                  },
+                  onOpenArtist: (fav) {
+                    Navigator.of(context).pop();
+                    widget.onOpenArtist(fav);
+                  },
+                  onRemoveFavorite: (fav) {
+                    widget.onRemoveFavorite(fav);
+                    if (_selectedKey == fav.key) {
+                      setState(() {
+                        _selectedKey = widget.favorites
+                            .where((e) => e.key != fav.key)
+                            .firstOrNull
+                            ?.key;
+                      });
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _FavoriteArtistsSection extends ConsumerWidget {

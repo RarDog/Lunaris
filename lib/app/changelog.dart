@@ -1,5 +1,15 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.0.3',
+    title: 'Infinite artist pagination, favorite artists modal, and card layout polish',
+    bullets: [
+      'Implemented infinite scroll pagination in the artist post feed — now loads all historical works endlessly as you scroll.',
+      'Moved favorite artists to a compact star action button in the top-right header that opens an interactive modal.',
+      'Expanded artist card vertical height so updated dates and statistics are never cut off.',
+      'Removed mapping truncation in Pawchive provider to deliver all post attachments cleanly.',
+    ],
+  ),
+  LunarisChange(
     version: '2.0.2',
     title: 'Swipeable media pager, favorite artists, performance and Pawchive',
     bullets: [

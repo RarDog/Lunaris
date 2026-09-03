@@ -180,7 +180,7 @@ class PawchiveProvider
         ));
       }
       mapped.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return mapped.take(limit).toList(growable: false);
+      return mapped.toList(growable: false);
     } catch (error) {
       throw StateError(
         '$name artist posts are unavailable right now. ${_shortError(error)}',

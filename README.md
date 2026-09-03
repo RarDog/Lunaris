@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2.0.2-blueviolet?style=for-the-badge" alt="Version 2.0.2" />
+  <img src="https://img.shields.io/badge/Version-2.0.3-blueviolet?style=for-the-badge" alt="Version 2.0.3" />
   <img src="https://img.shields.io/badge/Flutter-3.47+-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter" />
   <img src="https://img.shields.io/badge/Platform-Android%20%7C%20Linux%20%7C%20Windows-brightgreen?style=for-the-badge" alt="Platforms" />
   <img src="https://img.shields.io/badge/Gitea-RarDog%2FLunaris-orange?style=for-the-badge&logo=gitea&logoColor=white" alt="Gitea" />
@@ -24,7 +24,8 @@
 - **⚡ Сверхбыстрые видео-превью**: Мгновенная загрузка превью без фризов и лишней нагрузки на процессор и память смартфона.
 - **↔️ Листание постов влево и вправо**: Полноэкранный пейджер с плавными свайпами между фото и видео во всех разделах (Лента, Авторы, Избранное, Коллекции, История просмотров).
 - **🖼️ Мульти-медиа в одном посте**: Удобная карусель с индикатором `1 / 4` для постов с несколькими файлами.
-- **⭐ Любимые авторы сверху**: Верхняя панель со «сториз»-аватарами любимых создателей и мгновенным просмотром их свежих фото и видео.
+- **⭐ Любимые авторы**: Компактная кнопка-звёздочка сверху справа для быстрого доступа ко всем любимым авторам и их свежему медиапотоку.
+- **📜 Бесконечная подгрузка постов автора**: Умная пагинация при прокрутке вниз загружает всю историю работ без ограничений.
 - **🐾 Поддержка Pawchive**: Интеграция с `pawchive.pw` для просмотра профилей авторов, связанных аккаунтов, тегов и работ с Patreon, Fanbox, Fantia, Discord, Boosty и др.
 - **🔍 Умный поиск и автодополнение**: Интерактивные чипсы тегов с подсказками от активных API. Быстрое исключение (`-tag`), добавление (`+tag`) или отправка в черный список по долгому тапу.
 - **🛡️ Продвинутый Blacklist / Whitelist**: Фильтрация по тегам, категориям, рейтингу контента (safe/questionable/explicit), провайдерам и минимальному score.
@@ -52,9 +53,9 @@
 
 🔗 **[Gitea Releases (RarDog/Lunaris)](https://gitea.rardogsynapse.online/RarDog/Lunaris/releases)**
 
-- **Android**: `Lunaris-v2.0.2.apk`
-- **Linux (x64)**: `Lunaris-v2.0.2-linux-x64.tar.gz`
-- **Windows**: `LunarisSetup-v2.0.2.exe` / `LunarisPortable-v2.0.2.zip`
+- **Android**: `Lunaris-v2.0.3.apk`
+- **Linux (x64)**: `Lunaris-v2.0.3-linux-x64.tar.gz`
+- **Windows**: `LunarisSetup-v2.0.3.exe` / `LunarisPortable-v2.0.3.zip`
 
 ---
 
