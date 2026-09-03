@@ -231,13 +231,13 @@ void main() {
     expect(posts.single.rating, 'unknown');
   });
 
-  test('seed providers include Realbooru HTML Paheal and exclude CosBooru', () {
-    final paheal = ProviderRepository.seedProviders()
-        .where((provider) => provider.id == 'paheal')
+  test('seed providers include Realbooru HTML Pawchive and exclude deprecated providers', () {
+    final pawchive = ProviderRepository.seedProviders()
+        .where((provider) => provider.id == 'pawchive')
         .single;
-    expect(paheal.enabled, isTrue);
-    expect(paheal.apiType, 'paheal');
-    expect(paheal.baseUrl, 'https://rule34.paheal.net');
+    expect(pawchive.enabled, isTrue);
+    expect(pawchive.apiType, 'pawchive');
+    expect(pawchive.baseUrl, 'https://pawchive.pw');
     final realbooru = ProviderRepository.seedProviders()
         .where((provider) => provider.id == 'realbooru')
         .single;
@@ -249,22 +249,26 @@ void main() {
           .where((provider) => provider.id == 'cosbooru'),
       isEmpty,
     );
-    final xbooru = ProviderRepository.seedProviders()
-        .where((provider) => provider.id == 'xbooru')
-        .single;
-    expect(xbooru.enabled, isTrue);
-    expect(xbooru.apiType, 'gelbooru');
-    expect(xbooru.baseUrl, 'https://xbooru.com');
-    final kemono = ProviderRepository.seedProviders()
-        .where((provider) => provider.id == 'kemono')
-        .single;
-    final coomer = ProviderRepository.seedProviders()
-        .where((provider) => provider.id == 'coomer')
-        .single;
-    expect(kemono.enabled, isTrue);
-    expect(kemono.apiType, 'kemono');
-    expect(coomer.enabled, isFalse);
-    expect(coomer.apiType, 'coomer');
+    expect(
+      ProviderRepository.seedProviders()
+          .where((provider) => provider.id == 'paheal'),
+      isEmpty,
+    );
+    expect(
+      ProviderRepository.seedProviders()
+          .where((provider) => provider.id == 'xbooru'),
+      isEmpty,
+    );
+    expect(
+      ProviderRepository.seedProviders()
+          .where((provider) => provider.id == 'kemono'),
+      isEmpty,
+    );
+    expect(
+      ProviderRepository.seedProviders()
+          .where((provider) => provider.id == 'coomer'),
+      isEmpty,
+    );
   });
 
   test('provider factory treats Realbooru api type as unsupported', () {

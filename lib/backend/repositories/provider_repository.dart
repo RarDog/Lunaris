@@ -40,42 +40,14 @@ class ProviderRepository {
         updatedAt: now,
       ),
       ContentProviderConfig(
-        id: 'safebooru',
-        name: 'Safebooru',
-        baseUrl: 'https://safebooru.org',
-        apiType: 'gelbooru',
+        id: 'realbooru',
+        name: 'Realbooru',
+        baseUrl: 'https://realbooru.com',
+        apiType: 'realbooru_html',
         enabled: true,
         priority: 2,
         timeoutSeconds: 20,
         customHeaders: const {},
-        createdAt: now,
-        updatedAt: now,
-      ),
-      ContentProviderConfig(
-        id: 'konachan',
-        name: 'Konachan',
-        baseUrl: 'https://konachan.com',
-        apiType: 'moebooru',
-        enabled: true,
-        priority: 3,
-        timeoutSeconds: 20,
-        customHeaders: const {},
-        createdAt: now,
-        updatedAt: now,
-      ),
-      ContentProviderConfig(
-        id: 'yandere',
-        name: 'Yande.re',
-        baseUrl: 'https://yande.re',
-        apiType: 'moebooru',
-        enabled: true,
-        priority: 4,
-        timeoutSeconds: 20,
-        customHeaders: const {
-          'query.api_version': '2',
-          'query.include_tags': '1',
-          'query.filter': '1',
-        },
         createdAt: now,
         updatedAt: now,
       ),
@@ -85,10 +57,10 @@ class ProviderRepository {
         baseUrl: 'https://e621.net',
         apiType: 'e621',
         enabled: true,
-        priority: 5,
+        priority: 3,
         timeoutSeconds: 20,
         customHeaders: const {
-          'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
+          'User-Agent': 'Lunaris/2.0.2 Flutter local booru browser',
         },
         createdAt: now,
         updatedAt: now,
@@ -99,76 +71,10 @@ class ProviderRepository {
         baseUrl: 'https://e926.net',
         apiType: 'e621',
         enabled: true,
-        priority: 6,
+        priority: 4,
         timeoutSeconds: 20,
         customHeaders: const {
-          'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
-        },
-        createdAt: now,
-        updatedAt: now,
-      ),
-      ContentProviderConfig(
-        id: 'realbooru',
-        name: 'Realbooru',
-        baseUrl: 'https://realbooru.com',
-        apiType: 'realbooru_html',
-        enabled: true,
-        priority: 7,
-        timeoutSeconds: 20,
-        customHeaders: const {},
-        createdAt: now,
-        updatedAt: now,
-      ),
-      ContentProviderConfig(
-        id: 'xbooru',
-        name: 'Xbooru',
-        baseUrl: 'https://xbooru.com',
-        apiType: 'gelbooru',
-        enabled: true,
-        priority: 8,
-        timeoutSeconds: 20,
-        customHeaders: const {},
-        createdAt: now,
-        updatedAt: now,
-      ),
-      ContentProviderConfig(
-        id: 'paheal',
-        name: 'Rule34 Paheal',
-        baseUrl: 'https://rule34.paheal.net',
-        apiType: 'paheal',
-        enabled: true,
-        priority: 9,
-        timeoutSeconds: 20,
-        customHeaders: const {
-          'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
-        },
-        createdAt: now,
-        updatedAt: now,
-      ),
-      ContentProviderConfig(
-        id: 'kemono',
-        name: 'Kemono',
-        baseUrl: 'https://kemono.su',
-        apiType: 'kemono',
-        enabled: true,
-        priority: 10,
-        timeoutSeconds: 20,
-        customHeaders: const {
-          'query.creator_api_base': 'https://kemono-api.mbaharip.com',
-        },
-        createdAt: now,
-        updatedAt: now,
-      ),
-      ContentProviderConfig(
-        id: 'coomer',
-        name: 'Coomer',
-        baseUrl: 'https://coomer.su',
-        apiType: 'coomer',
-        enabled: false,
-        priority: 11,
-        timeoutSeconds: 20,
-        customHeaders: const {
-          'query.creator_api_base': 'https://kemono-api.mbaharip.com',
+          'User-Agent': 'Lunaris/2.0.2 Flutter local booru browser',
         },
         createdAt: now,
         updatedAt: now,
@@ -179,7 +85,7 @@ class ProviderRepository {
         baseUrl: 'https://pawchive.pw',
         apiType: 'pawchive',
         enabled: true,
-        priority: 12,
+        priority: 5,
         timeoutSeconds: 20,
         customHeaders: const {},
         createdAt: now,
@@ -192,11 +98,22 @@ class ProviderRepository {
     return _databaseService.safeWrite((isar) async {
       final existingProviders =
           await isar.providerConfigEntitys.where().findAll();
+      const removedIds = {
+        'safebooru',
+        'konachan',
+        'yandere',
+        'xbooru',
+        'paheal',
+        'kemono',
+        'coomer',
+      };
       for (final provider in existingProviders) {
         if (provider.providerId == 'cosbooru') {
           provider.enabled = false;
           provider.updatedAt = DateTime.now();
           await isar.providerConfigEntitys.put(provider);
+        } else if (removedIds.contains(provider.providerId)) {
+          await isar.providerConfigEntitys.delete(provider.isarId);
         }
       }
       final seeds = seedProviders();

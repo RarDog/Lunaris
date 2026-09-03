@@ -48,12 +48,14 @@ class AppSettings {
     required this.lastFeedProviderIds,
     required this.lastFeedTopPeriod,
     required this.lastFeedScrollOffset,
+    this.favoriteArtists = const [],
     this.skippedUpdateVersion,
     this.lastUpdateCheckAt,
     this.defaultRatingFilter,
     this.lastFeedRating,
   });
 
+  final List<String> favoriteArtists;
   final List<String> enabledProviderIds;
   final bool nsfwEnabled;
   final int cacheTtlHours;
@@ -96,11 +98,12 @@ class AppSettings {
   final String? lastFeedRating;
 
   static const defaults = AppSettings(
-    enabledProviderIds: ['gelbooru', 'rule34', 'safebooru'],
+    enabledProviderIds: ['gelbooru', 'rule34', 'realbooru'],
     nsfwEnabled: true,
     cacheTtlHours: 24,
     cacheMaxItems: 2000,
-    providerPriority: {'gelbooru': 0, 'rule34': 1, 'safebooru': 2},
+    providerPriority: {'gelbooru': 0, 'rule34': 1, 'realbooru': 2},
+    favoriteArtists: [],
     themeMode: 'dark',
     languageCode: 'ru',
     appSeedColor: 0xFFE84D8A,
@@ -180,8 +183,10 @@ class AppSettings {
     String? defaultRatingFilter,
     String? lastFeedRating,
     bool clearLastFeedRating = false,
+    List<String>? favoriteArtists,
   }) {
     return AppSettings(
+      favoriteArtists: favoriteArtists ?? this.favoriteArtists,
       enabledProviderIds: enabledProviderIds ?? this.enabledProviderIds,
       nsfwEnabled: nsfwEnabled ?? this.nsfwEnabled,
       cacheTtlHours: cacheTtlHours ?? this.cacheTtlHours,
@@ -233,6 +238,7 @@ class AppSettings {
   }
 
   Map<String, dynamic> toJson() => {
+        'favoriteArtists': favoriteArtists,
         'enabledProviderIds': enabledProviderIds,
         'nsfwEnabled': nsfwEnabled,
         'cacheTtlHours': cacheTtlHours,
@@ -365,6 +371,9 @@ class AppSettings {
         lastFeedScrollOffset:
             (json['lastFeedScrollOffset'] as num?)?.toDouble() ??
                 defaults.lastFeedScrollOffset,
+        favoriteArtists: List<String>.from(
+          (json['favoriteArtists'] as List?) ?? defaults.favoriteArtists,
+        ),
         skippedUpdateVersion: json['skippedUpdateVersion'] as String?,
         lastUpdateCheckAt: json['lastUpdateCheckAt'] as String?,
         defaultRatingFilter: json['defaultRatingFilter'] as String?,

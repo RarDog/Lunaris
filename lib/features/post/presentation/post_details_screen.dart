@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,12 +40,14 @@ class PostDetailsScreen extends ConsumerWidget {
     required this.providerId,
     required this.postId,
     this.initialPost,
+    this.postsList,
     super.key,
   });
 
   final String providerId;
   final String postId;
   final Post? initialPost;
+  final List<Post>? postsList;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -57,8 +60,9 @@ class PostDetailsScreen extends ConsumerWidget {
     final settings =
         ref.watch(appSettingsProvider).value ?? AppSettings.defaults;
     final strings = ref.watch(appStringsProvider);
-    final feedPosts =
-        ref.watch(feedControllerProvider).value?.posts ?? const <Post>[];
+    final feedPosts = postsList ??
+        ref.watch(feedControllerProvider).value?.posts ??
+        const <Post>[];
     final favoriteKeys = ref.watch(favoriteKeysProvider).value ?? <String>{};
     return AdaptiveScaffold(
       title: strings.post,
@@ -698,17 +702,26 @@ class _MobilePostPagerState extends State<_MobilePostPager> {
 
   @override
   Widget build(BuildContext context) {
-    return PageView.builder(
-      controller: _controller,
-      physics: _mediaGestureLocked
-          ? const NeverScrollableScrollPhysics()
-          : const PageScrollPhysics(),
-      itemCount: widget.posts.length,
-      onPageChanged: (index) {
-        _prefetchAround(index);
-      },
-      itemBuilder: (context, index) {
-        final initialPost = widget.posts[index];
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(
+        dragDevices: {
+          PointerDeviceKind.touch,
+          PointerDeviceKind.mouse,
+          PointerDeviceKind.trackpad,
+          PointerDeviceKind.stylus,
+        },
+      ),
+      child: PageView.builder(
+        controller: _controller,
+        physics: _mediaGestureLocked
+            ? const NeverScrollableScrollPhysics()
+            : const PageScrollPhysics(),
+        itemCount: widget.posts.length,
+        onPageChanged: (index) {
+          _prefetchAround(index);
+        },
+        itemBuilder: (context, index) {
+          final initialPost = widget.posts[index];
         return Consumer(
           builder: (context, ref, _) {
             final args = PostDetailsArgs(
@@ -735,8 +748,9 @@ class _MobilePostPagerState extends State<_MobilePostPager> {
           },
         );
       },
-    );
-  }
+    ),
+  );
+}
 
   void _setMediaGestureLocked(bool locked) {
     if (_mediaGestureLocked == locked) return;

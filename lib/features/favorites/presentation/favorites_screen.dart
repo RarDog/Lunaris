@@ -121,7 +121,10 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       downloadedKeys: downloadedKeys,
       onOpen: (post) => context.push(
         '/post/${post.providerId}/${post.id}',
-        extra: post,
+        extra: PostNavigationContext(
+          currentPost: post,
+          posts: posts,
+        ),
       ),
       onFavorite: (post) =>
           ref.read(favoritesControllerProvider.notifier).remove(post),

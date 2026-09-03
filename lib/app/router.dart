@@ -40,11 +40,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: '/post/:providerId/:postId',
-            builder: (context, state) => PostDetailsScreen(
-              providerId: state.pathParameters['providerId']!,
-              postId: state.pathParameters['postId']!,
-              initialPost: state.extra is Post ? state.extra! as Post : null,
-            ),
+            builder: (context, state) {
+              final extra = state.extra;
+              final Post? initialPost;
+              final List<Post>? postsList;
+              if (extra is PostNavigationContext) {
+                initialPost = extra.currentPost;
+                postsList = extra.posts;
+              } else if (extra is Post) {
+                initialPost = extra;
+                postsList = null;
+              } else {
+                initialPost = null;
+                postsList = null;
+              }
+              return PostDetailsScreen(
+                providerId: state.pathParameters['providerId']!,
+                postId: state.pathParameters['postId']!,
+                initialPost: initialPost,
+                postsList: postsList,
+              );
+            },
           ),
           GoRoute(
             path: '/post/:providerId/:postId/similar',

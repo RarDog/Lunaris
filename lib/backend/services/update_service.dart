@@ -11,9 +11,9 @@ class UpdateService {
   UpdateService(this._dio, this._settingsService);
 
   static const latestReleaseUrl =
-      'https://gitea.rardogsynapse.online/api/v1/repos/RarDog/RuleGelApp/releases/latest';
+      'https://gitea.rardogsynapse.online/api/v1/repos/RarDog/Lunaris/releases/latest';
   static const releasesUrl =
-      'https://gitea.rardogsynapse.online/api/v1/repos/RarDog/RuleGelApp/releases';
+      'https://gitea.rardogsynapse.online/api/v1/repos/RarDog/Lunaris/releases';
 
   final Dio _dio;
   final SettingsService _settingsService;
@@ -100,6 +100,7 @@ class UpdateService {
     String? apkUrl;
     String? installerUrl;
     String? portableUrl;
+    String? linuxTarGzUrl;
     for (final item in assets.whereType<Map>()) {
       final name = (item['name'] ?? '').toString().toLowerCase();
       final url = (item['browser_download_url'] ?? '').toString();
@@ -107,6 +108,9 @@ class UpdateService {
       if (name.endsWith('.apk')) apkUrl = url;
       if (name.endsWith('.exe')) installerUrl = url;
       if (name.endsWith('.zip')) portableUrl = url;
+      if (name.endsWith('.tar.gz') || name.endsWith('.tgz')) {
+        linuxTarGzUrl = url;
+      }
     }
     return AppUpdateInfo(
       version: _versionFromTag(tag),
@@ -118,12 +122,16 @@ class UpdateService {
       apkUrl: apkUrl,
       windowsInstallerUrl: installerUrl,
       portableZipUrl: portableUrl,
+      linuxTarGzUrl: linuxTarGzUrl,
     );
   }
 
   String? assetUrlForCurrentPlatform(AppUpdateInfo info) {
     if (Platform.isAndroid) {
       return info.apkUrl;
+    }
+    if (Platform.isLinux) {
+      return info.linuxTarGzUrl ?? info.portableZipUrl;
     }
     if (Platform.isWindows) {
       return info.windowsInstallerUrl ?? info.portableZipUrl;
@@ -137,6 +145,7 @@ class UpdateService {
         parsed?.pathSegments.isEmpty ?? true ? '' : parsed!.pathSegments.last;
     if (fromUrl.contains('.')) return fromUrl;
     if (Platform.isAndroid) return 'Lunaris-v${info.version}.apk';
+    if (Platform.isLinux) return 'Lunaris-v${info.version}-linux-x64.tar.gz';
     if (Platform.isWindows) return 'LunarisSetup-v${info.version}.exe';
     return 'LunarisPortable-v${info.version}.zip';
   }

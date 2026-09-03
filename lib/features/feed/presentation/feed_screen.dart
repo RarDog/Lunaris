@@ -296,7 +296,10 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
                             selectedKeys: _selectedKeys,
                             onOpen: (post) => context.push(
                               '/post/${post.providerId}/${post.id}',
-                              extra: post,
+                              extra: PostNavigationContext(
+                                currentPost: post,
+                                posts: state.posts,
+                              ),
                             ),
                             onPreview: (post) => _showPreview(context, post),
                             onToggleSelected: (post) => _toggleSelected(post),

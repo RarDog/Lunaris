@@ -219,9 +219,54 @@ class _PostMediaViewerState extends State<PostMediaViewer>
         );
       },
     );
-    final child = _ZoomableImage(
-      onGestureLockChanged: widget.onMediaGestureLockChanged,
-      child: image,
+    final child = Stack(
+      alignment: Alignment.center,
+      children: [
+        _ZoomableImage(
+          onGestureLockChanged: widget.onMediaGestureLockChanged,
+          child: image,
+        ),
+        if (_imageUrls.length > 1)
+          Positioned(
+            bottom: 14,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.65),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white24, width: 0.8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_imageIndex > 0)
+                    GestureDetector(
+                      onTap: () => setState(() => _imageIndex--),
+                      child: const Icon(Icons.chevron_left_rounded,
+                          size: 20, color: Colors.white),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      '${_imageIndex + 1} / ${_imageUrls.length}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  if (_imageIndex < _imageUrls.length - 1)
+                    GestureDetector(
+                      onTap: () => setState(() => _imageIndex++),
+                      child: const Icon(Icons.chevron_right_rounded,
+                          size: 20, color: Colors.white),
+                    ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
     return LayoutBuilder(
       builder: (context, constraints) {

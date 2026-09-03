@@ -52,10 +52,19 @@ class ViewedScreen extends ConsumerWidget {
                           post: item.post,
                           viewedAt: item.viewedAt,
                           isFavorite: favoriteKeys.contains(item.post.cacheKey),
-                          onOpen: () => context.push(
-                            '/post/${item.post.providerId}/${item.post.id}',
-                            extra: item.post,
-                          ),
+                          onOpen: () {
+                            final allPosts = [
+                              for (final g in groups)
+                                for (final i in g.items) i.post
+                            ];
+                            context.push(
+                              '/post/${item.post.providerId}/${item.post.id}',
+                              extra: PostNavigationContext(
+                                currentPost: item.post,
+                                posts: allPosts,
+                              ),
+                            );
+                          },
                           onFavorite: () => _toggleFavorite(
                             ref,
                             item.post,

@@ -1,5 +1,17 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.0.2',
+    title: 'Swipeable media pager, favorite artists, performance and Pawchive',
+    bullets: [
+      'Full horizontal post pager across mobile and desktop in Feed, Artists, Favorites, Collections, and Viewed history.',
+      'Eliminated video preview stutter and lag in grid feed by using high-performance cached thumbnails and on-demand playback.',
+      'Added favorite artists bar at the top of the Artists tab with quick access and recent photos/videos stream.',
+      'Multi-image posts now feature an in-post navigation indicator with image switching.',
+      'New Pawchive provider support and cleaned up deprecated providers.',
+      'In-app update checks and downloads connected directly to RarDog Gitea releases.',
+    ],
+  ),
+  LunarisChange(
     version: '2.0.1',
     title: 'Localization, zoom and favorite downloads',
     bullets: [

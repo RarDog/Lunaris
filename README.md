@@ -1,104 +1,124 @@
-﻿# Lunaris
+# 🌙 Lunaris
 
-Lunaris — локальное Flutter-приложение для просмотра booru, gelbooru, rule34-подобных источников и artist-архивов в Pinterest-стиле.
+<p align="center">
+  <img src="assets/branding/app_icon.png" width="128" height="128" alt="Lunaris Logo" />
+</p>
 
-Приложение не использует отдельный backend-сервер. Вся логика живет внутри Flutter: API-провайдеры, локальный кеш metadata, избранное, коллекции, история просмотров, фильтры, диагностика, загрузки и обновления.
+<p align="center">
+  <strong>Современный кроссплатформенный клиент для Booru и Creator-архивов</strong><br>
+  Плавный Pinterest-стиль, поддержка фото, видео и GIF, умный черный список, встроенный менеджер загрузок и автообновление.
+</p>
 
-## Что умеет
+<p align="center">
+  <img src="https://img.shields.io/badge/Version-2.0.2-blueviolet?style=for-the-badge" alt="Version 2.0.2" />
+  <img src="https://img.shields.io/badge/Flutter-3.47+-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter" />
+  <img src="https://img.shields.io/badge/Platform-Android%20%7C%20Linux%20%7C%20Windows-brightgreen?style=for-the-badge" alt="Platforms" />
+  <img src="https://img.shields.io/badge/Gitea-RarDog%2FLunaris-orange?style=for-the-badge&logo=gitea&logoColor=white" alt="Gitea" />
+</p>
 
-- Masonry feed с несколькими провайдерами и естественно перемешанной выдачей.
-- Поиск тегов через chip-input с подсказками из активных API.
-- Избранное, история просмотров, коллекции и пакетное добавление в коллекции.
-- Smart blacklist/whitelist по тегам, группам тегов, рейтингу, провайдеру, типу файла и score.
-- Details viewer для фото, GIF, видео и SWF на Windows.
-- Удобный видеоплеер с fullscreen, repeat, mute, half-volume и сохранением настроек.
-- Mobile image zoom: pinch-to-zoom и double tap в details.
-- Опциональное автоскачивание новых favorites с отдельным удалением локального файла без удаления из избранного.
-- Отдельная вкладка Artists для Kemono/Coomer без смешивания с обычной booru-лентой.
-- Управление провайдерами, health-check и provider diagnostics.
-- Кастомизация интерфейса: тема, язык RU/EN, акцентный цвет, видимые вкладки, beta/experimental обновления.
-- Экспорт и импорт настроек JSON.
-- Проверка Gitea Releases и скачивание APK/Windows installer прямо из приложения.
+---
 
-## Скачать
+## ✨ Основные возможности
 
-Готовые сборки лежат в Gitea Releases:
+- **📱 Плавная лента в стиле Pinterest**: Masonry-сетка с адаптивным количеством колонок для мобильных и ПК.
+- **⚡ Сверхбыстрые видео-превью**: Мгновенная загрузка превью без фризов и лишней нагрузки на процессор и память смартфона.
+- **↔️ Листание постов влево и вправо**: Полноэкранный пейджер с плавными свайпами между фото и видео во всех разделах (Лента, Авторы, Избранное, Коллекции, История просмотров).
+- **🖼️ Мульти-медиа в одном посте**: Удобная карусель с индикатором `1 / 4` для постов с несколькими файлами.
+- **⭐ Любимые авторы сверху**: Верхняя панель со «сториз»-аватарами любимых создателей и мгновенным просмотром их свежих фото и видео.
+- **🐾 Поддержка Pawchive**: Интеграция с `pawchive.pw` для просмотра профилей авторов, связанных аккаунтов, тегов и работ с Patreon, Fanbox, Fantia, Discord, Boosty и др.
+- **🔍 Умный поиск и автодополнение**: Интерактивные чипсы тегов с подсказками от активных API. Быстрое исключение (`-tag`), добавление (`+tag`) или отправка в черный список по долгому тапу.
+- **🛡️ Продвинутый Blacklist / Whitelist**: Фильтрация по тегам, категориям, рейтингу контента (safe/questionable/explicit), провайдерам и минимальному score.
+- **🎬 Встроенный плеер**: Удобное воспроизведение WebM / MP4, запоминание настроек звука, fullscreen и повтор.
+- **💾 Менеджер загрузок и коллекции**: Скачивание оригиналов в высоком качестве, тематические папки-коллекции и автозагрузка избранного.
+- **🔄 Встроенное автообновление**: Проверка и скачивание свежих релизов напрямую из личного репозитория Gitea.
 
-[Lunaris 2.0.1](https://gitea.rardogsynapse.online/RarDog/RuleGelApp/releases/tag/v2.0.1)
+---
 
-- `Lunaris-v2.0.1.apk` — APK для Android.
-- `LunarisSetup-v2.0.1.exe` — установщик для Windows.
-- `LunarisPortable-v2.0.1.zip` — portable-версия для Windows.
+## 🌐 Активные провайдеры
 
-## Провайдеры
+| Провайдер | Тип API | Назначение |
+|---|---|---|
+| **Gelbooru** | XML / JSON API | Основная база аниме-артов |
+| **Rule34** | Booru API | Популярный booru-источник |
+| **Realbooru** | HTML Scraper | Фото и реалистичный контент |
+| **e621 / e926** | JSON API | Фурри- и антро-арт с богатой системой тегов |
+| **Pawchive** | REST API v1 | Архивы авторов Patreon, Pixiv Fanbox, Fantia и др. |
 
-Обычный feed:
+---
 
-- Gelbooru
-- Rule34
-- Safebooru
-- Konachan
-- Yande.re
-- e621 / e926
-- Xbooru
-- CosBooru
-- Realbooru отключен по умолчанию, если публичный API недоступен
+## 📥 Скачать приложение
 
-Artists flow:
+Готовые сборки для всех поддерживаемых платформ доступны на странице релизов:
 
-- Kemono
-- Coomer
+🔗 **[Gitea Releases (RarDog/Lunaris)](https://gitea.rardogsynapse.online/RarDog/Lunaris/releases)**
 
-Kemono/Coomer остаются отдельным разделом Artists и не попадают в общий booru feed.
+- **Android**: `Lunaris-v2.0.2.apk`
+- **Linux (x64)**: `Lunaris-v2.0.2-linux-x64.tar.gz`
+- **Windows**: `LunarisSetup-v2.0.2.exe` / `LunarisPortable-v2.0.2.zip`
 
-## Архитектура
+---
 
-- `lib/core` — HTTP, база, кеш, ошибки, Result и утилиты.
-- `lib/backend/models` — доменные модели.
-- `lib/backend/providers` — API-провайдеры и ProviderManager.
-- `lib/backend/repositories` — доступ к локальному Isar-хранилищу.
-- `lib/backend/services` — Feed/Search/Favorites/Collections/Settings/Diagnostics/Downloads/Updates.
-- `lib/backend/di` — Riverpod providers для backend/core.
-- `lib/app` — приложение, роутер, тема, локализация, motion и responsive helpers.
-- `lib/shared/widgets` — общие UI-компоненты.
-- `lib/features` — экраны и контроллеры фич.
+## 🛠️ Сборка из исходников
 
-## Запуск
+### Требования
+- Flutter SDK `>= 3.19.0`
+- OpenJDK 17
+- Android SDK (для сборки APK)
+- Clang / CMake / GTK-3 (для сборки под Linux)
+
+### Команды разработки
 
 ```bash
+# Клонирование репозитория
+git clone https://gitea.rardogsynapse.online/RarDog/Lunaris.git
+cd Lunaris
+
+# Установка зависимостей
 flutter pub get
-flutter run -d windows
-flutter run -d android
-```
 
-## Сборка
-
-```bash
+# Запуск тестов и анализатора
 flutter analyze
 flutter test
-flutter build apk
-flutter build windows
+
+# Запуск на подключенном устройстве
+flutter run
 ```
 
-Windows installer собирается через Inno Setup:
+### Сборка релизов
 
-```powershell
-ISCC.exe installer\Lunaris.iss
+```bash
+# Android APK
+flutter build apk --release
+
+# Linux x64 Bundle
+flutter build linux --release
+
+# Windows Bundle
+flutter build windows --release
 ```
 
-## Как добавить провайдера
+---
 
-1. Создать класс, реализующий `ContentProvider`.
-2. Добавить mapper к единой модели `Post`.
-3. Зарегистрировать `apiType` в `ProviderFactory`.
-4. Добавить seed config в `ProviderRepository`, если провайдер нужен по умолчанию.
-5. Добавить тесты parser/provider factory.
+## 🏛️ Архитектура
 
-## Безопасность
+```
+lib/
+ ├── app/               # Роутер, тема, локализация (RU/EN), анимации
+ ├── backend/
+ │    ├── di/           # Riverpod providers для сервисов
+ │    ├── models/       # Post, ArtistProfile, AppSettings, AppUpdateInfo
+ │    ├── providers/    # Реализации API (Gelbooru, Rule34, Pawchive и др.)
+ │    ├── repositories/ # Доступ к локальной БД Isar
+ │    └── services/     # Бизнес-логика (Feed, Search, Favorites, Downloads, Updates)
+ ├── core/              # Сеть (Dio), база данных (Isar), ошибки и кеши
+ ├── features/          # Модули экранов (feed, post, artists, favorites, settings)
+ └── shared/widgets/    # Переиспользуемые виджеты (PostCard, MasonryGrid, TagChip)
+```
 
-- Feed работает только с metadata/preview и не скачивает original/full files автоматически.
-- Загрузка файлов происходит только по явному действию пользователя или при включенной настройке auto-download favorites.
-- Приложение уважает API и rate limits сайтов.
-- NSFW/blur/blacklist настраиваются локально.
-- API keys/custom headers хранятся локально и экспортируются только через явный export settings.
-- Локальные пути скачанных файлов не попадают в JSON export/import.
+---
+
+## 🔒 Приватность и безопасность
+
+- **Полная автономность**: Приложение не отправляет телеметрию и работает без внешних серверов-посредников.
+- **Локальное хранение**: Все настройки, история поиска, черный список и избранное хранятся исключительно на вашем устройстве в локальной базе Isar.
+- **Бережное отношение к трафику**: В ленте загружаются только оптимизированные превью. Тяжелые оригиналы и видео загружаются только при открытии или скачивании.

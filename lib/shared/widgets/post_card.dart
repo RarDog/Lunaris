@@ -154,7 +154,9 @@ class _PostCardState extends ConsumerState<PostCard> {
                           (constraints.maxWidth * dpr).round().clamp(320, 1800);
                       final headers = _headersFor(post);
                       final videoUrls = MediaUrlSelector.video(post);
-                      if (_resolvedPost != null &&
+                      if (!mobile &&
+                          _hovered &&
+                          _resolvedPost != null &&
                           MediaUrlSelector.isVideo(post) &&
                           videoUrls.isNotEmpty) {
                         return _FeedVideoPreview(

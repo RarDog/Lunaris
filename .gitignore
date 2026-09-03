@@ -10,3 +10,5 @@ dist/
 .flutter-plugins-dependencies
 android/local.properties
 *.log
+*.apk
+*.tar.gz

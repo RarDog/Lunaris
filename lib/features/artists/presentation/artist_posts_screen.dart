@@ -88,7 +88,10 @@ class ArtistPostsScreen extends ConsumerWidget {
                 viewedKeys: viewedKeys,
                 onOpen: (post) => context.push(
                   '/post/${post.providerId}/${post.id}',
-                  extra: post,
+                  extra: PostNavigationContext(
+                    currentPost: post,
+                    posts: items,
+                  ),
                 ),
                 onFavorite: (post) async {
                   if (favoriteKeys.contains(post.cacheKey)) {

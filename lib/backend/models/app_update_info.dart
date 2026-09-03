@@ -9,6 +9,7 @@ class AppUpdateInfo {
     this.apkUrl,
     this.windowsInstallerUrl,
     this.portableZipUrl,
+    this.linuxTarGzUrl,
   });
 
   final String version;
@@ -20,7 +21,11 @@ class AppUpdateInfo {
   final String? apkUrl;
   final String? windowsInstallerUrl;
   final String? portableZipUrl;
+  final String? linuxTarGzUrl;
 
   bool get hasAssets =>
-      apkUrl != null || windowsInstallerUrl != null || portableZipUrl != null;
+      apkUrl != null ||
+      windowsInstallerUrl != null ||
+      portableZipUrl != null ||
+      linuxTarGzUrl != null;
 }

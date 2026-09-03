@@ -114,3 +114,14 @@ class Post {
             const {},
       );
 }
+
+class PostNavigationContext {
+  const PostNavigationContext({
+    required this.currentPost,
+    required this.posts,
+  });
+
+  final Post currentPost;
+  final List<Post> posts;
+}
+

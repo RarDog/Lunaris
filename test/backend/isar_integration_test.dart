@@ -82,16 +82,9 @@ void main() {
     expect(providers.map((provider) => provider.id), [
       'gelbooru',
       'rule34',
-      'safebooru',
-      'konachan',
-      'yandere',
+      'realbooru',
       'e621',
       'e926',
-      'realbooru',
-      'xbooru',
-      'paheal',
-      'kemono',
-      'coomer',
       'pawchive',
     ]);
     final pawchive =
@@ -104,21 +97,13 @@ void main() {
     expect(realbooru.enabled, isTrue);
     expect(realbooru.apiType, 'realbooru_html');
     expect(realbooru.baseUrl, 'https://realbooru.com');
-    expect(providers.where((provider) => provider.id == 'cosbooru'), isEmpty);
-    final xbooru = providers.singleWhere((provider) => provider.id == 'xbooru');
-    expect(xbooru.enabled, isTrue);
-    expect(xbooru.baseUrl, 'https://xbooru.com');
-    expect(xbooru.apiType, 'gelbooru');
-    final paheal = providers.singleWhere((provider) => provider.id == 'paheal');
-    expect(paheal.enabled, isTrue);
-    expect(paheal.baseUrl, 'https://rule34.paheal.net');
-    expect(paheal.apiType, 'paheal');
-    final kemono = providers.singleWhere((provider) => provider.id == 'kemono');
-    final coomer = providers.singleWhere((provider) => provider.id == 'coomer');
-    expect(kemono.enabled, isTrue);
-    expect(kemono.apiType, 'kemono');
-    expect(coomer.enabled, isFalse);
-    expect(coomer.apiType, 'coomer');
+    expect(providers.where((provider) => provider.id == 'safebooru'), isEmpty);
+    expect(providers.where((provider) => provider.id == 'konachan'), isEmpty);
+    expect(providers.where((provider) => provider.id == 'yandere'), isEmpty);
+    expect(providers.where((provider) => provider.id == 'xbooru'), isEmpty);
+    expect(providers.where((provider) => provider.id == 'paheal'), isEmpty);
+    expect(providers.where((provider) => provider.id == 'kemono'), isEmpty);
+    expect(providers.where((provider) => provider.id == 'coomer'), isEmpty);
   });
 
   test('provider repository disables old CosBooru config without deleting it',
@@ -157,11 +142,11 @@ void main() {
       providerRepository: providerRepository,
     );
 
-    await service.saveEnabledProviders(['safebooru']);
+    await service.saveEnabledProviders(['realbooru']);
     final providers = (await providerRepository.getProviders() as Success).data;
 
     expect(
-        providers.singleWhere((provider) => provider.id == 'safebooru').enabled,
+        providers.singleWhere((provider) => provider.id == 'realbooru').enabled,
         isTrue);
     expect(
         providers.singleWhere((provider) => provider.id == 'gelbooru').enabled,
