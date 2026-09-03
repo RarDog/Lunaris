@@ -35,7 +35,38 @@ class ViewedHistoryService {
     );
   }
 
+  Future<Result<List<ViewedPostEntry>>> getViewedPostEntries() async {
+    final viewedResult = await _repository.recent();
+    if (viewedResult is Error<List<ViewedPost>>) {
+      return Error(viewedResult.failure);
+    }
+    final viewed = (viewedResult as Success<List<ViewedPost>>).data;
+    final postsResult = await _postRepository.getCachedPostsByKeys(
+      viewed.map((item) => item.viewedKey),
+    );
+    if (postsResult is Error<List<Post>>) {
+      return Error(postsResult.failure);
+    }
+    final postsByKey = {
+      for (final post in (postsResult as Success<List<Post>>).data)
+        post.cacheKey: post,
+    };
+    return Success([
+      for (final item in viewed)
+        if (postsByKey[item.viewedKey] != null)
+          ViewedPostEntry(
+              post: postsByKey[item.viewedKey]!, viewedAt: item.viewedAt),
+    ]);
+  }
+
   Future<Result<void>> clearHistory() {
     return _repository.clear();
   }
+}
+
+class ViewedPostEntry {
+  const ViewedPostEntry({required this.post, required this.viewedAt});
+
+  final Post post;
+  final DateTime viewedAt;
 }

@@ -13,6 +13,17 @@ class Rule34Provider extends GelbooruProvider {
   });
 
   @override
+  String postPageUrl(Post post) =>
+      'https://rule34.xxx/index.php?page=post&s=view&id=${post.id}';
+
+  @override
+  Map<String, String> mediaHeaders(Post post) => const {
+        'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
+        'Accept': '*/*',
+        'Referer': 'https://rule34.xxx/',
+      };
+
+  @override
   Future<List<Post>> searchPosts({
     required List<String> tags,
     required int page,

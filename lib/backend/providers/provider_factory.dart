@@ -7,8 +7,9 @@ import 'e621_provider.dart';
 import 'gelbooru_provider.dart';
 import 'kemono_provider.dart';
 import 'moebooru_provider.dart';
-import 'realbooru_provider.dart';
+import 'realbooru_html_provider.dart';
 import 'rule34_provider.dart';
+import 'rule34_paheal_provider.dart';
 
 class ProviderFactory {
   ContentProvider create(ContentProviderConfig config) {
@@ -41,13 +42,20 @@ class ProviderFactory {
           dioClient: client,
           queryParameters: queryParameters,
         );
-      case 'realbooru':
-        return RealbooruProvider(
+      case 'paheal':
+      case 'rule34_paheal':
+        return Rule34PahealProvider(
           id: config.id,
           name: config.name,
           baseUrl: config.baseUrl,
           dioClient: client,
-          queryParameters: queryParameters,
+        );
+      case 'realbooru_html':
+        return RealbooruHtmlProvider(
+          id: config.id,
+          name: config.name,
+          baseUrl: config.baseUrl,
+          dioClient: client,
         );
       case 'danbooru':
         return DanbooruProvider(

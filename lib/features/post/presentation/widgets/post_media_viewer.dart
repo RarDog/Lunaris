@@ -1,13 +1,11 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:webview_windows/webview_windows.dart';
 
 import '../../../../app/motion.dart';
 import '../../../../backend/backend.dart';
@@ -26,8 +24,10 @@ class PostMediaViewer extends StatefulWidget {
     this.initialCoverVideo = false,
     this.initialHalfVolume = false,
     this.qualityMode = MediaQualityMode.auto,
+    this.mediaHeaders = const {},
     this.onPlaybackSnapshot,
     this.onPlaybackPreferencesChanged,
+    this.onMediaGestureLockChanged,
     super.key,
   });
 
@@ -40,8 +40,10 @@ class PostMediaViewer extends StatefulWidget {
   final bool initialCoverVideo;
   final bool initialHalfVolume;
   final MediaQualityMode qualityMode;
+  final Map<String, String> mediaHeaders;
   final ValueChanged<VideoPlaybackSnapshot>? onPlaybackSnapshot;
   final ValueChanged<VideoPlaybackSnapshot>? onPlaybackPreferencesChanged;
+  final ValueChanged<bool>? onMediaGestureLockChanged;
 
   @override
   State<PostMediaViewer> createState() => _PostMediaViewerState();
@@ -66,6 +68,7 @@ class _PostMediaViewerState extends State<PostMediaViewer>
   StreamSubscription<String>? _errorSubscription;
   StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<bool>? _playingSubscription;
+  DateTime? _lastSnapshotEmitAt;
 
   @override
   void initState() {
@@ -110,11 +113,7 @@ class _PostMediaViewerState extends State<PostMediaViewer>
   Widget build(BuildContext context) {
     super.build(context);
     if (_isSwf(widget.post)) {
-      return _SwfMediaViewer(
-        post: widget.post,
-        url: _swfUrl(widget.post),
-        fullscreen: widget.fullscreen,
-      );
+      return const _UnsupportedSwfPanel();
     }
 
     if (_controller != null) {
@@ -202,34 +201,42 @@ class _PostMediaViewerState extends State<PostMediaViewer>
     }
 
     final url = _imageUrls.isEmpty ? '' : _imageUrls[_imageIndex];
+    final headers = _headersFor(widget.post);
     final image = CachedNetworkImage(
       key: ValueKey(url),
       imageUrl: url,
-      httpHeaders: _headersFor(widget.post),
+      httpHeaders: headers,
       fit: BoxFit.contain,
       placeholder: (context, url) =>
           const Center(child: CircularProgressIndicator()),
       errorWidget: (context, url, error) {
-        if (_imageIndex < _imageUrls.length - 1) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) setState(() => _imageIndex++);
-          });
-          return const Center(child: CircularProgressIndicator());
-        }
-        return const Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.broken_image_rounded, size: 48),
-              SizedBox(height: 8),
-              Text('Could not load image'),
-            ],
-          ),
+        return _DioImageFallback(
+          imageUrl: url,
+          headers: headers,
+          fit: BoxFit.contain,
+          onFailed: _advanceImageFallback,
         );
       },
     );
     final allowPinchZoom = MediaQuery.sizeOf(context).width < 700;
-    return allowPinchZoom ? _ZoomableImage(child: image) : image;
+    final child = allowPinchZoom
+        ? _ZoomableImage(
+            onGestureLockChanged: widget.onMediaGestureLockChanged,
+            child: image,
+          )
+        : image;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.hasBoundedWidth && constraints.hasBoundedHeight) {
+          return SizedBox(
+            width: constraints.maxWidth,
+            height: constraints.maxHeight,
+            child: child,
+          );
+        }
+        return child;
+      },
+    );
   }
 
   void _initializeVideo() {
@@ -242,18 +249,12 @@ class _PostMediaViewerState extends State<PostMediaViewer>
     );
     _errorSubscription = _player!.stream.error.listen((message) {
       if (!mounted) return;
-      if (_videoIndex < _videoUrls.length - 1) {
-        _videoIndex++;
-        _openVideo(play: false);
-        return;
-      }
-      setState(() => _videoError = message);
-      _showControls();
+      unawaited(_handleVideoError(message));
     });
     _positionSubscription = _player!.stream.position.listen((_) {
       final snapshot = _snapshot();
       _playbackMemory[widget.post.cacheKey] = snapshot;
-      widget.onPlaybackSnapshot?.call(snapshot);
+      _emitPlaybackSnapshotThrottled(snapshot);
     });
     _playingSubscription = _player!.stream.playing.listen((_) {
       final snapshot = _snapshot();
@@ -271,18 +272,35 @@ class _PostMediaViewerState extends State<PostMediaViewer>
     final initialPosition = widget.initialPosition > Duration.zero
         ? widget.initialPosition
         : remembered?.position ?? Duration.zero;
-    setState(() => _videoError = null);
-    await player.open(
-      Media(
-        _videoUrls[_videoIndex],
-        httpHeaders: _headersFor(widget.post),
-      ),
-      play: false,
-    );
-    if (initialPosition > Duration.zero) {
-      await player.seek(initialPosition);
+    final shouldPlay = play || (remembered?.playing ?? false);
+    try {
+      setState(() => _videoError = null);
+      await player.stop();
+      await player.open(
+        Media(
+          _videoUrls[_videoIndex],
+          httpHeaders: _headersFor(widget.post),
+        ),
+        play: false,
+      );
+      if (initialPosition > Duration.zero) {
+        await player.seek(initialPosition);
+      }
+      if (shouldPlay) await player.play();
+    } catch (error) {
+      await _handleVideoError(error.toString(), play: shouldPlay);
     }
-    if (play) await player.play();
+  }
+
+  Future<void> _handleVideoError(String message, {bool play = false}) async {
+    if (_videoIndex < _videoUrls.length - 1) {
+      _videoIndex++;
+      await _openVideo(play: play);
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _videoError = message);
+    _showControls();
   }
 
   Future<void> _retryVideo() async {
@@ -338,29 +356,19 @@ class _PostMediaViewerState extends State<PostMediaViewer>
     return value.contains('swf') || value.contains('.swf');
   }
 
-  String _swfUrl(Post post) {
-    for (final url in [post.fileUrl, post.sampleUrl, post.source ?? '']) {
-      final value = url.trim();
-      if (value.toLowerCase().contains('.swf')) return value;
-    }
-    return post.fileUrl.trim();
-  }
-
   Map<String, String> _headersFor(Post post) {
     return {
       'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
       'Accept': '*/*',
-      if (post.providerName.toLowerCase().contains('gelbooru') ||
-          post.fileUrl.contains('gelbooru.com') ||
-          post.sampleUrl.contains('gelbooru.com') ||
-          post.previewUrl.contains('gelbooru.com'))
-        'Referer': 'https://gelbooru.com/',
-      if (post.providerName.toLowerCase().contains('rule34') ||
-          post.fileUrl.contains('rule34') ||
-          post.sampleUrl.contains('rule34') ||
-          post.previewUrl.contains('rule34'))
-        'Referer': 'https://rule34.xxx/',
+      ...widget.mediaHeaders,
     };
+  }
+
+  void _advanceImageFallback() {
+    if (_imageIndex >= _imageUrls.length - 1) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _imageIndex++);
+    });
   }
 
   void _showControls() {
@@ -455,8 +463,17 @@ class _PostMediaViewerState extends State<PostMediaViewer>
   void _emitPlaybackPreferences() {
     final snapshot = _snapshot();
     _playbackMemory[widget.post.cacheKey] = snapshot;
-    widget.onPlaybackSnapshot?.call(snapshot);
     widget.onPlaybackPreferencesChanged?.call(snapshot);
+  }
+
+  void _emitPlaybackSnapshotThrottled(VideoPlaybackSnapshot snapshot) {
+    final now = DateTime.now();
+    final last = _lastSnapshotEmitAt;
+    if (last != null && now.difference(last) < const Duration(seconds: 5)) {
+      return;
+    }
+    _lastSnapshotEmitAt = now;
+    widget.onPlaybackSnapshot?.call(snapshot);
   }
 
   Future<void> _togglePlay() async {
@@ -475,264 +492,25 @@ class _TogglePlayIntent extends Intent {
   const _TogglePlayIntent();
 }
 
-class _SwfMediaViewer extends StatelessWidget {
-  const _SwfMediaViewer({
-    required this.post,
-    required this.url,
-    required this.fullscreen,
-  });
-
-  final Post post;
-  final String url;
-  final bool fullscreen;
+class _UnsupportedSwfPanel extends StatelessWidget {
+  const _UnsupportedSwfPanel();
 
   @override
   Widget build(BuildContext context) {
-    if (url.isEmpty) {
-      return const Center(child: Text('SWF URL is empty'));
-    }
-    if (Platform.isWindows) {
-      return _WindowsRuffleViewer(url: url, fullscreen: fullscreen);
-    }
-    return _SwfUnsupportedPanel(url: url);
-  }
-}
-
-class _WindowsRuffleViewer extends StatefulWidget {
-  const _WindowsRuffleViewer({
-    required this.url,
-    required this.fullscreen,
-  });
-
-  final String url;
-  final bool fullscreen;
-
-  @override
-  State<_WindowsRuffleViewer> createState() => _WindowsRuffleViewerState();
-}
-
-class _WindowsRuffleViewerState extends State<_WindowsRuffleViewer> {
-  final _controller = WebviewController();
-  bool _loading = true;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _initialize();
-  }
-
-  @override
-  void didUpdateWidget(covariant _WindowsRuffleViewer oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.url != widget.url) {
-      _load();
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final child = ClipRRect(
-      borderRadius: BorderRadius.circular(widget.fullscreen ? 0 : 10),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (_controller.value.isInitialized) Webview(_controller),
-          if (_loading)
-            const ColoredBox(
-              color: Colors.black,
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          if (_error != null)
-            _SwfErrorPanel(
-              message: _error!,
-              url: widget.url,
-              onRetry: _load,
-            ),
-        ],
-      ),
-    );
-    if (widget.fullscreen) return child;
-    return AspectRatio(aspectRatio: 4 / 3, child: child);
-  }
-
-  Future<void> _initialize() async {
-    try {
-      await _controller.initialize();
-      _controller.loadingState.listen((state) {
-        if (!mounted) return;
-        setState(() => _loading = state == LoadingState.loading);
-      });
-      _controller.onLoadError.listen((error) {
-        if (!mounted) return;
-        setState(() => _error = 'Ruffle WebView error: $error');
-      });
-      await _load();
-    } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-        _error =
-            'Could not start Windows WebView2. Install WebView2 Runtime or open original.';
-      });
-    }
-  }
-
-  Future<void> _load() async {
-    if (!_controller.value.isInitialized) return;
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      await _controller.loadStringContent(_ruffleHtml(widget.url));
-    } catch (error) {
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-        _error = 'Could not load Ruffle viewer: $error';
-      });
-    }
-  }
-
-  String _ruffleHtml(String swfUrl) {
-    final escapedUrl = _htmlEscape(swfUrl);
-    return '''
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    html, body { margin: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
-    #stage { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
-    ruffle-player { width: 100%; height: 100%; background: #000; }
-  </style>
-  <script>
-    window.RufflePlayer = window.RufflePlayer || {};
-    window.RufflePlayer.config = {
-      autoplay: "on",
-      unmuteOverlay: "visible",
-      splashScreen: true,
-      letterbox: "on"
-    };
-  </script>
-  <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
-</head>
-<body>
-  <div id="stage">
-    <embed src="$escapedUrl" width="100%" height="100%">
-  </div>
-</body>
-</html>
-''';
-  }
-
-  String _htmlEscape(String value) {
-    return value
-        .replaceAll('&', '&amp;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;');
-  }
-}
-
-class _SwfUnsupportedPanel extends StatelessWidget {
-  const _SwfUnsupportedPanel({required this.url});
-
-  final String url;
-
-  @override
-  Widget build(BuildContext context) {
-    return _SwfErrorPanel(
-      message: Platform.isAndroid
-          ? 'Flash/SWF playback is desktop only.'
-          : 'SWF playback is available on Windows only in this build.',
-      url: url,
-    );
-  }
-}
-
-class _SwfErrorPanel extends StatelessWidget {
-  const _SwfErrorPanel({
-    required this.message,
-    required this.url,
-    this.onRetry,
-  });
-
-  final String message;
-  final String url;
-  final VoidCallback? onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return ColoredBox(
+    return const ColoredBox(
       color: Colors.black,
       child: Center(
         child: Padding(
-          padding: const EdgeInsets.all(22),
+          padding: EdgeInsets.all(22),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.extension_rounded,
-                  color: Colors.white, size: 48),
-              const SizedBox(height: 12),
+              Icon(Icons.extension_off_rounded, color: Colors.white, size: 48),
+              SizedBox(height: 12),
               Text(
-                'SWF / Flash',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(color: Colors.white),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                message,
+                'SWF / Flash is not supported in this build',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white70),
-              ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                alignment: WrapAlignment.center,
-                children: [
-                  if (onRetry != null)
-                    FilledButton.icon(
-                      onPressed: onRetry,
-                      icon: const Icon(Icons.refresh_rounded),
-                      label: const Text('Retry'),
-                    ),
-                  FilledButton.tonalIcon(
-                    onPressed: () => launchUrl(
-                      Uri.parse(url),
-                      mode: LaunchMode.externalApplication,
-                    ),
-                    icon: const Icon(Icons.open_in_new_rounded),
-                    label: const Text('Open original'),
-                  ),
-                  FilledButton.tonalIcon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor:
-                          scheme.primaryContainer.withValues(alpha: 0.82),
-                    ),
-                    onPressed: () => launchUrl(
-                      Uri.parse(
-                        'https://ruffle.rs/demo/?url=${Uri.encodeComponent(url)}',
-                      ),
-                      mode: LaunchMode.externalApplication,
-                    ),
-                    icon: const Icon(Icons.play_circle_outline_rounded),
-                    label: const Text('Open in Ruffle'),
-                  ),
-                ],
+                style: TextStyle(color: Colors.white),
               ),
             ],
           ),
@@ -1030,6 +808,26 @@ class _VideoSurface extends StatelessWidget {
         ),
         if (errorMessage != null)
           VideoErrorOverlay(message: errorMessage!, onRetry: onRetry),
+        IgnorePointer(
+          ignoring: !controlsVisible || errorMessage != null,
+          child: AnimatedOpacity(
+            opacity: controlsVisible || errorMessage != null ? 1 : 0,
+            duration: AppMotion.duration(context, 180),
+            child: _VideoControls(
+              player: player,
+              muted: muted,
+              halfVolume: halfVolume,
+              loopVideo: loopVideo,
+              coverVideo: coverVideo,
+              fullscreen: fullscreen,
+              onToggleFit: onToggleFit,
+              onToggleMute: onToggleMute,
+              onToggleHalfVolume: onToggleHalfVolume,
+              onToggleLoop: onToggleLoop,
+              onFullscreen: onFullscreen,
+            ),
+          ),
+        ),
         if (errorMessage == null)
           StreamBuilder<bool>(
             stream: player.stream.playing,
@@ -1075,26 +873,6 @@ class _VideoSurface extends StatelessWidget {
               );
             },
           ),
-        IgnorePointer(
-          ignoring: !controlsVisible || errorMessage != null,
-          child: AnimatedOpacity(
-            opacity: controlsVisible || errorMessage != null ? 1 : 0,
-            duration: AppMotion.duration(context, 180),
-            child: _VideoControls(
-              player: player,
-              muted: muted,
-              halfVolume: halfVolume,
-              loopVideo: loopVideo,
-              coverVideo: coverVideo,
-              fullscreen: fullscreen,
-              onToggleFit: onToggleFit,
-              onToggleMute: onToggleMute,
-              onToggleHalfVolume: onToggleHalfVolume,
-              onToggleLoop: onToggleLoop,
-              onFullscreen: onFullscreen,
-            ),
-          ),
-        ),
       ],
     );
 
@@ -1170,10 +948,108 @@ class VideoErrorOverlay extends StatelessWidget {
   }
 }
 
+class _DioImageFallback extends StatefulWidget {
+  const _DioImageFallback({
+    required this.imageUrl,
+    required this.headers,
+    required this.fit,
+    required this.onFailed,
+  });
+
+  final String imageUrl;
+  final Map<String, String> headers;
+  final BoxFit fit;
+  final VoidCallback onFailed;
+
+  @override
+  State<_DioImageFallback> createState() => _DioImageFallbackState();
+}
+
+class _DioImageFallbackState extends State<_DioImageFallback> {
+  late final Future<Uint8List> _bytes = _load();
+  bool _reportedFailure = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Uint8List>(
+      future: _bytes,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final bytes = snapshot.data;
+        if (snapshot.hasError || bytes == null || bytes.isEmpty) {
+          _reportFailure();
+          return const _ImageLoadError();
+        }
+        return Image.memory(
+          bytes,
+          fit: widget.fit,
+          gaplessPlayback: true,
+          errorBuilder: (context, error, stackTrace) {
+            _reportFailure();
+            return const _ImageLoadError();
+          },
+        );
+      },
+    );
+  }
+
+  Future<Uint8List> _load() async {
+    final response = await Dio().get<List<int>>(
+      widget.imageUrl,
+      options: Options(
+        responseType: ResponseType.bytes,
+        headers: widget.headers,
+        followRedirects: true,
+        receiveTimeout: const Duration(seconds: 20),
+        sendTimeout: const Duration(seconds: 10),
+      ),
+    );
+    final data = response.data;
+    if (response.statusCode == null ||
+        response.statusCode! < 200 ||
+        response.statusCode! >= 300 ||
+        data == null ||
+        data.isEmpty) {
+      throw StateError('Could not load image');
+    }
+    return Uint8List.fromList(data);
+  }
+
+  void _reportFailure() {
+    if (_reportedFailure) return;
+    _reportedFailure = true;
+    widget.onFailed();
+  }
+}
+
+class _ImageLoadError extends StatelessWidget {
+  const _ImageLoadError();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.broken_image_rounded, size: 48),
+          SizedBox(height: 8),
+          Text('Could not load image'),
+        ],
+      ),
+    );
+  }
+}
+
 class _ZoomableImage extends StatefulWidget {
-  const _ZoomableImage({required this.child});
+  const _ZoomableImage({
+    required this.child,
+    this.onGestureLockChanged,
+  });
 
   final Widget child;
+  final ValueChanged<bool>? onGestureLockChanged;
 
   @override
   State<_ZoomableImage> createState() => _ZoomableImageState();
@@ -1183,31 +1059,67 @@ class _ZoomableImageState extends State<_ZoomableImage> {
   final _controller = TransformationController();
   TapDownDetails? _doubleTapDetails;
   bool _zoomed = false;
+  int _pointerCount = 0;
+  bool _locked = false;
 
   @override
   void dispose() {
+    _setLocked(false);
     _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onDoubleTapDown: (details) => _doubleTapDetails = details,
-      onDoubleTap: _toggleZoom,
-      child: InteractiveViewer(
-        transformationController: _controller,
-        minScale: 1,
-        maxScale: 5,
-        panEnabled: _zoomed,
-        scaleEnabled: true,
-        clipBehavior: Clip.none,
-        onInteractionEnd: (_) {
-          final scale = _controller.value.getMaxScaleOnAxis();
-          if (mounted) setState(() => _zoomed = scale > 1.03);
-        },
-        child: widget.child,
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final hasFrame =
+            constraints.hasBoundedWidth && constraints.hasBoundedHeight;
+        final child = hasFrame
+            ? SizedBox(
+                width: constraints.maxWidth,
+                height: constraints.maxHeight,
+                child: widget.child,
+              )
+            : widget.child;
+        return Listener(
+          onPointerDown: (_) {
+            _pointerCount++;
+            if (_pointerCount >= 2 || _zoomed) {
+              _setLocked(true);
+            }
+          },
+          onPointerUp: (_) => _releasePointer(),
+          onPointerCancel: (_) => _releasePointer(),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onDoubleTapDown: (details) => _doubleTapDetails = details,
+            onDoubleTap: _toggleZoom,
+            child: InteractiveViewer(
+              transformationController: _controller,
+              minScale: 1,
+              maxScale: 6,
+              boundaryMargin: const EdgeInsets.all(160),
+              panEnabled: _zoomed,
+              scaleEnabled: true,
+              clipBehavior: Clip.none,
+              onInteractionStart: (_) {
+                if (_pointerCount >= 2 || _zoomed) _setLocked(true);
+              },
+              onInteractionEnd: (_) {
+                final scale = _controller.value.getMaxScaleOnAxis();
+                final nextZoomed = scale > 1.03;
+                if (!nextZoomed) {
+                  _controller.value = Matrix4.identity();
+                }
+                if (mounted) setState(() => _zoomed = nextZoomed);
+                _setLocked(nextZoomed || _pointerCount >= 2);
+              },
+              child: child,
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -1216,12 +1128,26 @@ class _ZoomableImageState extends State<_ZoomableImage> {
     if (_zoomed) {
       _controller.value = Matrix4.identity();
       setState(() => _zoomed = false);
+      _setLocked(false);
       return;
     }
+    const scale = 2.5;
     _controller.value = Matrix4.identity()
-      ..translateByDouble(-tap.dx * 1.3, -tap.dy * 1.3, 0, 1)
-      ..scaleByDouble(2.3, 2.3, 1, 1);
+      ..translateByDouble(-tap.dx * (scale - 1), -tap.dy * (scale - 1), 0, 1)
+      ..scaleByDouble(scale, scale, 1, 1);
     setState(() => _zoomed = true);
+    _setLocked(true);
+  }
+
+  void _releasePointer() {
+    if (_pointerCount > 0) _pointerCount--;
+    if (_pointerCount == 0 && !_zoomed) _setLocked(false);
+  }
+
+  void _setLocked(bool value) {
+    if (_locked == value) return;
+    _locked = value;
+    widget.onGestureLockChanged?.call(value);
   }
 }
 

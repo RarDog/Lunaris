@@ -99,6 +99,83 @@ void main() {
     expect(find.text('new_tag'), findsOneWidget);
   });
 
+  testWidgets('old external value does not restore deleted chip',
+      (tester) async {
+    String? changed;
+    await tester.pumpWidget(_Harness(
+      child: TagInputSearchBar(
+        initialValue: 'old_tag keep_tag',
+        onSubmitted: (_) {},
+        onChanged: (value) {
+          changed = value;
+        },
+      ),
+    ));
+
+    await tester.tap(find.byIcon(Icons.close_rounded).first);
+    await tester.pump();
+    await tester.pumpWidget(_Harness(
+      child: TagInputSearchBar(
+        initialValue: 'old_tag keep_tag',
+        onSubmitted: (_) {},
+        onChanged: (value) {
+          changed = value;
+        },
+      ),
+    ));
+    await tester.pump();
+
+    expect(find.text('old_tag'), findsNothing);
+    expect(find.text('keep_tag'), findsOneWidget);
+    expect(changed, 'keep_tag');
+  });
+
+  testWidgets('focused draft is not replaced by stale external value',
+      (tester) async {
+    await tester.pumpWidget(_Harness(
+      child: TagInputSearchBar(
+        initialValue: 'old_tag',
+        onSubmitted: (_) {},
+      ),
+    ));
+
+    await tester.tap(find.byType(TextField));
+    await tester.enterText(find.byType(TextField), 'new_tag');
+    await tester.pumpWidget(_Harness(
+      child: TagInputSearchBar(
+        initialValue: 'old_tag',
+        onSubmitted: (_) {},
+      ),
+    ));
+    await tester.pump();
+
+    expect(find.text('old_tag'), findsOneWidget);
+    expect(find.text('new_tag'), findsOneWidget);
+  });
+
+  testWidgets('matching external draft does not become a chip while focused',
+      (tester) async {
+    await tester.pumpWidget(_Harness(
+      child: TagInputSearchBar(
+        initialValue: '',
+        onSubmitted: (_) {},
+      ),
+    ));
+
+    await tester.tap(find.byType(TextField));
+    await tester.enterText(find.byType(TextField), 'draft_tag');
+    await tester.pumpWidget(_Harness(
+      child: TagInputSearchBar(
+        initialValue: 'draft_tag',
+        onSubmitted: (_) {},
+      ),
+    ));
+    await tester.pump();
+
+    expect(find.byType(InputChip), findsNothing);
+    expect(find.text('draft_tag'), findsOneWidget);
+  });
+
   testWidgets('suggestion appends active tag as a chip', (tester) async {
     String? applied;
     await tester.pumpWidget(_Harness(
@@ -118,13 +195,44 @@ void main() {
       ),
     ));
 
+    await tester.tap(find.byType(TextField));
     await tester.enterText(find.byType(TextField), 'tou');
-    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.tap(find.text('touhou'));
     await tester.pump();
 
     expect(find.text('touhou'), findsWidgets);
     expect(applied, 'touhou');
+  });
+
+  testWidgets('stale suggestions are hidden for a newer active token',
+      (tester) async {
+    await tester.pumpWidget(_Harness(
+      child: SizedBox(
+        width: 360,
+        child: TagInputSearchBar(
+          suggestions: const [
+            TagSuggestion(
+              name: 'touhou',
+              category: TagCategory.copyright,
+              postCount: 1200,
+              providerId: 'gelbooru',
+            ),
+          ],
+          onSubmitted: (_) {},
+        ),
+      ),
+    ));
+
+    await tester.tap(find.byType(TextField));
+    await tester.enterText(find.byType(TextField), 'tou');
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('touhou'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'cat');
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('touhou'), findsNothing);
   });
 
   testWidgets('suggestions overlay does not resize search bar', (tester) async {
@@ -140,7 +248,7 @@ void main() {
               providerId: 'gelbooru',
             ),
             TagSuggestion(
-              name: 'tail',
+              name: 'tou_tail',
               category: TagCategory.general,
               postCount: 900,
               providerId: 'e621',
@@ -153,11 +261,12 @@ void main() {
 
     final initialHeight = tester.getSize(find.byType(TagInputSearchBar)).height;
     await tester.tap(find.byType(TextField));
-    await tester.pump();
+    await tester.enterText(find.byType(TextField), 'tou');
+    await tester.pump(const Duration(milliseconds: 300));
     await tester.pump();
 
     expect(find.text('touhou'), findsOneWidget);
-    expect(find.text('tail'), findsOneWidget);
+    expect(find.text('tou_tail'), findsOneWidget);
     expect(
         tester.getSize(find.byType(TagInputSearchBar)).height, initialHeight);
   });

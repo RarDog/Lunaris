@@ -28,7 +28,12 @@ class DownloadService {
     if (Platform.isAndroid) {
       final tempDir = await getTemporaryDirectory();
       final tempPath = p.join(tempDir.path, fileName);
-      await _dio.download(url, tempPath, onReceiveProgress: onProgress);
+      await _dio.download(
+        url,
+        tempPath,
+        onReceiveProgress: onProgress,
+        options: Options(headers: _headersFor(post)),
+      );
       final saved = await _channel.invokeMethod<String>('saveToDownloads', {
         'path': tempPath,
         'fileName': fileName,
@@ -39,7 +44,12 @@ class DownloadService {
 
     final location = await getSaveLocation(suggestedName: fileName);
     if (location == null) return null;
-    await _dio.download(url, location.path, onReceiveProgress: onProgress);
+    await _dio.download(
+      url,
+      location.path,
+      onReceiveProgress: onProgress,
+      options: Options(headers: _headersFor(post)),
+    );
     return location.path;
   }
 
@@ -119,5 +129,27 @@ class DownloadService {
     if (value.contains('.gif') || value.contains('gif')) return 'image/gif';
     if (value.contains('.png') || value.contains('png')) return 'image/png';
     return 'image/jpeg';
+  }
+
+  Map<String, String> _headersFor(Post post) {
+    final lower = '${post.providerId} ${post.providerName} '
+            '${post.previewUrl} ${post.sampleUrl} ${post.fileUrl}'
+        .toLowerCase();
+    return {
+      'User-Agent': lower.contains('realbooru') || lower.contains('paheal')
+          ? 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125 Mobile Safari/537.36'
+          : 'Lunaris/2.0.1 Flutter local booru browser',
+      'Accept': lower.contains('realbooru') || lower.contains('paheal')
+          ? 'video/webm,video/mp4,image/avif,image/webp,image/apng,image/*,*/*;q=0.8'
+          : '*/*',
+      if (lower.contains('gelbooru')) 'Referer': 'https://gelbooru.com/',
+      if (lower.contains('rule34') && !lower.contains('paheal'))
+        'Referer': 'https://rule34.xxx/',
+      if (lower.contains('realbooru'))
+        'Referer':
+            'https://realbooru.com/index.php?page=post&s=view&id=${post.id}',
+      if (lower.contains('paheal'))
+        'Referer': 'https://rule34.paheal.net/post/view/${post.id}',
+    };
   }
 }

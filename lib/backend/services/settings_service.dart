@@ -41,6 +41,7 @@ class AppSettings {
     required this.videoPlayerHalfVolume,
     required this.videoPlayerLoop,
     required this.videoPlayerCover,
+    required this.videoPlaybackPositions,
     required this.hiddenPostKeys,
     required this.diagnosticLogLines,
     required this.lastFeedTags,
@@ -82,6 +83,7 @@ class AppSettings {
   final bool videoPlayerHalfVolume;
   final bool videoPlayerLoop;
   final bool videoPlayerCover;
+  final Map<String, int> videoPlaybackPositions;
   final List<String> hiddenPostKeys;
   final List<String> diagnosticLogLines;
   final List<String> lastFeedTags;
@@ -108,7 +110,7 @@ class AppSettings {
     mobileColumns: 2,
     blurExplicitContent: true,
     allowDownloads: true,
-    autoDownloadFavorites: false,
+    autoDownloadFavorites: true,
     selectedFeedProviderIds: [],
     showPostBadges: true,
     defaultTopPeriodFilter: 'none',
@@ -123,6 +125,7 @@ class AppSettings {
     videoPlayerHalfVolume: false,
     videoPlayerLoop: false,
     videoPlayerCover: false,
+    videoPlaybackPositions: {},
     hiddenPostKeys: [],
     diagnosticLogLines: [],
     lastFeedTags: [],
@@ -165,6 +168,7 @@ class AppSettings {
     bool? videoPlayerHalfVolume,
     bool? videoPlayerLoop,
     bool? videoPlayerCover,
+    Map<String, int>? videoPlaybackPositions,
     List<String>? hiddenPostKeys,
     List<String>? diagnosticLogLines,
     List<String>? lastFeedTags,
@@ -212,6 +216,8 @@ class AppSettings {
           videoPlayerHalfVolume ?? this.videoPlayerHalfVolume,
       videoPlayerLoop: videoPlayerLoop ?? this.videoPlayerLoop,
       videoPlayerCover: videoPlayerCover ?? this.videoPlayerCover,
+      videoPlaybackPositions:
+          videoPlaybackPositions ?? this.videoPlaybackPositions,
       hiddenPostKeys: hiddenPostKeys ?? this.hiddenPostKeys,
       diagnosticLogLines: diagnosticLogLines ?? this.diagnosticLogLines,
       lastFeedTags: lastFeedTags ?? this.lastFeedTags,
@@ -256,6 +262,7 @@ class AppSettings {
         'videoPlayerHalfVolume': videoPlayerHalfVolume,
         'videoPlayerLoop': videoPlayerLoop,
         'videoPlayerCover': videoPlayerCover,
+        'videoPlaybackPositions': videoPlaybackPositions,
         'hiddenPostKeys': hiddenPostKeys,
         'diagnosticLogLines': diagnosticLogLines,
         'lastFeedTags': lastFeedTags,
@@ -334,6 +341,10 @@ class AppSettings {
             (json['videoPlayerLoop'] as bool?) ?? defaults.videoPlayerLoop,
         videoPlayerCover:
             (json['videoPlayerCover'] as bool?) ?? defaults.videoPlayerCover,
+        videoPlaybackPositions: Map<String, int>.from(
+          (json['videoPlaybackPositions'] as Map?) ??
+              defaults.videoPlaybackPositions,
+        ),
         hiddenPostKeys: List<String>.from(
           (json['hiddenPostKeys'] as List?) ?? defaults.hiddenPostKeys,
         ),
@@ -467,6 +478,30 @@ class SettingsService {
     if (result is Error<AppSettings>) return Error(result.failure);
     final settings = (result as Success<AppSettings>).data;
     return updateSettings(settings.copyWith(hiddenPostKeys: const []));
+  }
+
+  Future<Result<void>> saveVideoPlaybackPosition(
+    String cacheKey,
+    int milliseconds, {
+    int maxEntries = 300,
+  }) async {
+    if (cacheKey.isEmpty || milliseconds < 1000) return const Success(null);
+    final result = await getSettings();
+    if (result is Error<AppSettings>) return Error(result.failure);
+    final settings = (result as Success<AppSettings>).data;
+    final existing = settings.videoPlaybackPositions[cacheKey] ?? 0;
+    if ((existing - milliseconds).abs() < 1000) return const Success(null);
+    final positions = <String, int>{
+      ...settings.videoPlaybackPositions,
+      cacheKey: milliseconds,
+    };
+    if (positions.length > maxEntries) {
+      final removeCount = positions.length - maxEntries;
+      for (final key in positions.keys.take(removeCount).toList()) {
+        positions.remove(key);
+      }
+    }
+    return updateSettings(settings.copyWith(videoPlaybackPositions: positions));
   }
 
   Future<Result<void>> appendDiagnosticLog(String message) async {

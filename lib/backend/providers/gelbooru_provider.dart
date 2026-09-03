@@ -15,7 +15,9 @@ class GelbooruProvider
         ContentProvider,
         CommentProvider,
         TagSuggestionProvider,
-        TagMetadataProvider {
+        TagMetadataProvider,
+        PostPageProvider,
+        MediaHeadersProvider {
   GelbooruProvider({
     required this.id,
     required this.name,
@@ -35,6 +37,20 @@ class GelbooruProvider
   final Map<String, String> _queryParameters;
   Dio get dio => _dio;
   Map<String, String> get queryParameters => _queryParameters;
+
+  @override
+  String postPageUrl(Post post) =>
+      '$baseUrl/index.php?page=post&s=view&id=${post.id}';
+
+  @override
+  Map<String, String> mediaHeaders(Post post) {
+    final host = Uri.tryParse(baseUrl)?.host;
+    return {
+      'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
+      'Accept': '*/*',
+      if (host != null && host.isNotEmpty) 'Referer': '$baseUrl/',
+    };
+  }
 
   @override
   Future<List<Post>> searchPosts({

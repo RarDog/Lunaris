@@ -111,8 +111,8 @@ class ProviderRepository {
         id: 'realbooru',
         name: 'Realbooru',
         baseUrl: 'https://realbooru.com',
-        apiType: 'realbooru',
-        enabled: false,
+        apiType: 'realbooru_html',
+        enabled: true,
         priority: 7,
         timeoutSeconds: 20,
         customHeaders: const {},
@@ -132,14 +132,16 @@ class ProviderRepository {
         updatedAt: now,
       ),
       ContentProviderConfig(
-        id: 'cosbooru',
-        name: 'CosBooru',
-        baseUrl: 'https://cos.lycore.co',
-        apiType: 'danbooru',
+        id: 'paheal',
+        name: 'Rule34 Paheal',
+        baseUrl: 'https://rule34.paheal.net',
+        apiType: 'paheal',
         enabled: true,
         priority: 9,
         timeoutSeconds: 20,
-        customHeaders: const {},
+        customHeaders: const {
+          'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
+        },
         createdAt: now,
         updatedAt: now,
       ),
@@ -179,34 +181,12 @@ class ProviderRepository {
       final existingProviders =
           await isar.providerConfigEntitys.where().findAll();
       for (final provider in existingProviders) {
-        if (provider.providerId == 'paheal') {
-          await isar.providerConfigEntitys.delete(provider.isarId);
+        if (provider.providerId == 'cosbooru') {
+          provider.enabled = false;
+          provider.updatedAt = DateTime.now();
+          await isar.providerConfigEntitys.put(provider);
         }
       }
-      await isar.providerHealthEntitys
-          .filter()
-          .providerIdEqualTo('paheal')
-          .deleteAll();
-      await isar.providerDiagnosticsEntitys
-          .filter()
-          .providerIdEqualTo('paheal')
-          .deleteAll();
-      await isar.cachedPostEntitys
-          .filter()
-          .providerIdEqualTo('paheal')
-          .deleteAll();
-      await isar.favoriteEntitys
-          .filter()
-          .providerIdEqualTo('paheal')
-          .deleteAll();
-      await isar.collectionPostEntitys
-          .filter()
-          .providerIdEqualTo('paheal')
-          .deleteAll();
-      await isar.viewedPostEntitys
-          .filter()
-          .providerIdEqualTo('paheal')
-          .deleteAll();
       final seeds = seedProviders();
       for (final seed in seeds) {
         final exists = await isar.providerConfigEntitys
@@ -216,13 +196,10 @@ class ProviderRepository {
         if (exists == null) {
           await isar.providerConfigEntitys
               .put(ProviderConfigEntity.fromModel(seed));
-        } else if (seed.id == 'realbooru' && exists.enabled) {
-          exists.enabled = false;
-          exists.updatedAt = DateTime.now();
-          await isar.providerConfigEntitys.put(exists);
-        } else if (seed.id == 'cosbooru' &&
-            (exists.baseUrl != seed.baseUrl ||
-                exists.apiType != seed.apiType)) {
+        } else if (seed.id == 'realbooru' &&
+            (exists.apiType != seed.apiType ||
+                exists.baseUrl != seed.baseUrl ||
+                exists.name != seed.name)) {
           exists.name = seed.name;
           exists.baseUrl = seed.baseUrl;
           exists.apiType = seed.apiType;

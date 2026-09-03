@@ -106,10 +106,15 @@ class KemonoProvider
             'itemsPerPage': limit.clamp(1, 100),
           },
         );
-        final artists = _artistsFromResponse(response.data)
-            .where((artist) =>
-                service == null || service.isEmpty || artist.service == service)
-            .toList(growable: false);
+        final artists = _rankArtists(
+          _artistsFromResponse(response.data)
+              .where((artist) =>
+                  service == null ||
+                  service.isEmpty ||
+                  artist.service == service)
+              .toList(growable: false),
+          searchText,
+        );
         if (artists.isNotEmpty) return artists;
       } catch (_) {
         // Fall through to the indexed creator endpoints.
@@ -126,7 +131,7 @@ class KemonoProvider
           if (query != null && query.trim().isNotEmpty) 'keyword': query.trim(),
         },
       );
-      return _artistsFromResponse(response.data);
+      return _rankArtists(_artistsFromResponse(response.data), query ?? '');
     } catch (_) {
       return _listArtistsFromPublicApi(
         service: service,
@@ -177,6 +182,7 @@ class KemonoProvider
             ));
           }
           if (mapped.isNotEmpty || posts.isEmpty) {
+            mapped.sort((a, b) => b.createdAt.compareTo(a.createdAt));
             return mapped.take(limit).toList(growable: false);
           }
         } catch (error) {
@@ -290,7 +296,36 @@ class KemonoProvider
                 artist.displayName.toLowerCase().contains(queryText) ||
                 artist.id.toLowerCase().contains(queryText)))
         .toList(growable: false);
-    return items.skip(offset).take(limit).toList(growable: false);
+    final ranked = _rankArtists(items, queryText);
+    return ranked.skip(offset).take(limit).toList(growable: false);
+  }
+
+  List<ArtistProfile> _rankArtists(List<ArtistProfile> artists, String query) {
+    final queryText = query.trim().toLowerCase();
+    final ranked = [...artists];
+    ranked.sort((a, b) {
+      final scoreA = _artistSearchScore(a, queryText);
+      final scoreB = _artistSearchScore(b, queryText);
+      if (scoreA != scoreB) return scoreB.compareTo(scoreA);
+      final updatedA = a.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final updatedB = b.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+      final updated = updatedB.compareTo(updatedA);
+      if (updated != 0) return updated;
+      final count = (b.postCount ?? 0).compareTo(a.postCount ?? 0);
+      if (count != 0) return count;
+      return a.displayName.compareTo(b.displayName);
+    });
+    return ranked;
+  }
+
+  int _artistSearchScore(ArtistProfile artist, String query) {
+    if (query.isEmpty) return 0;
+    final name = artist.displayName.toLowerCase();
+    final id = artist.id.toLowerCase();
+    if (name == query || id == query) return 100;
+    if (name.startsWith(query) || id.startsWith(query)) return 70;
+    if (name.contains(query) || id.contains(query)) return 40;
+    return 0;
   }
 
   List<dynamic> _postItems(dynamic data) {

@@ -50,6 +50,14 @@ void main() {
       expect(postMatchesRequestedTags(post, ['touhou', 'cirno']), isFalse);
     });
 
+    test('requested search tags can match tag prefixes', () {
+      final post = _post(tags: ['zenless_zone_zero', 'ellen_joe']);
+
+      expect(postMatchesRequestedTags(post, ['zenless']), isTrue);
+      expect(postMatchesRequestedTags(post, ['zenless', 'ellen']), isTrue);
+      expect(postMatchesRequestedTags(post, ['zone']), isFalse);
+    });
+
     test('hidden post keys are filtered locally', () {
       final post = _post(tags: ['touhou']);
       final settings = AppSettings.defaults.copyWith(

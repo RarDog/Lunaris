@@ -75,8 +75,8 @@ class AppStrings {
   String get hideViewed => ru ? 'Скрывать просмотренное' : 'Hide viewed posts';
   String get smartBlacklist => ru ? 'Умный blacklist' : 'Smart blacklist';
   String get whitelistedTags => ru ? 'Whitelist тегов' : 'Whitelisted tags';
-  String get cacheMaxItems => ru ? 'Лимит кэша' : 'Cache max items';
-  String get clearCache => ru ? 'Очистить кэш' : 'Clear cache';
+  String get cacheMaxItems => ru ? 'Лимит кеша' : 'Cache max items';
+  String get clearCache => ru ? 'Очистить кеш' : 'Clear cache';
   String get clearViewed => ru ? 'Очистить историю' : 'Clear viewed history';
   String get exportJson => ru ? 'Экспорт JSON' : 'Export JSON';
   String get importJson => ru ? 'Импорт JSON' : 'Import JSON';
@@ -98,5 +98,5 @@ class AppStrings {
   String get disableRepeat => ru ? 'Отключить повтор' : 'Disable repeat';
   String get fullscreen => ru ? 'На весь экран' : 'Fullscreen';
   String get exitFullscreen =>
-      ru ? 'Выйти из полного экрана' : 'Exit fullscreen';
+      ru ? 'Выйти из полноэкранного режима' : 'Exit fullscreen';
 }

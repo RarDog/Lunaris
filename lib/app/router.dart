@@ -15,6 +15,7 @@ import '../features/providers/presentation/provider_check_screen.dart';
 import '../features/providers/presentation/provider_form_screen.dart';
 import '../features/providers/presentation/providers_screen.dart';
 import '../features/search/presentation/search_screen.dart';
+import '../features/settings/presentation/hidden_posts_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/viewed/presentation/viewed_screen.dart';
 import '../shared/widgets/app_shell.dart';
@@ -104,6 +105,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/settings',
             builder: (context, state) => const SettingsScreen(),
+          ),
+          GoRoute(
+            path: '/settings/hidden',
+            builder: (context, state) => const HiddenPostsScreen(),
           ),
         ],
       ),

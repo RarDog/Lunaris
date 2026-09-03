@@ -10,7 +10,11 @@ import '../models/top_period_filter.dart';
 import 'content_provider.dart';
 
 class E621Provider
-    implements ContentProvider, TagSuggestionProvider, CommentProvider {
+    implements
+        ContentProvider,
+        TagSuggestionProvider,
+        CommentProvider,
+        PostPageProvider {
   E621Provider({
     required this.id,
     required this.name,
@@ -28,6 +32,9 @@ class E621Provider
   final String baseUrl;
   final Dio _dio;
   final Map<String, String> _queryParameters;
+
+  @override
+  String postPageUrl(Post post) => '$baseUrl/posts/${post.id}';
 
   @override
   Future<List<Post>> searchPosts({

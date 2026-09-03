@@ -23,6 +23,8 @@ class FeedToolbar extends StatefulWidget {
     required this.onSuggestionTap,
     required this.onTopPeriodChanged,
     this.onToggleSelectionMode,
+    this.onRandom,
+    this.providerStatusMessage,
     this.selectionMode = false,
     super.key,
   });
@@ -43,6 +45,8 @@ class FeedToolbar extends StatefulWidget {
   final ValueChanged<String> onSuggestionTap;
   final ValueChanged<TopPeriodFilter> onTopPeriodChanged;
   final VoidCallback? onToggleSelectionMode;
+  final VoidCallback? onRandom;
+  final String? providerStatusMessage;
   final bool selectionMode;
 
   @override
@@ -122,9 +126,24 @@ class _FeedToolbarState extends State<FeedToolbar> {
                 onPressed: widget.onRefresh,
                 icon: const Icon(Icons.refresh_rounded),
               ),
+              IconButton.filledTonal(
+                tooltip: 'Random post',
+                onPressed: widget.onRandom,
+                icon: const Icon(Icons.casino_rounded),
+              ),
             ],
           ),
           const SizedBox(height: 8),
+          if (widget.providerStatusMessage != null) ...[
+            Align(
+              alignment: Alignment.centerLeft,
+              child: InputChip(
+                avatar: const Icon(Icons.sync_problem_rounded, size: 16),
+                label: Text(widget.providerStatusMessage!),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
           _HorizontalWheelScroller(
             height: 36,
             builder: (controller) => ListView(
@@ -187,6 +206,16 @@ class _FeedToolbarState extends State<FeedToolbar> {
             },
           ),
           const SizedBox(height: 8),
+          if (widget.providerStatusMessage != null) ...[
+            Align(
+              alignment: Alignment.centerLeft,
+              child: InputChip(
+                avatar: const Icon(Icons.sync_problem_rounded, size: 16),
+                label: Text(widget.providerStatusMessage!),
+              ),
+            ),
+            const SizedBox(height: 6),
+          ],
           _HorizontalWheelScroller(
             height: 40,
             builder: (controller) => ListView(
@@ -218,6 +247,11 @@ class _FeedToolbarState extends State<FeedToolbar> {
                   tooltip: 'Refresh',
                   onPressed: widget.onRefresh,
                   icon: const Icon(Icons.refresh_rounded),
+                ),
+                IconButton.filledTonal(
+                  tooltip: 'Random post',
+                  onPressed: widget.onRandom,
+                  icon: const Icon(Icons.casino_rounded),
                 ),
                 const SizedBox(width: 8),
                 if (widget.providers.isNotEmpty) ...[

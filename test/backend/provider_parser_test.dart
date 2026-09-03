@@ -5,10 +5,10 @@ import 'package:gel_rule_app/backend/mappers/gelbooru_mapper.dart';
 import 'package:gel_rule_app/backend/mappers/moebooru_mapper.dart';
 import 'package:gel_rule_app/backend/mappers/rule34_mapper.dart';
 import 'package:gel_rule_app/backend/models/content_provider_config.dart';
-import 'package:gel_rule_app/backend/providers/danbooru_provider.dart';
+import 'package:gel_rule_app/backend/providers/custom_provider.dart';
 import 'package:gel_rule_app/backend/providers/kemono_provider.dart';
 import 'package:gel_rule_app/backend/providers/provider_factory.dart';
-import 'package:gel_rule_app/backend/providers/realbooru_provider.dart';
+import 'package:gel_rule_app/backend/providers/realbooru_html_provider.dart';
 import 'package:gel_rule_app/backend/repositories/provider_repository.dart';
 
 void main() {
@@ -231,31 +231,30 @@ void main() {
     expect(posts.single.rating, 'unknown');
   });
 
-  test('seed providers include CosBooru and no Paheal', () {
+  test('seed providers include Realbooru HTML Paheal and exclude CosBooru', () {
+    final paheal = ProviderRepository.seedProviders()
+        .where((provider) => provider.id == 'paheal')
+        .single;
+    expect(paheal.enabled, isTrue);
+    expect(paheal.apiType, 'paheal');
+    expect(paheal.baseUrl, 'https://rule34.paheal.net');
     final realbooru = ProviderRepository.seedProviders()
         .where((provider) => provider.id == 'realbooru')
         .single;
-
-    expect(realbooru.enabled, isFalse);
-    expect(realbooru.apiType, 'realbooru');
+    expect(realbooru.enabled, isTrue);
+    expect(realbooru.apiType, 'realbooru_html');
     expect(realbooru.baseUrl, 'https://realbooru.com');
     expect(
       ProviderRepository.seedProviders()
-          .where((provider) => provider.id == 'paheal'),
+          .where((provider) => provider.id == 'cosbooru'),
       isEmpty,
     );
-    final cosbooru = ProviderRepository.seedProviders()
-        .where((provider) => provider.id == 'cosbooru')
-        .single;
     final xbooru = ProviderRepository.seedProviders()
         .where((provider) => provider.id == 'xbooru')
         .single;
     expect(xbooru.enabled, isTrue);
     expect(xbooru.apiType, 'gelbooru');
     expect(xbooru.baseUrl, 'https://xbooru.com');
-    expect(cosbooru.enabled, isTrue);
-    expect(cosbooru.apiType, 'danbooru');
-    expect(cosbooru.baseUrl, 'https://cos.lycore.co');
     final kemono = ProviderRepository.seedProviders()
         .where((provider) => provider.id == 'kemono')
         .single;
@@ -268,7 +267,7 @@ void main() {
     expect(coomer.apiType, 'coomer');
   });
 
-  test('provider factory creates Realbooru provider', () {
+  test('provider factory treats Realbooru api type as unsupported', () {
     final now = DateTime(2026);
     final provider = ProviderFactory().create(ContentProviderConfig(
       id: 'realbooru',
@@ -283,25 +282,25 @@ void main() {
       updatedAt: now,
     ));
 
-    expect(provider, isA<RealbooruProvider>());
+    expect(provider, isA<UnsupportedCustomProvider>());
   });
 
-  test('provider factory creates CosBooru as Danbooru provider', () {
+  test('provider factory creates Realbooru HTML provider', () {
     final now = DateTime(2026);
     final provider = ProviderFactory().create(ContentProviderConfig(
-      id: 'cosbooru',
-      name: 'CosBooru',
-      baseUrl: 'https://cos.lycore.co',
-      apiType: 'danbooru',
+      id: 'realbooru',
+      name: 'Realbooru',
+      baseUrl: 'https://realbooru.com',
+      apiType: 'realbooru_html',
       enabled: true,
-      priority: 8,
+      priority: 7,
       timeoutSeconds: 20,
       customHeaders: const {},
       createdAt: now,
       updatedAt: now,
     ));
 
-    expect(provider, isA<DanbooruProvider>());
+    expect(provider, isA<RealbooruHtmlProvider>());
   });
 
   test('provider factory creates Kemono and Coomer artist providers', () {

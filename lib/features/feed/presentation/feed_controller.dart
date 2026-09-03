@@ -12,11 +12,22 @@ final feedControllerProvider =
 
 class FeedController extends AsyncNotifier<FeedState> {
   Timer? _providerDebounce;
+  Timer? _suggestionDebounce;
+  StreamSubscription<ProviderSoftRetryResult>? _softRetrySubscription;
   int _loadRequestId = 0;
+  int _suggestionRequestId = 0;
 
   @override
   Future<FeedState> build() async {
-    ref.onDispose(() => _providerDebounce?.cancel());
+    ref.onDispose(() {
+      _providerDebounce?.cancel();
+      _suggestionDebounce?.cancel();
+      _softRetrySubscription?.cancel();
+    });
+    _softRetrySubscription ??= ref
+        .read(providerManagerProvider)
+        .softRetryResults
+        .listen(_applySoftRetryResult);
     final providers = await _loadProviders();
     final settings = await _settings();
     final providerIds = providers.map((provider) => provider.id).toSet();
@@ -42,7 +53,13 @@ class FeedController extends AsyncNotifier<FeedState> {
     state = const AsyncLoading();
     final posts = await _load(refresh: true, current: current);
     if (requestId != _loadRequestId) return;
-    state = AsyncData(current.copyWith(posts: posts, clearError: true));
+    state = AsyncData(current.copyWith(
+      posts: posts,
+      hasMore: true,
+      emptyPageStreak: 0,
+      clearError: true,
+      providerStatusMessage: await _providerStatusMessage(current),
+    ));
   }
 
   Future<void> refresh() async {
@@ -51,7 +68,13 @@ class FeedController extends AsyncNotifier<FeedState> {
     state = AsyncData(current.copyWith(isLoadingMore: true, clearError: true));
     final posts = await _load(refresh: true, current: current);
     if (requestId != _loadRequestId) return;
-    state = AsyncData(current.copyWith(posts: posts, isLoadingMore: false));
+    state = AsyncData(current.copyWith(
+      posts: posts,
+      isLoadingMore: false,
+      hasMore: true,
+      emptyPageStreak: 0,
+      providerStatusMessage: await _providerStatusMessage(current),
+    ));
   }
 
   Future<void> loadNextPage() async {
@@ -59,17 +82,27 @@ class FeedController extends AsyncNotifier<FeedState> {
     if (current == null || current.isLoadingMore || !current.hasMore) return;
     final requestId = ++_loadRequestId;
     state = AsyncData(current.copyWith(isLoadingMore: true, clearError: true));
-    final posts = await _load(refresh: false, current: current);
+    final posts = <Post>[];
+    const maxEmptyPageSkips = 3;
+    var attempts = 0;
+    while (posts.isEmpty && attempts < maxEmptyPageSkips) {
+      attempts++;
+      posts.addAll(await _load(refresh: false, current: current));
+      if (requestId != _loadRequestId) return;
+    }
     if (requestId != _loadRequestId) return;
     final existingKeys = current.posts.map((post) => post.cacheKey).toSet();
     final newPosts = posts
         .where((post) => existingKeys.add(post.cacheKey))
         .toList(growable: false);
+    final emptyPageStreak =
+        newPosts.isEmpty ? current.emptyPageStreak + attempts : 0;
     state = AsyncData(
       current.copyWith(
         posts: [...current.posts, ...newPosts],
         isLoadingMore: false,
-        hasMore: posts.isNotEmpty,
+        hasMore: newPosts.isNotEmpty || emptyPageStreak < maxEmptyPageSkips,
+        emptyPageStreak: emptyPageStreak,
       ),
     );
   }
@@ -78,7 +111,13 @@ class FeedController extends AsyncNotifier<FeedState> {
     final tags = ref.read(searchServiceProvider).parseTags(query);
     final current = state.value ?? const FeedState();
     state = AsyncData(
-      current.copyWith(selectedTags: tags, posts: [], tagSuggestions: []),
+      current.copyWith(
+        selectedTags: tags,
+        posts: [],
+        tagSuggestions: [],
+        hasMore: true,
+        emptyPageStreak: 0,
+      ),
     );
     await saveSession(scrollOffset: 0);
     await ref.read(searchServiceProvider).saveSearch(query, 0);
@@ -89,31 +128,42 @@ class FeedController extends AsyncNotifier<FeedState> {
 
   Future<void> updateTagSuggestions(String query) async {
     final current = state.value ?? const FeedState();
-    if (query.trim().isEmpty) {
+    final lastToken =
+        query.trim().isEmpty ? '' : query.trim().split(RegExp(r'\s+')).last;
+    final requestId = ++_suggestionRequestId;
+    _suggestionDebounce?.cancel();
+    if (lastToken.trim().isEmpty) {
       state = AsyncData(current.copyWith(tagSuggestions: []));
       return;
     }
-    final lastToken = query.trim().split(RegExp(r'\s+')).last;
-    final result = await ref
-        .read(searchServiceProvider)
-        .autocompleteDetailed(lastToken, limit: 16);
-    final normalizedToken = lastToken.trim().toLowerCase();
-    final suggestions = result is Success<List<TagSuggestion>>
-        ? result.data
-            .where((item) => item.name.toLowerCase().startsWith(
-                  normalizedToken,
-                ))
-            .toList(growable: false)
-        : const <TagSuggestion>[];
-    state = AsyncData(current.copyWith(tagSuggestions: suggestions));
+    _suggestionDebounce = Timer(const Duration(milliseconds: 280), () async {
+      final result = await ref
+          .read(searchServiceProvider)
+          .autocompleteDetailed(lastToken, limit: 16);
+      if (requestId != _suggestionRequestId) return;
+      final normalizedToken = lastToken.trim().toLowerCase();
+      final suggestions = result is Success<List<TagSuggestion>>
+          ? result.data
+              .where((item) => item.name.toLowerCase().startsWith(
+                    normalizedToken,
+                  ))
+              .toList(growable: false)
+          : const <TagSuggestion>[];
+      final latest = state.value ?? current;
+      state = AsyncData(latest.copyWith(tagSuggestions: suggestions));
+    });
   }
 
   Future<void> setProviders(List<String> providerIds) async {
     final current = state.value ?? const FeedState();
     final enabledIds = current.providers.map((provider) => provider.id).toSet();
     final selected = providerIds.where(enabledIds.contains).toList();
-    state =
-        AsyncData(current.copyWith(selectedProviderIds: selected, posts: []));
+    state = AsyncData(current.copyWith(
+      selectedProviderIds: selected,
+      posts: [],
+      hasMore: true,
+      emptyPageStreak: 0,
+    ));
     final settings = await _settings();
     await ref.read(settingsServiceProvider).updateSettings(
           settings.copyWith(
@@ -129,7 +179,12 @@ class FeedController extends AsyncNotifier<FeedState> {
 
   Future<void> setTopPeriod(TopPeriodFilter period) async {
     final current = state.value ?? const FeedState();
-    state = AsyncData(current.copyWith(topPeriodFilter: period, posts: []));
+    state = AsyncData(current.copyWith(
+      topPeriodFilter: period,
+      posts: [],
+      hasMore: true,
+      emptyPageStreak: 0,
+    ));
     final settings = await _settings();
     await ref.read(settingsServiceProvider).updateSettings(
           settings.copyWith(defaultTopPeriodFilter: period.name),
@@ -142,7 +197,12 @@ class FeedController extends AsyncNotifier<FeedState> {
     final current = state.value ?? const FeedState();
     state = AsyncData(
       current.copyWith(
-          ratingFilter: rating, clearRating: rating == null, posts: []),
+        ratingFilter: rating,
+        clearRating: rating == null,
+        posts: [],
+        hasMore: true,
+        emptyPageStreak: 0,
+      ),
     );
     await refresh();
     await saveSession(scrollOffset: 0);
@@ -157,6 +217,8 @@ class FeedController extends AsyncNotifier<FeedState> {
         tagSuggestions: [],
         clearRating: true,
         posts: [],
+        hasMore: true,
+        emptyPageStreak: 0,
       ),
     );
     final settings = await _settings();
@@ -246,6 +308,56 @@ class FeedController extends AsyncNotifier<FeedState> {
     }
     posts.sort((a, b) => _mixKey(a).compareTo(_mixKey(b)));
     return posts;
+  }
+
+  void _applySoftRetryResult(ProviderSoftRetryResult result) {
+    final current = state.value;
+    if (current == null || result.page != 0) return;
+    if (!_sameTags(current.selectedTags, result.tags)) return;
+    if (current.ratingFilter != result.rating) return;
+    if (current.topPeriodFilter != result.topPeriod) return;
+    if (current.selectedProviderIds.isNotEmpty &&
+        !current.selectedProviderIds.contains(result.providerId)) {
+      return;
+    }
+    final seen = current.posts.map((post) => post.cacheKey).toSet();
+    final newPosts = result.posts
+        .where((post) => seen.add(post.cacheKey))
+        .toList(growable: false);
+    if (newPosts.isEmpty) return;
+    state = AsyncData(
+      current.copyWith(
+        posts: [...current.posts, ...newPosts]..sort(
+            (a, b) => _mixKey(a).compareTo(_mixKey(b)),
+          ),
+        providerStatusMessage: 'Retry added ${newPosts.length} posts',
+      ),
+    );
+  }
+
+  bool _sameTags(List<String> left, List<String> right) {
+    if (left.length != right.length) return false;
+    for (var i = 0; i < left.length; i++) {
+      if (left[i] != right[i]) return false;
+    }
+    return true;
+  }
+
+  Future<String?> _providerStatusMessage(FeedState current) async {
+    final result = await ref.read(providerRepositoryProvider).getDiagnostics();
+    if (result is! Success<List<ProviderDiagnostics>>) return null;
+    final selected = current.selectedProviderIds.isEmpty
+        ? current.providers.map((provider) => provider.id).toSet()
+        : current.selectedProviderIds.toSet();
+    final failed = result.data
+        .where((item) =>
+            selected.contains(item.providerId) &&
+            item.lastErrorMessage != null &&
+            item.lastErrorMessage!.isNotEmpty)
+        .map((item) => item.providerId)
+        .toSet();
+    if (failed.isEmpty) return null;
+    return 'Retrying ${failed.length} provider${failed.length == 1 ? '' : 's'}';
   }
 
   int _mixKey(Post post) {

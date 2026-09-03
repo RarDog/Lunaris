@@ -14,10 +14,10 @@ class FakeSearchRepository implements SearchRepository {
   }
 
   @override
-  Future<Result<List<SearchHistory>>> recent({int limit = 20}) async {
+  Future<Result<List<SearchHistory>>> recent({int? limit}) async {
     final sorted = [...items]
       ..sort((a, b) => b.searchedAt.compareTo(a.searchedAt));
-    return Success(sorted.take(limit).toList());
+    return Success((limit == null ? sorted : sorted.take(limit)).toList());
   }
 
   @override

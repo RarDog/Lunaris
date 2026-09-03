@@ -101,8 +101,12 @@ class _SettingsContent extends ConsumerWidget {
             ),
             SwitchListTile(
               value: settings.autoDownloadFavorites,
-              title: Text(strings.autoDownloadFavorites),
-              subtitle: Text(strings.autoDownloadFavoritesHint),
+              title: Text(settings.languageCode == 'ru'
+                  ? 'Offline избранное'
+                  : 'Offline favorites'),
+              subtitle: Text(settings.languageCode == 'ru'
+                  ? 'При добавлении фото или видео в избранное файл скачивается в фоне для просмотра офлайн.'
+                  : 'When a photo or video is added to Favorites, Lunaris downloads it in the background for offline viewing.'),
               onChanged: (value) => _update(
                 ref,
                 settings.copyWith(autoDownloadFavorites: value),
@@ -282,6 +286,13 @@ class _SettingsContent extends ConsumerWidget {
                       .clearViewedHistory(),
                   icon: const Icon(Icons.history_toggle_off_rounded),
                   label: Text(strings.clearViewed),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: settings.hiddenPostKeys.isEmpty
+                      ? null
+                      : () => context.go('/settings/hidden'),
+                  icon: const Icon(Icons.restore_rounded),
+                  label: const Text('Restore hidden'),
                 ),
                 FilledButton.tonalIcon(
                   onPressed: () => ref
@@ -741,13 +752,19 @@ class _ColorSwatches extends StatelessWidget {
   final int selected;
   final ValueChanged<int> onChanged;
 
-  static const colors = <int>[
-    0xFFE84D8A,
-    0xFF8B5CF6,
-    0xFF3B82F6,
-    0xFF14B8A6,
-    0xFFF97316,
-    0xFFEF4444,
+  static const colors = <(int, String)>[
+    (0xFFE84D8A, 'Lunaris pink'),
+    (0xFF8B5CF6, 'Violet'),
+    (0xFF3B82F6, 'Azure'),
+    (0xFF0EA5E9, 'Sky'),
+    (0xFF14B8A6, 'Teal'),
+    (0xFF22C55E, 'Green'),
+    (0xFFEAB308, 'Amber'),
+    (0xFFF97316, 'Orange'),
+    (0xFFEF4444, 'Red'),
+    (0xFFEC4899, 'Hot pink'),
+    (0xFF6366F1, 'Indigo'),
+    (0xFF64748B, 'Slate'),
   ];
 
   @override
@@ -761,28 +778,28 @@ class _ColorSwatches extends StatelessWidget {
           spacing: 10,
           runSpacing: 10,
           children: [
-            for (final value in colors)
+            for (final entry in colors)
               Tooltip(
                 message:
-                    '#${value.toRadixString(16).substring(2).toUpperCase()}',
+                    '${entry.$2} #${entry.$1.toRadixString(16).substring(2).toUpperCase()}',
                 child: InkWell(
                   borderRadius: BorderRadius.circular(999),
-                  onTap: () => onChanged(value),
+                  onTap: () => onChanged(entry.$1),
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: Color(value),
+                      color: Color(entry.$1),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: selected == value
+                        color: selected == entry.$1
                             ? Theme.of(context).colorScheme.onSurface
                             : Theme.of(context).colorScheme.outlineVariant,
-                        width: selected == value ? 3 : 1,
+                        width: selected == entry.$1 ? 3 : 1,
                       ),
                     ),
                     child: SizedBox(
                       width: 38,
                       height: 38,
-                      child: selected == value
+                      child: selected == entry.$1
                           ? const Icon(Icons.check_rounded, color: Colors.white)
                           : null,
                     ),

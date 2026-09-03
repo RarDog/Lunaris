@@ -10,7 +10,11 @@ import '../models/top_period_filter.dart';
 import 'content_provider.dart';
 
 class MoebooruProvider
-    implements ContentProvider, TagSuggestionProvider, CommentProvider {
+    implements
+        ContentProvider,
+        TagSuggestionProvider,
+        CommentProvider,
+        PostPageProvider {
   MoebooruProvider({
     required this.id,
     required this.name,
@@ -28,6 +32,9 @@ class MoebooruProvider
   final String baseUrl;
   final Dio _dio;
   final Map<String, String> _queryParameters;
+
+  @override
+  String postPageUrl(Post post) => '$baseUrl/post/show/${post.id}';
 
   @override
   Future<List<Post>> searchPosts({

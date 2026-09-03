@@ -12,6 +12,7 @@ import '../providers/provider_factory.dart';
 import '../providers/provider_manager.dart';
 import '../models/download_task.dart';
 import '../models/downloaded_media.dart';
+import '../models/post.dart';
 import '../repositories/collection_repository.dart';
 import '../repositories/downloaded_media_repository.dart';
 import '../repositories/favorite_repository.dart';
@@ -186,6 +187,12 @@ final downloadedMediaByKeyProvider =
   final result =
       await ref.watch(downloadedMediaServiceProvider).getByCacheKey(cacheKey);
   return result is Success<DownloadedMedia?> ? result.data : null;
+});
+
+final postMediaHeadersProvider =
+    FutureProvider.family<Map<String, String>, Post>((ref, post) async {
+  final result = await ref.watch(providerManagerProvider).getMediaHeaders(post);
+  return result is Success<Map<String, String>> ? result.data : const {};
 });
 
 final downloadTasksProvider = StreamProvider<List<DownloadTask>>((ref) {

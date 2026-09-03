@@ -11,7 +11,9 @@ class FeedState {
     this.providers = const [],
     this.isLoadingMore = false,
     this.hasMore = true,
+    this.emptyPageStreak = 0,
     this.error,
+    this.providerStatusMessage,
   });
 
   final List<Post> posts;
@@ -23,7 +25,9 @@ class FeedState {
   final List<ContentProviderConfig> providers;
   final bool isLoadingMore;
   final bool hasMore;
+  final int emptyPageStreak;
   final String? error;
+  final String? providerStatusMessage;
 
   FeedState copyWith({
     List<Post>? posts,
@@ -36,8 +40,11 @@ class FeedState {
     List<ContentProviderConfig>? providers,
     bool? isLoadingMore,
     bool? hasMore,
+    int? emptyPageStreak,
     String? error,
     bool clearError = false,
+    String? providerStatusMessage,
+    bool clearProviderStatus = false,
   }) {
     return FeedState(
       posts: posts ?? this.posts,
@@ -49,7 +56,11 @@ class FeedState {
       providers: providers ?? this.providers,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       hasMore: hasMore ?? this.hasMore,
+      emptyPageStreak: emptyPageStreak ?? this.emptyPageStreak,
       error: clearError ? null : error ?? this.error,
+      providerStatusMessage: clearProviderStatus
+          ? null
+          : providerStatusMessage ?? this.providerStatusMessage,
     );
   }
 }

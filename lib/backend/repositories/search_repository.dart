@@ -23,11 +23,12 @@ class SearchRepository {
     });
   }
 
-  Future<Result<List<SearchHistory>>> recent({int limit = 20}) {
+  Future<Result<List<SearchHistory>>> recent({int? limit}) {
     return _databaseService.safeRead((isar) async {
       final items = await isar.searchHistoryEntitys.where().findAll();
       items.sort((a, b) => b.searchedAt.compareTo(a.searchedAt));
-      return items.take(limit).map((entity) => entity.toModel()).toList();
+      final limited = limit == null ? items : items.take(limit);
+      return limited.map((entity) => entity.toModel()).toList();
     });
   }
 

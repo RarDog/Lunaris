@@ -8,7 +8,8 @@ import '../models/provider_health.dart';
 import '../models/top_period_filter.dart';
 import 'content_provider.dart';
 
-class DanbooruProvider implements ContentProvider, CommentProvider {
+class DanbooruProvider
+    implements ContentProvider, CommentProvider, PostPageProvider {
   DanbooruProvider({
     required this.id,
     required this.name,
@@ -26,6 +27,9 @@ class DanbooruProvider implements ContentProvider, CommentProvider {
   final String baseUrl;
   final Dio _dio;
   final Map<String, String> _queryParameters;
+
+  @override
+  String postPageUrl(Post post) => '$baseUrl/posts/${post.id}';
 
   @override
   Future<List<Post>> searchPosts({

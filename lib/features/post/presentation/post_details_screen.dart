@@ -94,7 +94,9 @@ class PostDetailsScreen extends ConsumerWidget {
               return _MobilePostPager(
                 posts: feedPosts,
                 initialIndex: currentIndex,
-                buildDetails: (context, post) => _buildMobileDetails(
+                buildDetails: (context, post, mediaGestureLocked,
+                        onMediaGestureLockChanged) =>
+                    _buildMobileDetails(
                   context,
                   ref,
                   post,
@@ -102,6 +104,8 @@ class PostDetailsScreen extends ConsumerWidget {
                   favoriteKeys,
                   qualityMode,
                   strings,
+                  mediaGestureLocked,
+                  onMediaGestureLockChanged,
                 ),
               );
             }
@@ -113,6 +117,8 @@ class PostDetailsScreen extends ConsumerWidget {
               favoriteKeys,
               qualityMode,
               strings,
+              false,
+              null,
             );
           }
           return Shortcuts(
@@ -186,17 +192,29 @@ class PostDetailsScreen extends ConsumerWidget {
                         ),
                         Expanded(
                           child: Center(
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxHeight: 760),
+                            child: SizedBox(
+                              width: double.infinity,
+                              height: 760,
                               child: PostMediaViewer(
                                 key: ValueKey(post.cacheKey),
                                 post: post,
                                 qualityMode: qualityMode,
+                                mediaHeaders: ref
+                                        .watch(postMediaHeadersProvider(post))
+                                        .value ??
+                                    const {},
+                                initialPosition: Duration(
+                                  milliseconds: settings.videoPlaybackPositions[
+                                          post.cacheKey] ??
+                                      0,
+                                ),
                                 initialLoop: settings.videoPlayerLoop,
                                 initialMuted: settings.videoPlayerMuted,
                                 initialCoverVideo: settings.videoPlayerCover,
                                 initialHalfVolume:
                                     settings.videoPlayerHalfVolume,
+                                onPlaybackSnapshot: (snapshot) =>
+                                    _saveVideoSnapshot(ref, post, snapshot),
                                 onPlaybackPreferencesChanged: (snapshot) =>
                                     _saveVideoPreferences(ref, snapshot),
                               ),
@@ -233,6 +251,7 @@ class PostDetailsScreen extends ConsumerWidget {
                           _toggleFavorite(ref, post, favoriteKeys),
                       onCollection: () => _addToCollection(context, ref, post),
                       onOpen: () => launchUrl(Uri.parse(post.fileUrl)),
+                      onOpenSource: () => _openSourcePage(ref, post),
                       onCopy: () =>
                           Clipboard.setData(ClipboardData(text: post.fileUrl)),
                       onSimilar: () => _openSimilar(context, ref, post),
@@ -284,11 +303,14 @@ class PostDetailsScreen extends ConsumerWidget {
     Set<String> favoriteKeys,
     MediaQualityMode qualityMode,
     AppStrings strings,
+    bool mediaGestureLocked,
+    ValueChanged<bool>? onMediaGestureLockChanged,
   ) {
     final isVideo = MediaUrlSelector.isVideo(post);
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onVerticalDragEnd: (details) {
+        if (mediaGestureLocked) return;
         if ((details.primaryVelocity ?? 0) > 900) _close(context);
       },
       child: ListView(
@@ -302,22 +324,30 @@ class PostDetailsScreen extends ConsumerWidget {
                 ? null
                 : () =>
                     _showMobileQuickActions(context, ref, post, favoriteKeys),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(context).height * 0.62,
-              ),
-              child: Center(
-                child: PostMediaViewer(
-                  key: ValueKey(post.cacheKey),
-                  post: post,
-                  qualityMode: qualityMode,
-                  initialLoop: settings.videoPlayerLoop,
-                  initialMuted: settings.videoPlayerMuted,
-                  initialCoverVideo: settings.videoPlayerCover,
-                  initialHalfVolume: settings.videoPlayerHalfVolume,
-                  onPlaybackPreferencesChanged: (snapshot) =>
-                      _saveVideoPreferences(ref, snapshot),
+            child: SizedBox(
+              width: double.infinity,
+              height: MediaQuery.sizeOf(context).height * 0.62,
+              child: PostMediaViewer(
+                key: ValueKey(post.cacheKey),
+                post: post,
+                qualityMode: qualityMode,
+                mediaHeaders:
+                    ref.watch(postMediaHeadersProvider(post)).value ?? const {},
+                initialPosition: Duration(
+                  milliseconds:
+                      settings.videoPlaybackPositions[post.cacheKey] ?? 0,
                 ),
+                initialLoop: settings.videoPlayerLoop,
+                initialMuted: settings.videoPlayerMuted,
+                initialCoverVideo: settings.videoPlayerCover,
+                initialHalfVolume: settings.videoPlayerHalfVolume,
+                onPlaybackSnapshot: (snapshot) =>
+                    _saveVideoSnapshot(ref, post, snapshot),
+                onPlaybackPreferencesChanged: (snapshot) =>
+                    _saveVideoPreferences(ref, snapshot),
+                onMediaGestureLockChanged: (locked) {
+                  onMediaGestureLockChanged?.call(locked);
+                },
               ),
             ),
           ),
@@ -331,6 +361,7 @@ class PostDetailsScreen extends ConsumerWidget {
             onFavorite: () => _toggleFavorite(ref, post, favoriteKeys),
             onCollection: () => _addToCollection(context, ref, post),
             onOpen: () => launchUrl(Uri.parse(post.fileUrl)),
+            onOpenSource: () => _openSourcePage(ref, post),
             onCopy: () => Clipboard.setData(ClipboardData(text: post.fileUrl)),
             onSimilar: () => _openSimilar(context, ref, post),
             onHide: () => _hidePost(context, ref, post),
@@ -545,6 +576,18 @@ class PostDetailsScreen extends ConsumerWidget {
     context.push('/post/${post.providerId}/${post.id}/similar', extra: post);
   }
 
+  Future<void> _openSourcePage(WidgetRef ref, Post post) async {
+    final source = post.source?.trim();
+    String? url = source != null && source.isNotEmpty ? source : null;
+    if (url == null) {
+      final result =
+          await ref.read(providerManagerProvider).getPostPageUrl(post);
+      if (result is Success<String?>) url = result.data;
+    }
+    if (url == null || url.isEmpty) return;
+    await launchUrl(Uri.parse(url));
+  }
+
   void _replacePost(BuildContext context, Post post) {
     context.replace('/post/${post.providerId}/${post.id}', extra: post);
   }
@@ -580,6 +623,18 @@ class PostDetailsScreen extends ConsumerWidget {
         );
     ref.invalidate(appSettingsProvider);
   }
+
+  Future<void> _saveVideoSnapshot(
+    WidgetRef ref,
+    Post post,
+    VideoPlaybackSnapshot snapshot,
+  ) async {
+    await ref.read(settingsServiceProvider).saveVideoPlaybackPosition(
+          post.cacheKey,
+          snapshot.position.inMilliseconds,
+        );
+    ref.invalidate(appSettingsProvider);
+  }
 }
 
 class _MobilePostPager extends StatefulWidget {
@@ -591,7 +646,12 @@ class _MobilePostPager extends StatefulWidget {
 
   final List<Post> posts;
   final int initialIndex;
-  final Widget Function(BuildContext context, Post post) buildDetails;
+  final Widget Function(
+    BuildContext context,
+    Post post,
+    bool mediaGestureLocked,
+    ValueChanged<bool> onMediaGestureLockChanged,
+  ) buildDetails;
 
   @override
   State<_MobilePostPager> createState() => _MobilePostPagerState();
@@ -599,6 +659,7 @@ class _MobilePostPager extends StatefulWidget {
 
 class _MobilePostPagerState extends State<_MobilePostPager> {
   late final PageController _controller;
+  bool _mediaGestureLocked = false;
 
   @override
   void initState() {
@@ -635,19 +696,47 @@ class _MobilePostPagerState extends State<_MobilePostPager> {
   Widget build(BuildContext context) {
     return PageView.builder(
       controller: _controller,
+      physics: _mediaGestureLocked
+          ? const NeverScrollableScrollPhysics()
+          : const PageScrollPhysics(),
       itemCount: widget.posts.length,
       onPageChanged: (index) {
         _prefetchAround(index);
       },
       itemBuilder: (context, index) {
-        return _KeepAlivePostPage(
-          child: KeyedSubtree(
-            key: ValueKey(widget.posts[index].cacheKey),
-            child: widget.buildDetails(context, widget.posts[index]),
-          ),
+        final initialPost = widget.posts[index];
+        return Consumer(
+          builder: (context, ref, _) {
+            final args = PostDetailsArgs(
+              providerId: initialPost.providerId,
+              postId: initialPost.id,
+              initialPost: initialPost,
+            );
+            final post = ref.watch(postDetailsControllerProvider(args));
+            return post.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => ErrorView(message: error.toString()),
+              data: (resolvedPost) => _KeepAlivePostPage(
+                child: KeyedSubtree(
+                  key: ValueKey((resolvedPost ?? initialPost).cacheKey),
+                  child: widget.buildDetails(
+                    context,
+                    resolvedPost ?? initialPost,
+                    _mediaGestureLocked,
+                    _setMediaGestureLocked,
+                  ),
+                ),
+              ),
+            );
+          },
         );
       },
     );
+  }
+
+  void _setMediaGestureLocked(bool locked) {
+    if (_mediaGestureLocked == locked) return;
+    setState(() => _mediaGestureLocked = locked);
   }
 
   void _prefetchAround(int index) {
@@ -670,19 +759,9 @@ class _MobilePostPagerState extends State<_MobilePostPager> {
   }
 
   Map<String, String> _headersFor(Post post) {
-    return {
+    return const {
       'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
       'Accept': '*/*',
-      if (post.providerName.toLowerCase().contains('gelbooru') ||
-          post.fileUrl.contains('gelbooru.com') ||
-          post.sampleUrl.contains('gelbooru.com') ||
-          post.previewUrl.contains('gelbooru.com'))
-        'Referer': 'https://gelbooru.com/',
-      if (post.providerName.toLowerCase().contains('rule34') ||
-          post.fileUrl.contains('rule34') ||
-          post.sampleUrl.contains('rule34') ||
-          post.previewUrl.contains('rule34'))
-        'Referer': 'https://rule34.xxx/',
     };
   }
 }

@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,20 +29,24 @@ class FeedScreen extends ConsumerStatefulWidget {
   ConsumerState<FeedScreen> createState() => _FeedScreenState();
 }
 
-class _FeedScreenState extends ConsumerState<FeedScreen> {
+class _FeedScreenState extends ConsumerState<FeedScreen>
+    with WidgetsBindingObserver {
   final _scrollController = ScrollController();
   final Set<String> _selectedKeys = {};
   bool _selectionMode = false;
   String? _appliedInitialQuery;
   Timer? _scrollSaveDebounce;
+  double _lastKnownScrollOffset = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _scrollController.addListener(() {
       if (_scrollController.position.extentAfter < 800) {
         ref.read(feedControllerProvider.notifier).loadNextPage();
       }
+      _lastKnownScrollOffset = _scrollController.offset;
       _scrollSaveDebounce?.cancel();
       _scrollSaveDebounce = Timer(const Duration(milliseconds: 600), () {
         ref
@@ -53,6 +58,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       final settings =
           ref.read(appSettingsProvider).value ?? AppSettings.defaults;
       if (settings.lastFeedScrollOffset > 0 && _scrollController.hasClients) {
+        _lastKnownScrollOffset = settings.lastFeedScrollOffset;
         _scrollController.jumpTo(
           settings.lastFeedScrollOffset.clamp(
             0.0,
@@ -80,9 +86,30 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _scrollSaveDebounce?.cancel();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    if (_scrollController.hasClients) {
+      _lastKnownScrollOffset = _scrollController.offset;
+      ref
+          .read(feedControllerProvider.notifier)
+          .saveSession(scrollOffset: _lastKnownScrollOffset);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      final target = _lastKnownScrollOffset.clamp(
+        0.0,
+        _scrollController.position.maxScrollExtent,
+      );
+      if ((_scrollController.offset - target).abs() > 24) {
+        _scrollController.jumpTo(target);
+      }
+    });
   }
 
   @override
@@ -162,6 +189,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   tagSuggestions: state.tagSuggestions,
                   providers: state.providers,
                   rating: state.ratingFilter,
+                  providerStatusMessage: state.providerStatusMessage,
                   onSearchChanged: (query) => ref
                       .read(feedControllerProvider.notifier)
                       .updateTagSuggestions(query),
@@ -173,6 +201,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                   onRefresh: () =>
                       ref.read(feedControllerProvider.notifier).refresh(),
                   onClearFilters: _clearFilters,
+                  onRandom: () => _openRandom(state.posts),
                   selectionMode: _selectionMode,
                   onToggleSelectionMode: () {
                     setState(() {
@@ -228,6 +257,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
                               .read(feedControllerProvider.notifier)
                               .refresh(),
                           child: PostMasonryGrid(
+                            key: const PageStorageKey('feed_masonry_grid'),
                             controller: _scrollController,
                             posts: state.posts,
                             columns: Responsive.columnsFor(
@@ -294,6 +324,12 @@ class _FeedScreenState extends ConsumerState<FeedScreen> {
       return;
     }
     context.go(location);
+  }
+
+  void _openRandom(List<Post> posts) {
+    if (posts.isEmpty) return;
+    final post = posts[Random().nextInt(posts.length)];
+    context.push('/post/${post.providerId}/${post.id}', extra: post);
   }
 
   Future<void> _applySearchQuery(String query) async {

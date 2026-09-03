@@ -32,7 +32,7 @@ class SearchService {
     );
   }
 
-  Future<Result<List<SearchHistory>>> recentSearches({int limit = 20}) {
+  Future<Result<List<SearchHistory>>> recentSearches({int? limit}) {
     return _repository.recent(limit: limit);
   }
 

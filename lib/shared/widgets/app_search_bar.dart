@@ -54,6 +54,8 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
   OverlayEntry? _suggestionsOverlay;
   Timer? _debounce;
   List<String> _tags = [];
+  String _lastExternalValue = '';
+  bool _localDirty = false;
 
   @override
   void initState() {
@@ -62,15 +64,20 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
     _focusNode = FocusNode();
     _tagScrollController = ScrollController();
     _focusNode.addListener(_handleFocusChanged);
-    _setFromQuery(widget.initialValue ?? '');
+    _lastExternalValue = widget.initialValue ?? '';
+    _setFromQuery(_lastExternalValue);
   }
 
   @override
   void didUpdateWidget(covariant TagInputSearchBar oldWidget) {
     super.didUpdateWidget(oldWidget);
     final next = widget.initialValue ?? '';
-    if (!_focusNode.hasFocus && oldWidget.initialValue != next) {
+    final externalChanged = next != _lastExternalValue;
+    final externalCleared = next.isEmpty && _lastExternalValue.isNotEmpty;
+    if (externalChanged && (externalCleared || !_isEditing)) {
       _setFromQuery(next);
+      _lastExternalValue = next;
+      _localDirty = false;
     }
     if (oldWidget.suggestions != widget.suggestions) {
       _syncSuggestionsOverlay();
@@ -90,6 +97,13 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
 
   void _handleFocusChanged() {
     if (!mounted) return;
+    if (!_focusNode.hasFocus && !_localDirty) {
+      final next = widget.initialValue ?? '';
+      if (next != _lastExternalValue) {
+        _setFromQuery(next);
+        _lastExternalValue = next;
+      }
+    }
     setState(() {});
     _syncSuggestionsOverlay();
   }
@@ -193,7 +207,11 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
   }
 
   void _syncSuggestionsOverlay() {
-    if (!_focusNode.hasFocus || widget.suggestions.isEmpty) {
+    final token = _activeToken;
+    final suggestions = widget.suggestions
+        .where((item) => item.name.toLowerCase().startsWith(token))
+        .toList(growable: false);
+    if (!_focusNode.hasFocus || token.isEmpty || suggestions.isEmpty) {
       _removeSuggestionsOverlay();
       return;
     }
@@ -203,20 +221,17 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
     if (overlay == null || renderBox == null || !renderBox.hasSize) return;
 
     final size = renderBox.size;
-    if (_suggestionsOverlay == null) {
-      _suggestionsOverlay = OverlayEntry(
-        builder: (context) => _TagSuggestionOverlay(
-          link: _layerLink,
-          width: size.width,
-          yOffset: size.height + 8,
-          suggestions: widget.suggestions,
-          onSelected: _applySuggestion,
-        ),
-      );
-      overlay.insert(_suggestionsOverlay!);
-      return;
-    }
-    _suggestionsOverlay?.markNeedsBuild();
+    _removeSuggestionsOverlay();
+    _suggestionsOverlay = OverlayEntry(
+      builder: (context) => _TagSuggestionOverlay(
+        link: _layerLink,
+        width: size.width,
+        yOffset: size.height + 8,
+        suggestions: suggestions,
+        onSelected: _applySuggestion,
+      ),
+    );
+    overlay.insert(_suggestionsOverlay!);
   }
 
   void _removeSuggestionsOverlay() {
@@ -268,6 +283,7 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
   }
 
   void _handleDraftChanged(String value) {
+    _localDirty = true;
     final composing = _controller.value.composing;
     if (!composing.isValid &&
         value.isNotEmpty &&
@@ -286,6 +302,7 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
   void _commitDraft(String value) {
     final additions = _parseTags(value);
     if (additions.isEmpty) return;
+    _localDirty = true;
     setState(() {
       for (final tag in additions) {
         if (!_tags.contains(tag)) _tags.add(tag);
@@ -299,11 +316,14 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
     _debounce?.cancel();
     _commitDraft(_controller.text);
     _removeSuggestionsOverlay();
+    _lastExternalValue = _query;
+    _localDirty = false;
     widget.onSubmitted(_query);
   }
 
   void _clear() {
     _debounce?.cancel();
+    _localDirty = true;
     setState(() {
       _tags = [];
       _controller.clear();
@@ -313,6 +333,7 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
   }
 
   void _editTag(String tag) {
+    _localDirty = true;
     setState(() {
       _tags = _tags.where((item) => item != tag).toList(growable: true);
       _controller.value = TextEditingValue(
@@ -325,6 +346,7 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
   }
 
   void _removeTag(String tag) {
+    _localDirty = true;
     setState(() {
       _tags = _tags.where((item) => item != tag).toList(growable: true);
     });
@@ -333,6 +355,7 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
 
   void _applySuggestion(String suggestion) {
     final draft = _controller.text.trim();
+    _localDirty = true;
     setState(() {
       if (draft.isNotEmpty) {
         final draftTags = _parseTags(draft);
@@ -353,7 +376,9 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
   }
 
   void _notifyChanged() {
+    _localDirty = true;
     widget.onChanged?.call(_query);
+    _syncSuggestionsOverlay();
   }
 
   List<String> _parseTags(String query) {
@@ -372,6 +397,14 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
     final all = [..._tags, if (draft.isNotEmpty) draft];
     return all.join(' ');
   }
+
+  String get _activeToken {
+    final draft = _controller.text.trim().toLowerCase();
+    if (draft.isEmpty) return '';
+    return draft.split(RegExp(r'\s+')).last;
+  }
+
+  bool get _isEditing => _focusNode.hasFocus || _localDirty;
 }
 
 class _TagSuggestionOverlay extends StatelessWidget {
@@ -396,11 +429,14 @@ class _TagSuggestionOverlay extends StatelessWidget {
         link: link,
         showWhenUnlinked: false,
         offset: Offset(0, yOffset),
-        child: SizedBox(
-          width: width.clamp(280, 620).toDouble(),
-          child: _TagSuggestionDropdown(
-            suggestions: suggestions,
-            onSelected: onSelected,
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: width.clamp(280, 620).toDouble(),
+            child: _TagSuggestionDropdown(
+              suggestions: suggestions,
+              onSelected: onSelected,
+            ),
           ),
         ),
       ),
@@ -420,62 +456,59 @@ class _TagSuggestionDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 620),
-        child: Material(
-          elevation: 8,
-          shadowColor: Colors.black.withValues(alpha: 0.18),
-          color: scheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          clipBehavior: Clip.antiAlias,
-          child: ListView.separated(
-            shrinkWrap: true,
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            itemCount: suggestions.length > 8 ? 8 : suggestions.length,
-            separatorBuilder: (_, __) => Divider(
-              height: 1,
-              indent: 52,
-              color: scheme.outlineVariant.withValues(alpha: 0.55),
-            ),
-            itemBuilder: (context, index) {
-              final suggestion = suggestions[index];
-              return InkWell(
-                onTap: () => onSelected(suggestion.name),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  child: Row(
-                    children: [
-                      Icon(Icons.tag_rounded, color: scheme.primary, size: 20),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Text(
-                          suggestion.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      _TagSuggestionBadge(suggestion.categoryLabel),
-                      if (suggestion.postCount > 0) ...[
-                        const SizedBox(width: 8),
-                        Text(
-                          _compactCount(suggestion.postCount),
-                          style:
-                              Theme.of(context).textTheme.labelMedium?.copyWith(
-                                    color: scheme.onSurfaceVariant,
-                                  ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              );
-            },
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 620),
+      child: Material(
+        elevation: 8,
+        shadowColor: Colors.black.withValues(alpha: 0.18),
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: ListView.separated(
+          shrinkWrap: true,
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          itemCount: suggestions.length > 8 ? 8 : suggestions.length,
+          separatorBuilder: (_, __) => Divider(
+            height: 1,
+            indent: 52,
+            color: scheme.outlineVariant.withValues(alpha: 0.55),
           ),
+          itemBuilder: (context, index) {
+            final suggestion = suggestions[index];
+            return InkWell(
+              onTap: () => onSelected(suggestion.name),
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Row(
+                  children: [
+                    Icon(Icons.tag_rounded, color: scheme.primary, size: 20),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        suggestion.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    _TagSuggestionBadge(suggestion.categoryLabel),
+                    if (suggestion.postCount > 0) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        _compactCount(suggestion.postCount),
+                        style:
+                            Theme.of(context).textTheme.labelMedium?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       ),
     );

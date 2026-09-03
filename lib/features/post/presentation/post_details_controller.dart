@@ -3,17 +3,33 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../backend/backend.dart';
 import '../../../core/utils/result.dart';
 
-// Меняем FutureProvider на StreamProvider
+// Stream the fastest available post version first, then enrich it.
 final postDetailsControllerProvider =
     StreamProvider.family<Post?, PostDetailsArgs>((ref, args) async* {
-  // Правильно собираем зависимости на самом верхнем уровне (фиксим антипаттерн)
   final providerManager = ref.watch(providerManagerProvider);
   final cacheService = ref.watch(cacheServiceProvider);
   final postRepository = ref.watch(postRepositoryProvider);
 
-  // Вспомогательная функция для загрузки тегов
+  bool needsRealbooruDetails(Post post) {
+    if (post.providerId != 'realbooru') return false;
+    final preview = post.previewUrl.toLowerCase();
+    final sample = post.sampleUrl.toLowerCase();
+    return post.fileUrl.isEmpty ||
+        post.fileUrl == post.previewUrl ||
+        post.fileUrl == post.sampleUrl ||
+        preview.contains('/thumbnails/') ||
+        sample.contains('/thumbnails/');
+  }
+
   Future<Post?> enrich(Post? post) async {
     if (post == null) return null;
+    if (needsRealbooruDetails(post)) {
+      final remote = await providerManager.getPost(post.providerId, post.id);
+      if (remote is Success<Post?> && remote.data != null) {
+        await cacheService.cachePosts([remote.data!]);
+        return remote.data!;
+      }
+    }
     final shouldEnrich = post.tagGroups.isEmpty ||
         (post.tagGroups.length == 1 && post.tagGroups.containsKey('general'));
     if (!shouldEnrich) return post;
@@ -26,26 +42,29 @@ final postDetailsControllerProvider =
     return post;
   }
 
-  // СЦЕНАРИЙ 1: Пост уже передан из ленты (Самый частый случай)
+  // Scenario 1: feed navigation already passed the post.
   if (args.initialPost != null) {
-    yield args
-        .initialPost; // МГНОВЕННО отдаем пост в UI, экран сразу рендерится!
+    if (!needsRealbooruDetails(args.initialPost!)) {
+      yield args.initialPost;
+    }
     final enriched = await enrich(args.initialPost);
-    yield enriched; // Чуть позже отдаем версию с загруженными тегами
+    yield enriched;
     return;
   }
 
-  // СЦЕНАРИЙ 2: Прямой переход (например, по ссылке), проверяем локальный кэш
+  // Scenario 2: direct navigation can use the local cache first.
   final cached =
       await postRepository.getCachedPost(args.postId, args.providerId);
   if (cached is Success<Post?> && cached.data != null) {
-    yield cached.data; // Нашли в кэше — сразу показываем контент
+    if (!needsRealbooruDetails(cached.data!)) {
+      yield cached.data;
+    }
     final enriched = await enrich(cached.data);
-    yield enriched; // Догружаем теги на фоне
+    yield enriched;
     return;
   }
 
-  // СЦЕНАРИЙ 3: Полный фоллбэк, если вообще ничего нет — идем в сеть за самим постом
+  // Scenario 3: fall back to the provider when nothing local is available.
   final remote = await providerManager.getPost(args.providerId, args.postId);
   if (remote is Success<Post?> && remote.data != null) {
     yield remote.data;

@@ -221,6 +221,19 @@ class _DownloadPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
     final strings = ref.watch(appStringsProvider);
+    final manager = ref.read(downloadManagerServiceProvider);
+    final paused = manager.queuePaused;
+    final activeTasks = tasks
+        .where((task) =>
+            task.status == DownloadTaskStatus.queued ||
+            task.status == DownloadTaskStatus.running)
+        .toList();
+    final finishedTasks = tasks
+        .where((task) =>
+            task.status == DownloadTaskStatus.completed ||
+            task.status == DownloadTaskStatus.failed ||
+            task.status == DownloadTaskStatus.canceled)
+        .toList();
     return Material(
       elevation: 12,
       borderRadius: BorderRadius.circular(16),
@@ -232,6 +245,39 @@ class _DownloadPanel extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Row(
+                children: [
+                  Text(
+                    strings.download,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    tooltip: paused ? 'Resume queue' : 'Pause queue',
+                    onPressed:
+                        paused ? manager.resumeQueue : manager.pauseQueue,
+                    icon: Icon(paused
+                        ? Icons.play_arrow_rounded
+                        : Icons.pause_rounded),
+                  ),
+                  if (activeTasks.isNotEmpty)
+                    IconButton(
+                      tooltip: 'Cancel active',
+                      onPressed: () {
+                        for (final task in activeTasks) {
+                          manager.cancel(task.id);
+                        }
+                      },
+                      icon: const Icon(Icons.cancel_rounded),
+                    ),
+                  if (finishedTasks.isNotEmpty)
+                    IconButton(
+                      tooltip: 'Clear finished',
+                      onPressed: manager.clearFinished,
+                      icon: const Icon(Icons.clear_all_rounded),
+                    ),
+                ],
+              ),
               for (final task in tasks) ...[
                 Row(
                   children: [
@@ -251,6 +297,15 @@ class _DownloadPanel extends ConsumerWidget {
                             .read(downloadManagerServiceProvider)
                             .retry(task.id),
                         icon: const Icon(Icons.refresh_rounded),
+                      ),
+                    if (task.status == DownloadTaskStatus.queued ||
+                        task.status == DownloadTaskStatus.running)
+                      IconButton(
+                        tooltip: 'Cancel',
+                        onPressed: () => ref
+                            .read(downloadManagerServiceProvider)
+                            .cancel(task.id),
+                        icon: const Icon(Icons.close_rounded),
                       ),
                   ],
                 ),
@@ -344,7 +399,7 @@ class _StartupErrorScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 Text(
                   strings.ru
-                      ? 'Не удалось открыть локальную базу'
+                      ? '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0442\u043a\u0440\u044b\u0442\u044c \u043b\u043e\u043a\u0430\u043b\u044c\u043d\u0443\u044e \u0431\u0430\u0437\u0443'
                       : 'Could not start local database',
                   style: Theme.of(context).textTheme.titleLarge,
                   textAlign: TextAlign.center,

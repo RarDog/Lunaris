@@ -16,9 +16,12 @@ class DownloadManagerService {
   final DownloadedMediaService? _downloadedMediaService;
   final _controller = StreamController<List<DownloadTask>>.broadcast();
   final Map<String, DownloadTask> _tasks = {};
+  final Set<String> _runningTaskIds = {};
+  bool _queuePaused = false;
 
   Stream<List<DownloadTask>> get stream => _controller.stream;
   List<DownloadTask> get tasks => List.unmodifiable(_tasks.values);
+  bool get queuePaused => _queuePaused;
 
   Future<DownloadTask> start(Post post) async {
     final id = '${post.cacheKey}:${DateTime.now().microsecondsSinceEpoch}';
@@ -30,7 +33,7 @@ class DownloadManagerService {
       status: DownloadTaskStatus.queued,
     );
     _set(task);
-    unawaited(_run(task));
+    _pumpQueue();
     return task;
   }
 
@@ -49,8 +52,19 @@ class DownloadManagerService {
       openAfterDownload: openAfterDownload,
     );
     _set(task);
-    unawaited(_run(task));
+    _pumpQueue();
     return task;
+  }
+
+  void pauseQueue() {
+    _queuePaused = true;
+    _emit();
+  }
+
+  void resumeQueue() {
+    _queuePaused = false;
+    _emit();
+    _pumpQueue();
   }
 
   Future<void> retry(String taskId) async {
@@ -62,7 +76,7 @@ class DownloadManagerService {
       error: null,
     );
     _set(task);
-    await _run(task);
+    _pumpQueue();
   }
 
   void cancel(String taskId) {
@@ -71,8 +85,19 @@ class DownloadManagerService {
     _set(existing.copyWith(status: DownloadTaskStatus.canceled));
   }
 
+  void clearFinished() {
+    _tasks.removeWhere(
+      (_, task) =>
+          task.status == DownloadTaskStatus.completed ||
+          task.status == DownloadTaskStatus.failed ||
+          task.status == DownloadTaskStatus.canceled,
+    );
+    _emit();
+  }
+
   Future<void> _run(DownloadTask task) async {
     if (_tasks[task.id]?.status == DownloadTaskStatus.canceled) return;
+    if (!_runningTaskIds.add(task.id)) return;
     _set(task.copyWith(status: DownloadTaskStatus.running));
     try {
       final saved = task.sourceUrl == null
@@ -121,12 +146,28 @@ class DownloadManagerService {
           error: error.toString(),
         ),
       );
+    } finally {
+      _runningTaskIds.remove(task.id);
+      _pumpQueue();
     }
   }
 
   void _set(DownloadTask task) {
     _tasks[task.id] = task;
+    _emit();
+  }
+
+  void _emit() {
     _controller.add(tasks);
+  }
+
+  void _pumpQueue() {
+    if (_queuePaused) return;
+    for (final task in tasks) {
+      if (task.status != DownloadTaskStatus.queued) continue;
+      if (_runningTaskIds.contains(task.id)) continue;
+      unawaited(_run(task));
+    }
   }
 
   void _updateProgress(String taskId, int received, int total) {
@@ -143,7 +184,7 @@ class DownloadManagerService {
       final current = _tasks[taskId];
       if (current?.status != DownloadTaskStatus.completed) return;
       _tasks.remove(taskId);
-      _controller.add(tasks);
+      _emit();
     });
   }
 

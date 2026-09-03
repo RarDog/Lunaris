@@ -84,6 +84,7 @@ class FakeProvider implements ContentProvider, TagSuggestionProvider {
     this.posts, {
     this.failSearch = false,
     this.suggestions = const [],
+    this.suggestionDelay = Duration.zero,
   });
 
   @override
@@ -95,6 +96,8 @@ class FakeProvider implements ContentProvider, TagSuggestionProvider {
   final List<Post> posts;
   final bool failSearch;
   final List<TagSuggestion> suggestions;
+  final Duration suggestionDelay;
+  int suggestionCalls = 0;
 
   @override
   Future<ProviderHealth> checkHealth() async => ProviderHealth(
@@ -123,6 +126,10 @@ class FakeProvider implements ContentProvider, TagSuggestionProvider {
   @override
   Future<List<TagSuggestion>> suggestTags(String query,
       {int limit = 20}) async {
+    suggestionCalls++;
+    if (suggestionDelay > Duration.zero) {
+      await Future<void>.delayed(suggestionDelay);
+    }
     return suggestions
         .where((suggestion) => suggestion.name.startsWith(query))
         .take(limit)
@@ -302,5 +309,121 @@ void main() {
       'e621',
       'e926',
     });
+  });
+
+  test('tag suggestions timeout slow providers without blocking fast results',
+      () async {
+    final repository = FakeProviderRepository()
+      ..configs['fast'] = config('fast', 0)
+      ..configs['slow'] = config('slow', 1);
+    final fast = FakeProvider(
+      'fast',
+      'fast',
+      [],
+      suggestions: const [
+        TagSuggestion(
+          name: 'cat_fast',
+          category: TagCategory.general,
+          postCount: 20,
+          providerId: 'fast',
+        ),
+      ],
+    );
+    final slow = FakeProvider(
+      'slow',
+      'slow',
+      [],
+      suggestionDelay: const Duration(seconds: 3),
+      suggestions: const [
+        TagSuggestion(
+          name: 'cat_slow',
+          category: TagCategory.general,
+          postCount: 200,
+          providerId: 'slow',
+        ),
+      ],
+    );
+    final manager = ProviderManager(
+      repository,
+      FakeProviderFactory({'fast': fast, 'slow': slow}),
+    );
+    final startedAt = DateTime.now();
+
+    final result = await manager.suggestTags('cat', limit: 4)
+        as Success<List<TagSuggestion>>;
+
+    expect(DateTime.now().difference(startedAt),
+        lessThan(const Duration(milliseconds: 2500)));
+    expect(result.data.map((item) => item.name), ['cat_fast']);
+  });
+
+  test('tag suggestions dedupe by name and keep highest post count', () async {
+    final repository = FakeProviderRepository()
+      ..configs['a'] = config('a', 0)
+      ..configs['b'] = config('b', 1);
+    final manager = ProviderManager(
+      repository,
+      FakeProviderFactory({
+        'a': FakeProvider(
+          'a',
+          'a',
+          [],
+          suggestions: const [
+            TagSuggestion(
+              name: 'cat',
+              category: TagCategory.general,
+              postCount: 10,
+              providerId: 'a',
+            ),
+          ],
+        ),
+        'b': FakeProvider(
+          'b',
+          'b',
+          [],
+          suggestions: const [
+            TagSuggestion(
+              name: 'cat',
+              category: TagCategory.artist,
+              postCount: 100,
+              providerId: 'b',
+            ),
+          ],
+        ),
+      }),
+    );
+
+    final result = await manager.suggestTags('cat', limit: 4)
+        as Success<List<TagSuggestion>>;
+
+    expect(result.data, hasLength(1));
+    expect(result.data.single.providerId, 'b');
+    expect(result.data.single.postCount, 100);
+  });
+
+  test('tag suggestions cache repeated prefix results', () async {
+    final repository = FakeProviderRepository()..configs['a'] = config('a', 0);
+    final provider = FakeProvider(
+      'a',
+      'a',
+      [],
+      suggestions: const [
+        TagSuggestion(
+          name: 'cat',
+          category: TagCategory.general,
+          postCount: 10,
+          providerId: 'a',
+        ),
+      ],
+    );
+    final manager = ProviderManager(
+      repository,
+      FakeProviderFactory({'a': provider}),
+    );
+
+    await manager.suggestTags('cat', limit: 4);
+    await manager.suggestTags('cat', limit: 4);
+
+    expect(provider.suggestionCalls, 1);
   });
 }

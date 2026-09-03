@@ -4,6 +4,7 @@ build/
 dist/
 /isar.dll
 .idea/
+.vscode/
 *.iml
 .flutter-plugins
 .flutter-plugins-dependencies

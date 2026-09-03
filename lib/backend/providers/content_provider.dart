@@ -24,6 +24,14 @@ abstract class ContentProvider {
   Future<ProviderHealth> checkHealth();
 }
 
+abstract class PostPageProvider {
+  String? postPageUrl(Post post);
+}
+
+abstract class MediaHeadersProvider {
+  Map<String, String> mediaHeaders(Post post);
+}
+
 abstract class CommentProvider {
   Future<List<PostComment>> getComments(String postId);
 }

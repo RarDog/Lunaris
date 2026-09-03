@@ -38,9 +38,13 @@ void main() {
         File('${Directory.current.path}${Platform.pathSeparator}isar.dll');
     if (Platform.isWindows && !copiedIsarDll.existsSync()) {
       final localAppData = Platform.environment['LOCALAPPDATA'];
-      final source = File(
+      final bundled = File(
+        '${Directory.current.path}\\third_party\\isar_flutter_libs\\windows\\isar.dll',
+      );
+      final cached = File(
         '$localAppData\\Pub\\Cache\\hosted\\pub.dev\\isar_flutter_libs-3.1.0+1\\windows\\isar.dll',
       );
+      final source = bundled.existsSync() ? bundled : cached;
       if (source.existsSync()) {
         await source.copy(copiedIsarDll.path);
       }
@@ -85,26 +89,24 @@ void main() {
       'e926',
       'realbooru',
       'xbooru',
-      'cosbooru',
+      'paheal',
       'kemono',
       'coomer',
     ]);
-    expect(
-      providers.singleWhere((provider) => provider.id == 'realbooru').enabled,
-      isFalse,
-    );
-    expect(
-      providers.singleWhere((provider) => provider.id == 'cosbooru').enabled,
-      isTrue,
-    );
+    final realbooru =
+        providers.singleWhere((provider) => provider.id == 'realbooru');
+    expect(realbooru.enabled, isTrue);
+    expect(realbooru.apiType, 'realbooru_html');
+    expect(realbooru.baseUrl, 'https://realbooru.com');
+    expect(providers.where((provider) => provider.id == 'cosbooru'), isEmpty);
     final xbooru = providers.singleWhere((provider) => provider.id == 'xbooru');
     expect(xbooru.enabled, isTrue);
     expect(xbooru.baseUrl, 'https://xbooru.com');
     expect(xbooru.apiType, 'gelbooru');
-    final cosbooru =
-        providers.singleWhere((provider) => provider.id == 'cosbooru');
-    expect(cosbooru.baseUrl, 'https://cos.lycore.co');
-    expect(cosbooru.apiType, 'danbooru');
+    final paheal = providers.singleWhere((provider) => provider.id == 'paheal');
+    expect(paheal.enabled, isTrue);
+    expect(paheal.baseUrl, 'https://rule34.paheal.net');
+    expect(paheal.apiType, 'paheal');
     final kemono = providers.singleWhere((provider) => provider.id == 'kemono');
     final coomer = providers.singleWhere((provider) => provider.id == 'coomer');
     expect(kemono.enabled, isTrue);
@@ -113,7 +115,8 @@ void main() {
     expect(coomer.apiType, 'coomer');
   });
 
-  test('provider repository migrates old CosBooru config', () async {
+  test('provider repository disables old CosBooru config without deleting it',
+      () async {
     final repository = ProviderRepository(databaseService);
     final now = DateTime(2026);
     await repository.saveProvider(ContentProviderConfig(
@@ -134,10 +137,10 @@ void main() {
     final cosbooru =
         providers.singleWhere((provider) => provider.id == 'cosbooru');
 
-    expect(cosbooru.baseUrl, 'https://cos.lycore.co');
-    expect(cosbooru.apiType, 'danbooru');
-    expect(cosbooru.enabled, isTrue);
-    expect(cosbooru.priority, 9);
+    expect(cosbooru.baseUrl, 'https://cos.booru.nl');
+    expect(cosbooru.apiType, 'gelbooru');
+    expect(cosbooru.enabled, isFalse);
+    expect(cosbooru.priority, 99);
   });
 
   test('settings saveEnabledProviders updates provider configs', () async {

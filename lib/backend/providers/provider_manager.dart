@@ -18,12 +18,30 @@ class ProviderManager {
 
   final ProviderRepository _repository;
   final ProviderFactory _factory;
+  final Map<String, _SuggestionCacheEntry> _suggestionCache = {};
+  final Set<String> _softRetryKeys = {};
+  final _softRetryController =
+      StreamController<ProviderSoftRetryResult>.broadcast();
+  _SuggestionProviderCacheEntry? _suggestionProviderCache;
+
+  static const _suggestionCacheTtl = Duration(seconds: 45);
+  static const _suggestionProviderCacheTtl = Duration(seconds: 60);
+  static const _suggestionTimeout = Duration(milliseconds: 1500);
+
+  Stream<ProviderSoftRetryResult> get softRetryResults =>
+      _softRetryController.stream;
 
   Future<Result<List<ContentProviderConfig>>> loadConfigs({
     bool enabledOnly = true,
   }) async {
     await _repository.ensureSeedProviders();
-    return _repository.getProviders(enabledOnly: enabledOnly);
+    final result = await _repository.getProviders(enabledOnly: enabledOnly);
+    if (result is Error<List<ContentProviderConfig>>) return result;
+    final configs = (result as Success<List<ContentProviderConfig>>)
+        .data
+        .where((config) => !_isLegacyRemovedConfig(config))
+        .toList(growable: false);
+    return Success(configs);
   }
 
   Future<Result<List<ContentProviderConfig>>> loadFeedConfigs({
@@ -97,20 +115,34 @@ class ProviderManager {
             Failure(code: 'not_found', message: 'Provider not found'),
           );
         }
-        return _repository.saveProvider(
+        return _repository
+            .saveProvider(
           config.copyWith(enabled: enabled, updatedAt: DateTime.now()),
-        );
+        )
+            .then((result) {
+          _clearSuggestionCaches();
+          return result;
+        });
       },
       onError: Error<void>.new,
     );
   }
 
   Future<Result<void>> addCustomProvider(ContentProviderConfig config) {
-    return _repository.saveProvider(config.copyWith(updatedAt: DateTime.now()));
+    return _repository
+        .saveProvider(config.copyWith(updatedAt: DateTime.now()))
+        .then((result) {
+      _clearSuggestionCaches();
+      return result;
+    });
   }
 
-  Future<Result<void>> deleteProvider(String id) =>
-      _repository.deleteProvider(id);
+  Future<Result<void>> deleteProvider(String id) {
+    return _repository.deleteProvider(id).then((result) {
+      _clearSuggestionCaches();
+      return result;
+    });
+  }
 
   Future<Result<List<ProviderHealth>>> checkAll({int concurrency = 3}) async {
     final providersResult = await activeProviders();
@@ -186,6 +218,14 @@ class ProviderManager {
             errorMessage: 'Search failed',
           ),
         );
+        _scheduleSoftSearchRetry(
+          provider,
+          tags: tags,
+          page: page,
+          limit: limit,
+          rating: rating,
+          topPeriod: topPeriod,
+        );
       }
     }
     final posts = providerId == null
@@ -226,6 +266,75 @@ class ProviderManager {
       hash = (hash * 0x01000193) & 0x7fffffff;
     }
     return hash;
+  }
+
+  void _scheduleSoftSearchRetry(
+    ContentProvider provider, {
+    required List<String> tags,
+    required int page,
+    required int limit,
+    required String? rating,
+    required TopPeriodFilter topPeriod,
+  }) {
+    final key = [
+      provider.id,
+      page,
+      limit,
+      rating ?? '',
+      topPeriod.name,
+      ...tags,
+    ].join('\u001f');
+    if (!_softRetryKeys.add(key)) return;
+    unawaited(Future<void>.delayed(const Duration(milliseconds: 900), () async {
+      try {
+        final posts = await provider.searchPosts(
+          tags: tags,
+          page: page,
+          limit: limit,
+          rating: rating,
+          topPeriod: topPeriod,
+        );
+        await _repository.saveDiagnostics(
+          ProviderDiagnostics(
+            providerId: provider.id,
+            lastSearchAt: DateTime.now(),
+            lastResultCount: posts.length,
+          ),
+        );
+        await _repository.saveHealth(
+          ProviderHealth(
+            providerId: provider.id,
+            status: ProviderStatus.online,
+            pingMs: 0,
+            lastCheckedAt: DateTime.now(),
+          ),
+        );
+        if (posts.isNotEmpty) {
+          _softRetryController.add(
+            ProviderSoftRetryResult(
+              providerId: provider.id,
+              tags: tags,
+              page: page,
+              limit: limit,
+              rating: rating,
+              topPeriod: topPeriod,
+              posts: posts,
+            ),
+          );
+        }
+      } catch (_) {
+        await _repository.saveDiagnostics(
+          ProviderDiagnostics(
+            providerId: provider.id,
+            lastSearchAt: DateTime.now(),
+            lastResultCount: 0,
+            lastErrorMessage: 'Search failed after retry',
+          ),
+        );
+      } finally {
+        _softRetryKeys.remove(key);
+      }
+    }));
   }
 
   Future<Result<List<PostComment>>> getComments(
@@ -282,6 +391,39 @@ class ProviderManager {
     }
   }
 
+  Future<Result<String?>> getPostPageUrl(Post post) async {
+    final providersResult = await activeProviders();
+    if (providersResult is Error<List<ContentProvider>>) {
+      return Error(providersResult.failure);
+    }
+    final providers = (providersResult as Success<List<ContentProvider>>).data;
+    final matches =
+        providers.where((provider) => provider.id == post.providerId);
+    if (matches.isEmpty || matches.first is! PostPageProvider) {
+      return const Success(null);
+    }
+    return Success((matches.first as PostPageProvider).postPageUrl(post));
+  }
+
+  Future<Result<Map<String, String>>> getMediaHeaders(Post post) async {
+    final providersResult = await activeProviders();
+    if (providersResult is Error<List<ContentProvider>>) {
+      return Error(providersResult.failure);
+    }
+    final providers = (providersResult as Success<List<ContentProvider>>).data;
+    final matches =
+        providers.where((provider) => provider.id == post.providerId);
+    if (matches.isNotEmpty && matches.first is MediaHeadersProvider) {
+      return Success(
+        (matches.first as MediaHeadersProvider).mediaHeaders(post),
+      );
+    }
+    return const Success({
+      'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
+      'Accept': '*/*',
+    });
+  }
+
   Future<Result<Post>> enrichPostTags(Post post) async {
     final hasUsefulGroups = post.tagGroups.entries.any(
       (entry) => entry.key != 'general' && entry.value.isNotEmpty,
@@ -313,29 +455,106 @@ class ProviderManager {
     String query, {
     int limit = 20,
   }) async {
+    final normalizedQuery = query.trim().toLowerCase();
+    if (normalizedQuery.isEmpty) return const Success([]);
+    final providersResult = await activeSuggestionProviders();
+    if (providersResult is Error<List<ContentProvider>>) {
+      return Error(providersResult.failure);
+    }
+    final providers = (providersResult as Success<List<ContentProvider>>).data;
+    if (providers.isEmpty) return const Success([]);
+
+    final cappedLimit = limit.clamp(1, 50);
+    final providerIds = providers.map((provider) => provider.id).join(',');
+    final cacheKey = '$normalizedQuery|$providerIds|$cappedLimit';
+    final cached = _suggestionCache[cacheKey];
+    if (cached != null &&
+        DateTime.now().difference(cached.createdAt) < _suggestionCacheTtl) {
+      return Success(cached.items.take(cappedLimit).toList(growable: false));
+    }
+
+    final providerResults = await Future.wait(
+      providers.map(
+        (provider) => _suggestionsFromProvider(
+          provider as TagSuggestionProvider,
+          normalizedQuery,
+          cappedLimit,
+        ),
+      ),
+    );
+    final suggestions = <String, TagSuggestion>{};
+    for (final items in providerResults) {
+      for (final item in items) {
+        final nameKey = item.name.trim().toLowerCase();
+        if (nameKey.isEmpty) continue;
+        final current = suggestions[nameKey];
+        if (current == null || item.postCount > current.postCount) {
+          suggestions[nameKey] = item;
+        }
+      }
+    }
+    final values = suggestions.values.toList()
+      ..sort((a, b) {
+        final count = b.postCount.compareTo(a.postCount);
+        return count != 0 ? count : a.name.compareTo(b.name);
+      });
+    _suggestionCache[cacheKey] = _SuggestionCacheEntry(
+      DateTime.now(),
+      values,
+    );
+    _pruneSuggestionCache();
+    return Success(values.take(cappedLimit).toList());
+  }
+
+  Future<List<TagSuggestion>> _suggestionsFromProvider(
+    TagSuggestionProvider provider,
+    String query,
+    int limit,
+  ) async {
+    try {
+      return await provider
+          .suggestTags(query, limit: limit)
+          .timeout(_suggestionTimeout);
+    } catch (_) {
+      // Suggestions are non-critical; a failed provider should not affect UI.
+      return const [];
+    }
+  }
+
+  void _pruneSuggestionCache() {
+    final now = DateTime.now();
+    _suggestionCache.removeWhere(
+      (_, entry) => now.difference(entry.createdAt) >= _suggestionCacheTtl,
+    );
+  }
+
+  Future<Result<List<ContentProvider>>> activeSuggestionProviders() async {
+    final cached = _suggestionProviderCache;
+    if (cached != null &&
+        DateTime.now().difference(cached.createdAt) <
+            _suggestionProviderCacheTtl) {
+      return Success(cached.providers);
+    }
+
     final providersResult = await activeFeedProviders();
     if (providersResult is Error<List<ContentProvider>>) {
       return Error(providersResult.failure);
     }
-    final providers = (providersResult as Success<List<ContentProvider>>)
-        .data
-        .whereType<TagSuggestionProvider>()
-        .toList();
-    final suggestions = <String, TagSuggestion>{};
-    for (final provider in providers) {
-      try {
-        final items = await provider.suggestTags(query, limit: limit);
-        for (final item in items) {
-          suggestions.putIfAbsent(
-              '${item.providerId}:${item.name}', () => item);
-        }
-      } catch (_) {
-        // Suggestions are non-critical; a failed provider should not affect UI.
-      }
-    }
-    final values = suggestions.values.toList()
-      ..sort((a, b) => b.postCount.compareTo(a.postCount));
-    return Success(values.take(limit).toList());
+    final providers = <ContentProvider>[
+      for (final provider
+          in (providersResult as Success<List<ContentProvider>>).data)
+        if (provider is TagSuggestionProvider) provider,
+    ];
+    _suggestionProviderCache = _SuggestionProviderCacheEntry(
+      DateTime.now(),
+      providers,
+    );
+    return Success(providers);
+  }
+
+  void _clearSuggestionCaches() {
+    _suggestionCache.clear();
+    _suggestionProviderCache = null;
   }
 
   Future<List<R>> _runLimited<T, R>(
@@ -367,4 +586,44 @@ class ProviderManager {
   static bool _isFeedConfig(ContentProviderConfig config) {
     return !_isArtistConfig(config);
   }
+
+  static bool _isLegacyRemovedConfig(ContentProviderConfig config) {
+    final id = config.id.toLowerCase();
+    final type = config.apiType.toLowerCase();
+    return id == 'cosbooru' || type == 'realbooru';
+  }
+}
+
+class _SuggestionCacheEntry {
+  const _SuggestionCacheEntry(this.createdAt, this.items);
+
+  final DateTime createdAt;
+  final List<TagSuggestion> items;
+}
+
+class _SuggestionProviderCacheEntry {
+  const _SuggestionProviderCacheEntry(this.createdAt, this.providers);
+
+  final DateTime createdAt;
+  final List<ContentProvider> providers;
+}
+
+class ProviderSoftRetryResult {
+  const ProviderSoftRetryResult({
+    required this.providerId,
+    required this.tags,
+    required this.page,
+    required this.limit,
+    required this.topPeriod,
+    required this.posts,
+    this.rating,
+  });
+
+  final String providerId;
+  final List<String> tags;
+  final int page;
+  final int limit;
+  final TopPeriodFilter topPeriod;
+  final String? rating;
+  final List<Post> posts;
 }

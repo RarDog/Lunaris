@@ -118,7 +118,14 @@ bool postMatchesRequestedTags(Post post, List<String> requestedTags) {
       .toList(growable: false);
   if (requested.isEmpty) return true;
   final postTags = _postTagSet(post);
-  return requested.every(postTags.contains);
+  return requested.every(
+    (requestedTag) => postTags.any(
+      (postTag) =>
+          postTag == requestedTag ||
+          postTag.startsWith('${requestedTag}_') ||
+          postTag.startsWith('$requestedTag-'),
+    ),
+  );
 }
 
 bool postPassesTagFilters(Post post, AppSettings settings) {

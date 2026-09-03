@@ -1,13 +1,20 @@
+import 'dart:async';
+import 'dart:collection';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 
 import '../../app/motion.dart';
 import '../../backend/backend.dart';
+import '../../core/utils/result.dart';
 import 'blur_content.dart';
 import 'loading_skeleton.dart';
 import 'rating_badge.dart';
 
-class PostCard extends StatefulWidget {
+class PostCard extends ConsumerStatefulWidget {
   const PostCard({
     required this.post,
     required this.blurExplicit,
@@ -44,25 +51,40 @@ class PostCard extends StatefulWidget {
   final bool selected;
 
   @override
-  State<PostCard> createState() => _PostCardState();
+  ConsumerState<PostCard> createState() => _PostCardState();
 }
 
-class _PostCardState extends State<PostCard> {
+class _PostCardState extends ConsumerState<PostCard> {
+  static final Map<String, Post> _resolvedRealbooruPosts = {};
+
   bool _hovered = false;
+  Post? _resolvedPost;
+
+  @override
+  void initState() {
+    super.initState();
+    _resolvedPost = _resolvedRealbooruPosts[widget.post.cacheKey];
+    _maybeResolveRealbooruPost();
+  }
+
+  @override
+  void didUpdateWidget(covariant PostCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.post.cacheKey != widget.post.cacheKey) {
+      _resolvedPost = _resolvedRealbooruPosts[widget.post.cacheKey];
+      _maybeResolveRealbooruPost();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final post = widget.post;
+    final post = _resolvedPost ?? widget.post;
     final sensitive = _isSensitive(post.rating);
     final aspect = post.width > 0 && post.height > 0
         ? post.width / post.height
         : _fallbackAspect(post.fileType);
     final mobile = MediaQuery.sizeOf(context).width < 700;
-    final urls = MediaUrlSelector.feed(
-      post,
-      mode: widget.mediaQualityMode,
-      mobile: mobile,
-    );
+    final urls = _feedUrls(post, mobile: mobile);
     final imageUrl = urls.isEmpty ? post.previewUrl : urls.first;
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -130,8 +152,21 @@ class _PostCardState extends State<PostCard> {
                       final dpr = MediaQuery.devicePixelRatioOf(context);
                       final cacheWidth =
                           (constraints.maxWidth * dpr).round().clamp(320, 1800);
+                      final headers = _headersFor(post);
+                      final videoUrls = MediaUrlSelector.video(post);
+                      if (_resolvedPost != null &&
+                          MediaUrlSelector.isVideo(post) &&
+                          videoUrls.isNotEmpty) {
+                        return _FeedVideoPreview(
+                          videoUrl: videoUrls.first,
+                          headers: headers,
+                          fallbackImageUrl: imageUrl,
+                          cacheWidth: cacheWidth,
+                        );
+                      }
                       return CachedNetworkImage(
                         imageUrl: imageUrl,
+                        httpHeaders: headers,
                         memCacheWidth: cacheWidth,
                         maxWidthDiskCache: cacheWidth,
                         fit: BoxFit.cover,
@@ -290,6 +325,236 @@ class _PostCardState extends State<PostCard> {
     }
     if (normalized.contains('gif')) return 1;
     return 0.72;
+  }
+
+  List<String> _feedUrls(Post post, {required bool mobile}) {
+    if ((post.providerId == 'realbooru' || post.providerId == 'paheal') &&
+        !MediaUrlSelector.isVideo(post)) {
+      return [
+        post.sampleUrl,
+        post.fileUrl,
+        post.previewUrl,
+      ].where((url) => url.trim().isNotEmpty).toSet().toList(growable: false);
+    }
+    return MediaUrlSelector.feed(
+      post,
+      mode: widget.mediaQualityMode,
+      mobile: mobile,
+    );
+  }
+
+  Map<String, String> _headersFor(Post post) {
+    final lower = '${post.providerId} ${post.providerName} '
+            '${post.previewUrl} ${post.sampleUrl} ${post.fileUrl}'
+        .toLowerCase();
+    return {
+      'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
+      'Accept': '*/*',
+      if (lower.contains('gelbooru')) 'Referer': 'https://gelbooru.com/',
+      if (lower.contains('realbooru'))
+        'User-Agent':
+            'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125 Mobile Safari/537.36',
+      if (lower.contains('realbooru'))
+        'Accept':
+            'video/webm,video/mp4,image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+      if (lower.contains('realbooru'))
+        'Referer':
+            'https://realbooru.com/index.php?page=post&s=view&id=${post.id}',
+      if (lower.contains('paheal'))
+        'User-Agent':
+            'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125 Mobile Safari/537.36',
+      if (lower.contains('paheal'))
+        'Accept':
+            'video/webm,video/mp4,image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+      if (lower.contains('paheal'))
+        'Referer': 'https://rule34.paheal.net/post/view/${post.id}',
+      if (lower.contains('rule34') && !lower.contains('paheal'))
+        'Referer': 'https://rule34.xxx/',
+    };
+  }
+
+  void _maybeResolveRealbooruPost() {
+    final post = widget.post;
+    if (!_needsRealbooruDetails(post) ||
+        _resolvedRealbooruPosts.containsKey(post.cacheKey)) {
+      return;
+    }
+    Future<void>(() async {
+      final result = await ref
+          .read(providerManagerProvider)
+          .getPost(post.providerId, post.id);
+      if (!mounted) return;
+      if (result is Success<Post?> && result.data != null) {
+        final resolved = result.data!;
+        _resolvedRealbooruPosts[post.cacheKey] = resolved;
+        setState(() => _resolvedPost = resolved);
+      }
+    });
+  }
+
+  bool _needsRealbooruDetails(Post post) {
+    if (post.providerId != 'realbooru') return false;
+    final preview = post.previewUrl.toLowerCase();
+    final sample = post.sampleUrl.toLowerCase();
+    return post.fileUrl.isEmpty ||
+        post.fileUrl == post.previewUrl ||
+        post.fileUrl == post.sampleUrl ||
+        preview.contains('/thumbnails/') ||
+        sample.contains('/thumbnails/');
+  }
+}
+
+class _FeedVideoPreview extends StatefulWidget {
+  const _FeedVideoPreview({
+    required this.videoUrl,
+    required this.headers,
+    required this.fallbackImageUrl,
+    required this.cacheWidth,
+  });
+
+  final String videoUrl;
+  final Map<String, String> headers;
+  final String fallbackImageUrl;
+  final int cacheWidth;
+
+  @override
+  State<_FeedVideoPreview> createState() => _FeedVideoPreviewState();
+}
+
+class _FeedVideoPreviewState extends State<_FeedVideoPreview> {
+  late final Player _player;
+  late final VideoController _controller;
+  bool _failed = false;
+  bool _ready = false;
+  int _requestId = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    MediaKit.ensureInitialized();
+    _player = Player();
+    _controller = VideoController(_player);
+    _player.stream.error.listen((_) {
+      if (mounted) setState(() => _failed = true);
+    });
+    _open();
+  }
+
+  @override
+  void didUpdateWidget(covariant _FeedVideoPreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.videoUrl != widget.videoUrl) {
+      _open();
+    }
+  }
+
+  @override
+  void dispose() {
+    _player.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback = CachedNetworkImage(
+      imageUrl: widget.fallbackImageUrl,
+      httpHeaders: widget.headers,
+      memCacheWidth: widget.cacheWidth,
+      maxWidthDiskCache: widget.cacheWidth,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => const LoadingSkeleton(),
+      errorWidget: (context, url, error) => ColoredBox(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        child: const Center(child: Icon(Icons.videocam_off_rounded)),
+      ),
+    );
+    if (_failed) return fallback;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        fallback,
+        AnimatedOpacity(
+          opacity: _ready ? 1 : 0,
+          duration: AppMotion.duration(context, 180),
+          child: ColoredBox(
+            color: Colors.black,
+            child: Video(
+              controller: _controller,
+              fit: BoxFit.cover,
+              controls: null,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _open() async {
+    final requestId = ++_requestId;
+    if (mounted) {
+      setState(() {
+        _failed = false;
+        _ready = false;
+      });
+    }
+    try {
+      await _VideoPreviewOpenQueue.run(() async {
+        if (!mounted || requestId != _requestId) return;
+        await _player.stop();
+        await _player
+            .open(
+              Media(widget.videoUrl, httpHeaders: widget.headers),
+              play: false,
+            )
+            .timeout(const Duration(seconds: 8));
+        if (!mounted || requestId != _requestId) return;
+        await _player
+            .seek(const Duration(milliseconds: 300))
+            .timeout(const Duration(seconds: 3));
+        await _player.pause();
+      });
+      if (!mounted || requestId != _requestId) return;
+      setState(() => _ready = true);
+    } catch (_) {
+      if (mounted && requestId == _requestId) {
+        setState(() => _failed = true);
+      }
+    }
+  }
+}
+
+class _VideoPreviewOpenQueue {
+  static const int _maxConcurrent = 2;
+  static final Queue<Future<void> Function()> _pending = Queue();
+  static int _active = 0;
+
+  static Future<void> run(Future<void> Function() task) {
+    final completer = Completer<void>();
+    _pending.add(() async {
+      try {
+        await task();
+        if (!completer.isCompleted) completer.complete();
+      } catch (error, stackTrace) {
+        if (!completer.isCompleted) {
+          completer.completeError(error, stackTrace);
+        }
+      }
+    });
+    _pump();
+    return completer.future;
+  }
+
+  static void _pump() {
+    while (_active < _maxConcurrent && _pending.isNotEmpty) {
+      final job = _pending.removeFirst();
+      _active++;
+      unawaited(
+        job().whenComplete(() {
+          _active--;
+          _pump();
+        }),
+      );
+    }
   }
 }
 
