@@ -10,7 +10,7 @@ class SearchRepository {
 
   final DatabaseService _databaseService;
 
-  Future<Result<void>> save(SearchHistory history) {
+  Future<Result<void>> save(SearchHistory history, {int maxItems = 500}) {
     return _databaseService.safeWrite((isar) async {
       await isar.searchHistoryEntitys.put(
         SearchHistoryEntity()
@@ -20,6 +20,21 @@ class SearchRepository {
           ..searchedAt = history.searchedAt
           ..resultCount = history.resultCount,
       );
+      final count = await isar.searchHistoryEntitys.count();
+      if (count > maxItems) {
+        final items = await isar.searchHistoryEntitys.where().findAll();
+        items.sort((a, b) => b.searchedAt.compareTo(a.searchedAt));
+        final toRemove = items.skip(maxItems);
+        for (final item in toRemove) {
+          await isar.searchHistoryEntitys.delete(item.isarId);
+        }
+      }
+    });
+  }
+
+  Future<Result<int>> count() {
+    return _databaseService.safeRead((isar) async {
+      return await isar.searchHistoryEntitys.count();
     });
   }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,6 +30,7 @@ import '../services/favorite_service.dart';
 import '../services/feed_service.dart';
 import '../services/provider_check_service.dart';
 import '../services/search_service.dart';
+import '../services/tag_cache_service.dart';
 import '../services/settings_service.dart';
 import '../services/update_service.dart';
 import '../services/viewed_history_service.dart';
@@ -125,10 +128,17 @@ final viewedKeysProvider = FutureProvider<Set<String>>((ref) async {
   return result is Success<Set<String>> ? result.data : <String>{};
 });
 
+final tagCacheServiceProvider = Provider<TagCacheService>((ref) {
+  final service = TagCacheService();
+  unawaited(service.init());
+  return service;
+});
+
 final searchServiceProvider = Provider<SearchService>((ref) {
   return SearchService(
     ref.watch(searchRepositoryProvider),
     ref.watch(providerManagerProvider),
+    ref.watch(tagCacheServiceProvider),
   );
 });
 

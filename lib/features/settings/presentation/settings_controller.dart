@@ -38,6 +38,14 @@ class SettingsController extends AsyncNotifier<AppSettings> {
     ref.invalidateSelf();
   }
 
+  Future<void> clearSearchHistory() async {
+    await ref.read(searchServiceProvider).clearHistory();
+  }
+
+  Future<void> clearTagCache() async {
+    await ref.read(searchServiceProvider).clearTagCache();
+  }
+
   Future<String> diagnosticsReport() async {
     final result =
         await ref.read(settingsServiceProvider).buildDiagnosticsReport(

@@ -21,11 +21,13 @@ class SearchController extends AsyncNotifier<SearchState> {
   }
 
   Future<void> updateQuery(String query) async {
-    final lastToken =
+    final rawLast =
         query.trim().isEmpty ? '' : query.trim().split(RegExp(r'\s+')).last;
+    final cleanToken = SearchService.sanitizeToken(rawLast);
     final requestId = ++_suggestionRequestId;
     _suggestionDebounce?.cancel();
-    if (lastToken.isEmpty) {
+
+    if (cleanToken.isEmpty || cleanToken == 'and') {
       state = AsyncData(
         (state.value ?? const SearchState()).copyWith(
           query: query,
@@ -34,24 +36,35 @@ class SearchController extends AsyncNotifier<SearchState> {
       );
       return;
     }
+
+    // Instant local suggestions from disk cache & history (0 ms)
+    final localMatches = ref
+        .read(searchServiceProvider)
+        .instantSuggestions(cleanToken, limit: 16);
+
     state = AsyncData(
       (state.value ?? const SearchState()).copyWith(
         query: query,
+        suggestions: localMatches,
       ),
     );
-    _suggestionDebounce = Timer(const Duration(milliseconds: 280), () async {
+
+    _suggestionDebounce = Timer(const Duration(milliseconds: 160), () async {
+      final settingsRes = await ref.read(settingsServiceProvider).getSettings();
+      final appSettings = settingsRes is Success<AppSettings>
+          ? settingsRes.data
+          : AppSettings.defaults;
       final suggestionsResult = await ref
           .read(searchServiceProvider)
-          .autocompleteDetailed(lastToken, limit: 16);
+          .autocompleteDetailed(
+            cleanToken,
+            limit: 16,
+            tagCacheLimit: appSettings.tagCacheLimit,
+          );
       if (requestId != _suggestionRequestId) return;
-      final normalizedToken = lastToken.trim().toLowerCase();
       final suggestions = suggestionsResult is Success<List<TagSuggestion>>
           ? suggestionsResult.data
-              .where((item) => item.name.toLowerCase().startsWith(
-                    normalizedToken,
-                  ))
-              .toList(growable: false)
-          : <TagSuggestion>[];
+          : localMatches;
       state = AsyncData(
         (state.value ?? const SearchState()).copyWith(
           query: query,

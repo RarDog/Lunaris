@@ -1,5 +1,19 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.0.9',
+    title: 'Instant Tag Suggestions, Persistent Disk Cache, Expanded History & Match Highlighting',
+    bullets: [
+      'Instant 0ms tag suggestions: cached tags and search history are served immediately without network delay.',
+      'Persistent disk cache: tag suggestions are preserved in lunaris_tag_cache.json across app restarts on Android and PC.',
+      'Debounce reduced from 530ms to 100ms+160ms for ultra-responsive typing.',
+      'Match highlighting: matched characters are bolded and highlighted with the primary theme color in the dropdown.',
+      'Vibrant category badges: distinct colors for Artist (red), Character (green), Copyright (purple), Species (blue), and Meta (grey).',
+      'Danbooru tag autocomplete support connected (/tags/autocomplete.json).',
+      'Configurable search history limit (up to 2000 items) and tag cache limit (up to 20000 tags) in Settings.',
+      'Dedicated Clear Tag Cache actions in Settings and Cache Manager.',
+    ],
+  ),
+  LunarisChange(
     version: '2.0.8',
     title: 'Shared Context Modifiers for Multi-Tag Search & Clean Tag Filtering',
     bullets: [

@@ -392,6 +392,28 @@ class _SettingsContent extends ConsumerWidget {
               onChanged: (value) =>
                   _update(ref, settings.copyWith(cacheMaxItems: value)),
             ),
+            _StepperTile(
+              title: settings.languageCode == 'ru'
+                  ? 'Лимит истории поиска'
+                  : 'Search history limit',
+              value: settings.searchHistoryLimit,
+              min: 50,
+              max: 2000,
+              step: 50,
+              onChanged: (value) =>
+                  _update(ref, settings.copyWith(searchHistoryLimit: value)),
+            ),
+            _StepperTile(
+              title: settings.languageCode == 'ru'
+                  ? 'Лимит кэша тегов (диск)'
+                  : 'Tag cache limit (disk)',
+              value: settings.tagCacheLimit,
+              min: 500,
+              max: 20000,
+              step: 500,
+              onChanged: (value) =>
+                  _update(ref, settings.copyWith(tagCacheLimit: value)),
+            ),
             _ActionGrid(
               children: [
                 FilledButton.tonalIcon(
@@ -409,10 +431,58 @@ class _SettingsContent extends ConsumerWidget {
                       : 'Cache Manager'),
                 ),
                 FilledButton.tonalIcon(
+                  onPressed: () async {
+                    await ref
+                        .read(settingsControllerProvider.notifier)
+                        .clearTagCache();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            settings.languageCode == 'ru'
+                                ? 'Кэш подсказок тегов очищен'
+                                : 'Tag suggestions cache cleared',
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.label_off_rounded),
+                  label: Text(
+                    settings.languageCode == 'ru'
+                        ? 'Очистить кэш тегов'
+                        : 'Clear tag cache',
+                  ),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: () async {
+                    await ref
+                        .read(settingsControllerProvider.notifier)
+                        .clearSearchHistory();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            settings.languageCode == 'ru'
+                                ? 'История поиска очищена'
+                                : 'Search history cleared',
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.history_toggle_off_rounded),
+                  label: Text(
+                    settings.languageCode == 'ru'
+                        ? 'Очистить историю'
+                        : 'Clear search history',
+                  ),
+                ),
+                FilledButton.tonalIcon(
                   onPressed: () => ref
                       .read(settingsControllerProvider.notifier)
                       .clearViewedHistory(),
-                  icon: const Icon(Icons.history_toggle_off_rounded),
+                  icon: const Icon(Icons.visibility_off_rounded),
                   label: Text(strings.clearViewed),
                 ),
                 FilledButton.tonalIcon(
@@ -426,7 +496,7 @@ class _SettingsContent extends ConsumerWidget {
                   onPressed: () => ref
                       .read(settingsControllerProvider.notifier)
                       .clearHiddenPosts(),
-                  icon: const Icon(Icons.visibility_off_rounded),
+                  icon: const Icon(Icons.delete_sweep_rounded),
                   label:
                       Text('Clear hidden (${settings.hiddenPostKeys.length})'),
                 ),

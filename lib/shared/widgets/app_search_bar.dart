@@ -228,6 +228,7 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
         width: size.width,
         yOffset: size.height + 8,
         suggestions: suggestions,
+        query: token,
         onSelected: _applySuggestion,
       ),
     );
@@ -372,7 +373,7 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
 
   void _notifyChangedDebounced() {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 250), _notifyChanged);
+    _debounce = Timer(const Duration(milliseconds: 100), _notifyChanged);
   }
 
   void _notifyChanged() {
@@ -401,7 +402,8 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
   String get _activeToken {
     final draft = _controller.text.trim().toLowerCase();
     if (draft.isEmpty) return '';
-    return draft.split(RegExp(r'\s+')).last;
+    final raw = draft.split(RegExp(r'\s+')).last;
+    return raw.replaceAll(RegExp(r'^[\(\)]+|[\(\)]+$'), '').trim();
   }
 
   bool get _isEditing => _focusNode.hasFocus || _localDirty;
@@ -413,6 +415,7 @@ class _TagSuggestionOverlay extends StatelessWidget {
     required this.width,
     required this.yOffset,
     required this.suggestions,
+    required this.query,
     required this.onSelected,
   });
 
@@ -420,6 +423,7 @@ class _TagSuggestionOverlay extends StatelessWidget {
   final double width;
   final double yOffset;
   final List<TagSuggestion> suggestions;
+  final String query;
   final ValueChanged<String> onSelected;
 
   @override
@@ -435,6 +439,7 @@ class _TagSuggestionOverlay extends StatelessWidget {
             width: width.clamp(280, 620).toDouble(),
             child: _TagSuggestionDropdown(
               suggestions: suggestions,
+              query: query,
               onSelected: onSelected,
             ),
           ),
@@ -447,10 +452,12 @@ class _TagSuggestionOverlay extends StatelessWidget {
 class _TagSuggestionDropdown extends StatelessWidget {
   const _TagSuggestionDropdown({
     required this.suggestions,
+    required this.query,
     required this.onSelected,
   });
 
   final List<TagSuggestion> suggestions;
+  final String query;
   final ValueChanged<String> onSelected;
 
   @override
@@ -482,18 +489,24 @@ class _TagSuggestionDropdown extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 child: Row(
                   children: [
-                    Icon(Icons.tag_rounded, color: scheme.primary, size: 20),
+                    Icon(
+                      Icons.tag_rounded,
+                      color: _categoryAccentColor(suggestion.category, scheme),
+                      size: 20,
+                    ),
                     const SizedBox(width: 14),
                     Expanded(
-                      child: Text(
+                      child: _buildHighlightedText(
+                        context,
                         suggestion.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyLarge,
+                        query,
                       ),
                     ),
                     const SizedBox(width: 10),
-                    _TagSuggestionBadge(suggestion.categoryLabel),
+                    _TagSuggestionBadge(
+                      category: suggestion.category,
+                      label: suggestion.categoryLabel,
+                    ),
                     if (suggestion.postCount > 0) ...[
                       const SizedBox(width: 8),
                       Text(
@@ -514,6 +527,72 @@ class _TagSuggestionDropdown extends StatelessWidget {
     );
   }
 
+  Widget _buildHighlightedText(
+    BuildContext context,
+    String text,
+    String token,
+  ) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final defaultStyle = theme.textTheme.bodyLarge ?? const TextStyle();
+
+    final cleanToken = token.trim().toLowerCase();
+    if (cleanToken.isEmpty) {
+      return Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: defaultStyle,
+      );
+    }
+
+    final lowerText = text.toLowerCase();
+    final matchIndex = lowerText.indexOf(cleanToken);
+
+    if (matchIndex < 0) {
+      return Text(
+        text,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: defaultStyle,
+      );
+    }
+
+    final before = text.substring(0, matchIndex);
+    final match = text.substring(matchIndex, matchIndex + cleanToken.length);
+    final after = text.substring(matchIndex + cleanToken.length);
+
+    return Text.rich(
+      TextSpan(
+        style: defaultStyle,
+        children: [
+          if (before.isNotEmpty) TextSpan(text: before),
+          TextSpan(
+            text: match,
+            style: defaultStyle.copyWith(
+              color: scheme.primary,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          if (after.isNotEmpty) TextSpan(text: after),
+        ],
+      ),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  Color _categoryAccentColor(TagCategory category, ColorScheme scheme) {
+    return switch (category) {
+      TagCategory.artist => const Color(0xFFFF5252),
+      TagCategory.character => const Color(0xFF66BB6A),
+      TagCategory.copyright => const Color(0xFFBA68C8),
+      TagCategory.species => const Color(0xFF4FC3F7),
+      TagCategory.meta => const Color(0xFF90A4AE),
+      TagCategory.general || TagCategory.unknown => scheme.primary,
+    };
+  }
+
   String _compactCount(int value) {
     if (value >= 1000000) return '${(value / 1000000).toStringAsFixed(1)}M';
     if (value >= 1000) return '${(value / 1000).toStringAsFixed(1)}K';
@@ -522,16 +601,22 @@ class _TagSuggestionDropdown extends StatelessWidget {
 }
 
 class _TagSuggestionBadge extends StatelessWidget {
-  const _TagSuggestionBadge(this.label);
+  const _TagSuggestionBadge({
+    required this.category,
+    required this.label,
+  });
 
+  final TagCategory category;
   final String label;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final (bgColor, fgColor) = _badgeColors(scheme);
+
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: scheme.primaryContainer.withValues(alpha: 0.55),
+        color: bgColor,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Padding(
@@ -539,12 +624,41 @@ class _TagSuggestionBadge extends StatelessWidget {
         child: Text(
           label,
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: scheme.onPrimaryContainer,
+                color: fgColor,
                 fontWeight: FontWeight.w700,
               ),
         ),
       ),
     );
+  }
+
+  (Color, Color) _badgeColors(ColorScheme scheme) {
+    return switch (category) {
+      TagCategory.artist => (
+          const Color(0xFFFF5252).withValues(alpha: 0.16),
+          const Color(0xFFFF5252),
+        ),
+      TagCategory.character => (
+          const Color(0xFF4CAF50).withValues(alpha: 0.16),
+          const Color(0xFF43A047),
+        ),
+      TagCategory.copyright => (
+          const Color(0xFFAB47BC).withValues(alpha: 0.16),
+          const Color(0xFFAB47BC),
+        ),
+      TagCategory.species => (
+          const Color(0xFF29B6F6).withValues(alpha: 0.16),
+          const Color(0xFF0288D1),
+        ),
+      TagCategory.meta => (
+          const Color(0xFF78909C).withValues(alpha: 0.16),
+          const Color(0xFF607D8B),
+        ),
+      TagCategory.general || TagCategory.unknown => (
+          scheme.primaryContainer.withValues(alpha: 0.55),
+          scheme.onPrimaryContainer,
+        ),
+    };
   }
 }
 

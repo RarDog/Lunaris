@@ -58,6 +58,8 @@ class AppSettings {
     this.gridMode = 'masonry',
     this.searchPresets = const [],
     this.downloadPathTemplate = '{Artist}/{ID}',
+    this.searchHistoryLimit = 500,
+    this.tagCacheLimit = 5000,
   });
 
   final List<String> favoriteArtists;
@@ -106,6 +108,8 @@ class AppSettings {
   final String gridMode;
   final List<String> searchPresets;
   final String downloadPathTemplate;
+  final int searchHistoryLimit;
+  final int tagCacheLimit;
 
   static const defaults = AppSettings(
     enabledProviderIds: ['gelbooru', 'rule34', 'realbooru'],
@@ -149,6 +153,8 @@ class AppSettings {
     lastUpdateCheckAt: null,
     defaultRatingFilter: null,
     lastFeedRating: null,
+    searchHistoryLimit: 500,
+    tagCacheLimit: 5000,
   );
 
   AppSettings copyWith({
@@ -199,6 +205,8 @@ class AppSettings {
     String? gridMode,
     List<String>? searchPresets,
     String? downloadPathTemplate,
+    int? searchHistoryLimit,
+    int? tagCacheLimit,
   }) {
     return AppSettings(
       favoriteArtists: favoriteArtists ?? this.favoriteArtists,
@@ -254,6 +262,8 @@ class AppSettings {
       gridMode: gridMode ?? this.gridMode,
       searchPresets: searchPresets ?? this.searchPresets,
       downloadPathTemplate: downloadPathTemplate ?? this.downloadPathTemplate,
+      searchHistoryLimit: searchHistoryLimit ?? this.searchHistoryLimit,
+      tagCacheLimit: tagCacheLimit ?? this.tagCacheLimit,
     );
   }
 
@@ -304,6 +314,8 @@ class AppSettings {
         'gridMode': gridMode,
         'searchPresets': searchPresets,
         'downloadPathTemplate': downloadPathTemplate,
+        'searchHistoryLimit': searchHistoryLimit,
+        'tagCacheLimit': tagCacheLimit,
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
@@ -411,6 +423,10 @@ class AppSettings {
         ),
         downloadPathTemplate:
             (json['downloadPathTemplate'] as String?) ?? '{Artist}/{ID}',
+        searchHistoryLimit: (json['searchHistoryLimit'] as num?)?.toInt() ??
+            defaults.searchHistoryLimit,
+        tagCacheLimit: (json['tagCacheLimit'] as num?)?.toInt() ??
+            defaults.tagCacheLimit,
       );
 }
 

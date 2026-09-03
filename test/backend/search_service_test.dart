@@ -21,7 +21,7 @@ class FakeSearchRepository implements SearchRepository {
   }
 
   @override
-  Future<Result<void>> save(SearchHistory history) async {
+  Future<Result<void>> save(SearchHistory history, {int maxItems = 500}) async {
     items.add(history);
     return const Success(null);
   }

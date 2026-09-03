@@ -5,11 +5,16 @@ import '../mappers/danbooru_mapper.dart';
 import '../models/post.dart';
 import '../models/post_comment.dart';
 import '../models/provider_health.dart';
+import '../models/tag_suggestion.dart';
 import '../models/top_period_filter.dart';
 import 'content_provider.dart';
 
 class DanbooruProvider
-    implements ContentProvider, CommentProvider, PostPageProvider {
+    implements
+        ContentProvider,
+        CommentProvider,
+        PostPageProvider,
+        TagSuggestionProvider {
   DanbooruProvider({
     required this.id,
     required this.name,
@@ -170,5 +175,50 @@ class DanbooruProvider
     return '${value.year.toString().padLeft(4, '0')}-'
         '${value.month.toString().padLeft(2, '0')}-'
         '${value.day.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Future<List<TagSuggestion>> suggestTags(
+    String query, {
+    int limit = 20,
+  }) async {
+    final cleanQuery = query
+        .replaceAll(RegExp(r'^[\(\)]+|[\(\)]+$'), '')
+        .trim()
+        .toLowerCase();
+    if (cleanQuery.isEmpty) return const [];
+    try {
+      final response = await _dio.get<dynamic>(
+        '/tags/autocomplete.json',
+        queryParameters: {
+          'search[name_matches]': cleanQuery,
+          'limit': limit.clamp(1, 50),
+          ..._queryParameters,
+        },
+      );
+      final items = response.data is List ? response.data as List : const [];
+      return items
+          .whereType<Map>()
+          .map((item) {
+            final json = Map<String, dynamic>.from(item);
+            final name = (json['value'] ?? json['name'] ?? '').toString();
+            return TagSuggestion(
+              name: name,
+              category: tagCategoryFromString(json['category']?.toString()),
+              postCount: _int(json['post_count']),
+              providerId: id,
+            );
+          })
+          .where((tag) => tag.name.isNotEmpty)
+          .toList(growable: false);
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  int _int(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
   }
 }

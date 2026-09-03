@@ -120,35 +120,56 @@ class FeedController extends AsyncNotifier<FeedState> {
       ),
     );
     await saveSession(scrollOffset: 0);
-    await ref.read(searchServiceProvider).saveSearch(query, 0);
+    final settingsRes = await ref.read(settingsServiceProvider).getSettings();
+    final settings =
+        settingsRes is Success<AppSettings> ? settingsRes.data : AppSettings.defaults;
+    await ref
+        .read(searchServiceProvider)
+        .saveSearch(query, 0, maxHistory: settings.searchHistoryLimit);
     await refresh();
     final count = state.value?.posts.length ?? 0;
-    await ref.read(searchServiceProvider).saveSearch(query, count);
+    await ref
+        .read(searchServiceProvider)
+        .saveSearch(query, count, maxHistory: settings.searchHistoryLimit);
   }
 
   Future<void> updateTagSuggestions(String query) async {
     final current = state.value ?? const FeedState();
-    final lastToken =
+    final rawLast =
         query.trim().isEmpty ? '' : query.trim().split(RegExp(r'\s+')).last;
+    final cleanToken = SearchService.sanitizeToken(rawLast);
     final requestId = ++_suggestionRequestId;
     _suggestionDebounce?.cancel();
-    if (lastToken.trim().isEmpty) {
+
+    if (cleanToken.isEmpty || cleanToken == 'and') {
       state = AsyncData(current.copyWith(tagSuggestions: []));
       return;
     }
-    _suggestionDebounce = Timer(const Duration(milliseconds: 280), () async {
+
+    // Instant local suggestions from disk cache & history (0 ms)
+    final localMatches = ref
+        .read(searchServiceProvider)
+        .instantSuggestions(cleanToken, limit: 16);
+    if (localMatches.isNotEmpty) {
+      state = AsyncData(current.copyWith(tagSuggestions: localMatches));
+    }
+
+    _suggestionDebounce = Timer(const Duration(milliseconds: 160), () async {
+      final settingsRes = await ref.read(settingsServiceProvider).getSettings();
+      final appSettings = settingsRes is Success<AppSettings>
+          ? settingsRes.data
+          : AppSettings.defaults;
       final result = await ref
           .read(searchServiceProvider)
-          .autocompleteDetailed(lastToken, limit: 16);
+          .autocompleteDetailed(
+            cleanToken,
+            limit: 16,
+            tagCacheLimit: appSettings.tagCacheLimit,
+          );
       if (requestId != _suggestionRequestId) return;
-      final normalizedToken = lastToken.trim().toLowerCase();
       final suggestions = result is Success<List<TagSuggestion>>
           ? result.data
-              .where((item) => item.name.toLowerCase().startsWith(
-                    normalizedToken,
-                  ))
-              .toList(growable: false)
-          : const <TagSuggestion>[];
+          : localMatches;
       final latest = state.value ?? current;
       state = AsyncData(latest.copyWith(tagSuggestions: suggestions));
     });

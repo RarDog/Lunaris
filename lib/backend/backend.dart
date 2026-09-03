@@ -28,6 +28,7 @@ export 'services/favorite_service.dart';
 export 'services/feed_service.dart';
 export 'services/provider_check_service.dart';
 export 'services/search_service.dart';
+export 'services/tag_cache_service.dart';
 export 'services/settings_service.dart';
 export 'services/update_service.dart';
 export 'services/viewed_history_service.dart';

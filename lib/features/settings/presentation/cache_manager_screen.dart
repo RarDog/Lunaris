@@ -16,6 +16,8 @@ class CacheStats {
     required this.imageMemoryCount,
     required this.tempDirectoryBytes,
     required this.downloadedCount,
+    this.tagCacheCount = 0,
+    this.tagCacheBytes = 0,
   });
 
   final int cachedPostsCount;
@@ -23,9 +25,14 @@ class CacheStats {
   final int imageMemoryCount;
   final int tempDirectoryBytes;
   final int downloadedCount;
+  final int tagCacheCount;
+  final int tagCacheBytes;
 
   int get totalEstimatedBytes =>
-      imageMemoryBytes + tempDirectoryBytes + (cachedPostsCount * 2048);
+      imageMemoryBytes +
+      tempDirectoryBytes +
+      tagCacheBytes +
+      (cachedPostsCount * 2048);
 
   static const empty = CacheStats(
     cachedPostsCount: 0,
@@ -33,6 +40,8 @@ class CacheStats {
     imageMemoryCount: 0,
     tempDirectoryBytes: 0,
     downloadedCount: 0,
+    tagCacheCount: 0,
+    tagCacheBytes: 0,
   );
 }
 
@@ -64,14 +73,21 @@ final cacheStatsProvider = FutureProvider.autoDispose<CacheStats>((ref) async {
     }
   } catch (_) {}
 
-  return CacheStats(
-    cachedPostsCount: postsCount,
-    imageMemoryBytes: memBytes,
-    imageMemoryCount: memCount,
-    tempDirectoryBytes: tempBytes,
-    downloadedCount: downloadedCount,
-  );
-});
+    final tagCache = ref.watch(tagCacheServiceProvider);
+    if (!tagCache.isInitialized) await tagCache.init();
+    final tagCount = tagCache.tagCount;
+    final tagBytes = await tagCache.getFileSizeBytes();
+
+    return CacheStats(
+      cachedPostsCount: postsCount,
+      imageMemoryBytes: memBytes,
+      imageMemoryCount: memCount,
+      tempDirectoryBytes: tempBytes,
+      downloadedCount: downloadedCount,
+      tagCacheCount: tagCount,
+      tagCacheBytes: tagBytes,
+    );
+  });
 
 class CacheManagerScreen extends ConsumerStatefulWidget {
   const CacheManagerScreen({super.key});
@@ -127,9 +143,17 @@ class _CacheManagerScreenState extends ConsumerState<CacheManagerScreen> {
     if (mounted) setState(() => _isClearing = false);
   }
 
+  Future<void> _clearTagCache() async {
+    setState(() => _isClearing = true);
+    await ref.read(tagCacheServiceProvider).clear();
+    ref.invalidate(cacheStatsProvider);
+    if (mounted) setState(() => _isClearing = false);
+  }
+
   Future<void> _clearAllCache() async {
     setState(() => _isClearing = true);
     await ref.read(cacheServiceProvider).clear();
+    await ref.read(tagCacheServiceProvider).clear();
     PaintingBinding.instance.imageCache.clear();
     PaintingBinding.instance.imageCache.clearLiveImages();
     try {
@@ -241,6 +265,17 @@ class _CacheManagerScreenState extends ConsumerState<CacheManagerScreen> {
                     : 'Share exports & temporary buffers',
                 sizeText: _formatBytes(stats.tempDirectoryBytes),
                 onClear: _isClearing ? null : _clearTempFiles,
+              ),
+              const SizedBox(height: 8),
+
+              _CacheCategoryTile(
+                icon: Icons.label_rounded,
+                title: strings.ru ? 'Кэш подсказок тегов' : 'Tag suggestions cache',
+                subtitle: strings.ru
+                    ? '${stats.tagCacheCount} закэшированных тегов на диске'
+                    : '${stats.tagCacheCount} cached tags on disk',
+                sizeText: _formatBytes(stats.tagCacheBytes),
+                onClear: _isClearing ? null : _clearTagCache,
               ),
               const SizedBox(height: 8),
 
