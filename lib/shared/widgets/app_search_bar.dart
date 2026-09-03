@@ -121,15 +121,16 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
         decoration: BoxDecoration(
           color: Theme.of(context).inputDecorationTheme.fillColor ??
               scheme.surfaceContainerHighest.withValues(alpha: 0.38),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(22),
           border: Border.all(
             color: _focusNode.hasFocus
-                ? scheme.primary.withValues(alpha: 0.45)
-                : Colors.transparent,
+                ? scheme.primary.withValues(alpha: 0.6)
+                : Colors.white.withValues(alpha: 0.08),
+            width: 1.0,
           ),
         ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(22),
           onTap: _focusNode.requestFocus,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),

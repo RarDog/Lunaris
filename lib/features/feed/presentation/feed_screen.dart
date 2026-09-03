@@ -802,15 +802,22 @@ class _SearchPresetsBar extends StatelessWidget {
               );
             },
             child: FilterChip(
+              avatar: Icon(
+                active ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+                size: 15,
+                color: active ? scheme.primary : scheme.onSurfaceVariant,
+              ),
               label: Text(name),
               selected: active,
               onSelected: (_) => onApply(raw),
-              selectedColor: scheme.primaryContainer,
+              selectedColor: scheme.primaryContainer.withValues(alpha: 0.8),
               checkmarkColor: scheme.onPrimaryContainer,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               labelStyle: TextStyle(
                 color: active ? scheme.onPrimaryContainer : scheme.onSurface,
-                fontWeight:
-                    active ? FontWeight.w600 : FontWeight.normal,
+                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
           );

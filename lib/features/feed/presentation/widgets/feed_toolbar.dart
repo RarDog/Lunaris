@@ -77,6 +77,8 @@ class _FeedToolbarState extends State<FeedToolbar> {
   }
 
   Widget _buildDesktop(BuildContext context) {
+    final hasActiveFilters = widget.selectedProviderIds.isNotEmpty || widget.rating != null;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Column(
@@ -100,34 +102,42 @@ class _FeedToolbarState extends State<FeedToolbar> {
               ),
               const SizedBox(width: 8),
               IconButton.filledTonal(
-                tooltip: widget.selectionMode ? 'Exit select' : 'Select posts',
+                tooltip: widget.selectionMode ? 'Выйти из выбора' : 'Выбрать посты',
                 onPressed: widget.onToggleSelectionMode,
                 icon: Icon(widget.selectionMode
                     ? Icons.check_box_rounded
                     : Icons.check_box_outline_blank_rounded),
               ),
-              IconButton.filledTonal(
-                tooltip: 'Providers',
-                onPressed: widget.onProviderFilter,
-                icon: const Icon(Icons.hub_rounded),
+              const SizedBox(width: 4),
+              Badge(
+                isLabelVisible: hasActiveFilters,
+                child: IconButton.filledTonal(
+                  tooltip: 'Провайдеры',
+                  onPressed: widget.onProviderFilter,
+                  icon: const Icon(Icons.hub_rounded),
+                ),
               ),
+              const SizedBox(width: 4),
               IconButton.filledTonal(
-                tooltip: 'Rating',
+                tooltip: 'Рейтинг',
                 onPressed: widget.onRatingFilter,
                 icon: const Icon(Icons.tune_rounded),
               ),
+              const SizedBox(width: 4),
               IconButton(
-                tooltip: 'Clear filters',
+                tooltip: 'Очистить фильтры',
                 onPressed: widget.onClearFilters,
                 icon: const Icon(Icons.filter_alt_off_rounded),
               ),
+              const SizedBox(width: 4),
               IconButton(
-                tooltip: 'Refresh',
+                tooltip: 'Обновить',
                 onPressed: widget.onRefresh,
                 icon: const Icon(Icons.refresh_rounded),
               ),
+              const SizedBox(width: 4),
               IconButton.filledTonal(
-                tooltip: 'Random post',
+                tooltip: 'Случайный пост',
                 onPressed: widget.onRandom,
                 icon: const Icon(Icons.casino_rounded),
               ),
@@ -154,7 +164,7 @@ class _FeedToolbarState extends State<FeedToolbar> {
                 if (widget.providers.isNotEmpty) ...[
                   FilterChip(
                     selected: widget.selectedProviderIds.isEmpty,
-                    label: const Text('All providers'),
+                    label: const Text('Все источники'),
                     onSelected: (_) => widget.onQuickProviderToggle('__all__'),
                   ),
                   const SizedBox(width: 8),
@@ -162,7 +172,7 @@ class _FeedToolbarState extends State<FeedToolbar> {
                     FilterChip(
                       selected:
                           widget.selectedProviderIds.contains(provider.id),
-                      avatar: const Icon(Icons.hub_rounded, size: 16),
+                      avatar: const Icon(Icons.hub_rounded, size: 15),
                       label: Text(provider.name),
                       onSelected: (_) =>
                           widget.onQuickProviderToggle(provider.id),
@@ -188,25 +198,62 @@ class _FeedToolbarState extends State<FeedToolbar> {
   }
 
   Widget _buildMobile(BuildContext context) {
+    final hasActiveFilters = widget.selectedProviderIds.isNotEmpty || widget.rating != null;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
       child: Column(
         children: [
-          TagInputSearchBar(
-            initialValue: _query,
-            suggestions: widget.tagSuggestions,
-            onChanged: (value) {
-              _query = value;
-              widget.onSearchChanged(value);
-            },
-            onSubmitted: widget.onSearch,
-            onSuggestionApplied: (value) {
-              _query = value;
-              widget.onSuggestionTap(value);
-            },
+          Row(
+            children: [
+              Expanded(
+                child: TagInputSearchBar(
+                  initialValue: _query,
+                  suggestions: widget.tagSuggestions,
+                  onChanged: (value) {
+                    _query = value;
+                    widget.onSearchChanged(value);
+                  },
+                  onSubmitted: widget.onSearch,
+                  onSuggestionApplied: (value) {
+                    _query = value;
+                    widget.onSuggestionTap(value);
+                  },
+                ),
+              ),
+              const SizedBox(width: 6),
+              Badge(
+                isLabelVisible: hasActiveFilters,
+                child: IconButton.filledTonal(
+                  visualDensity: VisualDensity.compact,
+                  tooltip: 'Фильтры',
+                  onPressed: widget.onProviderFilter,
+                  icon: const Icon(Icons.tune_rounded, size: 20),
+                ),
+              ),
+              const SizedBox(width: 4),
+              IconButton.filledTonal(
+                visualDensity: VisualDensity.compact,
+                tooltip: 'Случайный пост',
+                onPressed: widget.onRandom,
+                icon: const Icon(Icons.casino_rounded, size: 20),
+              ),
+              const SizedBox(width: 4),
+              IconButton.filledTonal(
+                visualDensity: VisualDensity.compact,
+                tooltip: widget.selectionMode ? 'Выйти из выбора' : 'Выбрать посты',
+                onPressed: widget.onToggleSelectionMode,
+                icon: Icon(
+                  widget.selectionMode
+                      ? Icons.check_box_rounded
+                      : Icons.check_box_outline_blank_rounded,
+                  size: 20,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
           if (widget.providerStatusMessage != null) ...[
+            const SizedBox(height: 6),
             Align(
               alignment: Alignment.centerLeft,
               child: InputChip(
@@ -214,55 +261,50 @@ class _FeedToolbarState extends State<FeedToolbar> {
                 label: Text(widget.providerStatusMessage!),
               ),
             ),
-            const SizedBox(height: 6),
           ],
+          const SizedBox(height: 7),
           _HorizontalWheelScroller(
-            height: 40,
+            height: 38,
             builder: (controller) => ListView(
               controller: controller,
               scrollDirection: Axis.horizontal,
               primary: false,
               children: [
-                IconButton.filledTonal(
-                  tooltip:
-                      widget.selectionMode ? 'Exit select' : 'Select posts',
-                  onPressed: widget.onToggleSelectionMode,
-                  icon: Icon(widget.selectionMode
-                      ? Icons.check_box_rounded
-                      : Icons.check_box_outline_blank_rounded),
-                ),
-                const SizedBox(width: 6),
-                IconButton.filledTonal(
-                  tooltip: 'Rating',
-                  onPressed: widget.onRatingFilter,
-                  icon: const Icon(Icons.tune_rounded),
-                ),
-                const SizedBox(width: 6),
-                IconButton(
-                  tooltip: 'Clear filters',
-                  onPressed: widget.onClearFilters,
-                  icon: const Icon(Icons.filter_alt_off_rounded),
-                ),
-                IconButton(
-                  tooltip: 'Refresh',
+                if (hasActiveFilters || widget.selectedTags.isNotEmpty) ...[
+                  ActionChip(
+                    visualDensity: VisualDensity.compact,
+                    avatar: const Icon(Icons.filter_alt_off_rounded, size: 15),
+                    label: const Text('Сбросить'),
+                    onPressed: widget.onClearFilters,
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                ActionChip(
+                  visualDensity: VisualDensity.compact,
+                  avatar: const Icon(Icons.refresh_rounded, size: 15),
+                  label: const Text('Обновить'),
                   onPressed: widget.onRefresh,
-                  icon: const Icon(Icons.refresh_rounded),
                 ),
-                IconButton.filledTonal(
-                  tooltip: 'Random post',
-                  onPressed: widget.onRandom,
-                  icon: const Icon(Icons.casino_rounded),
+                const SizedBox(width: 6),
+                FilterChip(
+                  visualDensity: VisualDensity.compact,
+                  selected: widget.rating != null,
+                  avatar: const Icon(Icons.shield_outlined, size: 15),
+                  label: Text(widget.rating ?? 'Рейтинг'),
+                  onSelected: (_) => widget.onRatingFilter(),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 if (widget.providers.isNotEmpty) ...[
                   FilterChip(
+                    visualDensity: VisualDensity.compact,
                     selected: widget.selectedProviderIds.isEmpty,
-                    label: const Text('All'),
+                    label: const Text('Все'),
                     onSelected: (_) => widget.onQuickProviderToggle('__all__'),
                   ),
                   const SizedBox(width: 6),
                   for (final provider in widget.providers) ...[
                     FilterChip(
+                      visualDensity: VisualDensity.compact,
                       selected:
                           widget.selectedProviderIds.contains(provider.id),
                       label: Text(provider.name),
@@ -272,19 +314,9 @@ class _FeedToolbarState extends State<FeedToolbar> {
                     const SizedBox(width: 6),
                   ],
                 ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 6),
-          _HorizontalWheelScroller(
-            height: 36,
-            builder: (controller) => ListView(
-              controller: controller,
-              scrollDirection: Axis.horizontal,
-              primary: false,
-              children: [
                 for (final period in TopPeriodFilter.values) ...[
                   ChoiceChip(
+                    visualDensity: VisualDensity.compact,
                     selected: widget.topPeriodFilter == period,
                     label: Text(period.label),
                     onSelected: (_) => widget.onTopPeriodChanged(period),

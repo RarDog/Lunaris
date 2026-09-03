@@ -177,114 +177,159 @@ class _PostCardState extends ConsumerState<PostCard>
             ],
           );
         },
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: Stack(
-            children: [
-              AspectRatio(
-                aspectRatio: aspect.clamp(0.28, 2.2),
-                child: BlurContent(
-                  enabled: widget.blurExplicit && sensitive,
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final dpr = MediaQuery.devicePixelRatioOf(context);
-                      final cacheWidth =
-                          (constraints.maxWidth * dpr).round().clamp(320, 1800);
-                      final headers = _headersFor(post);
-                      final videoUrls = MediaUrlSelector.video(post);
-                      if (!mobile &&
-                          _hovered &&
-                          _resolvedPost != null &&
-                          MediaUrlSelector.isVideo(post) &&
-                          videoUrls.isNotEmpty) {
-                        return _FeedVideoPreview(
-                          videoUrl: videoUrls.first,
-                          headers: headers,
-                          fallbackImageUrl: imageUrl,
-                          cacheWidth: cacheWidth,
-                        );
-                      }
-                      return CachedNetworkImage(
-                        imageUrl: imageUrl,
-                        httpHeaders: headers,
-                        memCacheWidth: cacheWidth,
-                        maxWidthDiskCache: cacheWidth,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => const LoadingSkeleton(),
-                        errorWidget: (context, url, error) => ColoredBox(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest,
-                          child: const Center(
-                            child: Icon(Icons.broken_image_rounded),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.09),
+              width: 0.8,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.18),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(13.2),
+            child: Stack(
+              children: [
+                AspectRatio(
+                  aspectRatio: aspect.clamp(0.28, 2.2),
+                  child: BlurContent(
+                    enabled: widget.blurExplicit && sensitive,
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final dpr = MediaQuery.devicePixelRatioOf(context);
+                        final cacheWidth =
+                            (constraints.maxWidth * dpr).round().clamp(320, 1800);
+                        final headers = _headersFor(post);
+                        final videoUrls = MediaUrlSelector.video(post);
+                        if (!mobile &&
+                            _hovered &&
+                            _resolvedPost != null &&
+                            MediaUrlSelector.isVideo(post) &&
+                            videoUrls.isNotEmpty) {
+                          return _FeedVideoPreview(
+                            videoUrl: videoUrls.first,
+                            headers: headers,
+                            fallbackImageUrl: imageUrl,
+                            cacheWidth: cacheWidth,
+                          );
+                        }
+                        return CachedNetworkImage(
+                          imageUrl: imageUrl,
+                          httpHeaders: headers,
+                          memCacheWidth: cacheWidth,
+                          maxWidthDiskCache: cacheWidth,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => const LoadingSkeleton(),
+                          errorWidget: (context, url, error) => ColoredBox(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .surfaceContainerHighest,
+                            child: const Center(
+                              child: Icon(Icons.broken_image_rounded),
+                            ),
                           ),
-                        ),
-                      );
-                    },
+                        );
+                      },
+                    ),
                   ),
                 ),
-              ),
-              if (widget.showBadges) ...[
+                // Bottom cinematic gradient overlay for badges and favorite
                 Positioned(
-                  left: 8,
-                  top: 8,
-                  child: _ProviderBadge(name: post.providerName),
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: 48,
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.65),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: RatingBadge(rating: post.rating),
-                ),
-                Positioned(
-                  left: 8,
-                  bottom: 8,
-                  child: _MediaBadge(fileType: post.fileType),
-                ),
-                if (widget.isViewed)
-                  const Positioned(
+                if (widget.showBadges) ...[
+                  Positioned(
+                    left: 8,
+                    top: 8,
+                    child: _ProviderBadge(name: post.providerName),
+                  ),
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (post.fileType.toLowerCase().contains('video') ||
+                            post.fileType.toLowerCase().contains('webm') ||
+                            post.fileType.toLowerCase().contains('mp4') ||
+                            post.fileType.toLowerCase().contains('gif')) ...[
+                          _MediaBadge(fileType: post.fileType),
+                          const SizedBox(width: 4),
+                        ],
+                        RatingBadge(rating: post.rating),
+                      ],
+                    ),
+                  ),
+                  Positioned(
+                    left: 8,
+                    bottom: 8,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (widget.isViewed) ...[
+                          const _SeenBadge(),
+                          const SizedBox(width: 4),
+                        ],
+                        if (widget.isDownloaded) const _DownloadedBadge(),
+                      ],
+                    ),
+                  ),
+                ],
+                if (widget.selected)
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.24),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.primary,
+                          width: 3,
+                        ),
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      child: const Align(
+                        alignment: Alignment.topRight,
+                        child: Padding(
+                          padding: EdgeInsets.all(8),
+                          child: Icon(Icons.check_circle_rounded),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (mobile)
+                  Positioned(
                     right: 8,
                     bottom: 8,
-                    child: _SeenBadge(),
-                  ),
-                if (widget.isDownloaded)
-                  Positioned(
-                    right: widget.isViewed ? 72 : 8,
-                    bottom: 8,
-                    child: const _DownloadedBadge(),
-                  ),
-              ],
-              if (widget.selected)
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .primary
-                          .withValues(alpha: 0.24),
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.primary,
-                        width: 3,
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Align(
-                      alignment: Alignment.topRight,
-                      child: Padding(
-                        padding: EdgeInsets.all(8),
-                        child: Icon(Icons.check_circle_rounded),
-                      ),
+                    child: _FavoriteButton(
+                      isFavorite: widget.isFavorite,
+                      onPressed: widget.onFavorite,
                     ),
                   ),
-                ),
-              if (mobile)
-                Positioned(
-                  right: 8,
-                  bottom: 8,
-                  child: _FavoriteButton(
-                    isFavorite: widget.isFavorite,
-                    onPressed: widget.onFavorite,
-                  ),
-                ),
               // Double-tap heart animation overlay
               if (_showHeart)
                 Positioned.fill(
@@ -369,7 +414,8 @@ class _PostCardState extends ConsumerState<PostCard>
                   ),
                 ),
               ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -635,13 +681,37 @@ class _FavoriteButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton.filledTonal(
-      visualDensity: VisualDensity.compact,
-      tooltip: isFavorite ? 'Remove favorite' : 'Favorite',
-      onPressed: onPressed,
-      icon: Icon(
-        isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-        size: 18,
+    return InkResponse(
+      onTap: onPressed,
+      radius: 20,
+      child: AnimatedContainer(
+        duration: AppMotion.duration(context, 150),
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.58),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: isFavorite
+                ? Colors.redAccent.withValues(alpha: 0.6)
+                : Colors.white.withValues(alpha: 0.16),
+            width: 0.9,
+          ),
+          boxShadow: [
+            if (isFavorite)
+              BoxShadow(
+                color: Colors.redAccent.withValues(alpha: 0.35),
+                blurRadius: 10,
+              ),
+          ],
+        ),
+        child: Center(
+          child: Icon(
+            isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+            color: isFavorite ? Colors.redAccent : Colors.white,
+            size: 18,
+          ),
+        ),
       ),
     );
   }
@@ -654,16 +724,23 @@ class _ProviderBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(6),
+        color: Colors.black.withValues(alpha: 0.62),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.12),
+          width: 0.7,
+        ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-        child: Text(
-          name,
-          style: const TextStyle(fontSize: 11, color: Colors.white),
+      child: Text(
+        name,
+        style: const TextStyle(
+          fontSize: 10.5,
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
         ),
       ),
     );
@@ -678,24 +755,31 @@ class _MediaBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final type = _type(fileType);
-    return DecoratedBox(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3.5),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(_icon(type), size: 12, color: Colors.white),
-            const SizedBox(width: 4),
-            Text(
-              type,
-              style: const TextStyle(fontSize: 11, color: Colors.white),
-            ),
-          ],
+        color: Colors.black.withValues(alpha: 0.62),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.12),
+          width: 0.7,
         ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(_icon(type), size: 13, color: Colors.white),
+          const SizedBox(width: 3.5),
+          Text(
+            type,
+            style: const TextStyle(
+              fontSize: 10.5,
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -723,24 +807,30 @@ class _SeenBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3.5),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.visibility_rounded, size: 12, color: Colors.white),
-            SizedBox(width: 4),
-            Text(
-              'seen',
-              style: TextStyle(fontSize: 11, color: Colors.white),
-            ),
-          ],
+        color: Colors.black.withValues(alpha: 0.62),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.12),
+          width: 0.7,
         ),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.visibility_rounded, size: 12, color: Colors.white70),
+          SizedBox(width: 3.5),
+          Text(
+            'seen',
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.white70,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -751,14 +841,20 @@ class _DownloadedBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3.5),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(6),
+        color: Colors.black.withValues(alpha: 0.62),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.12),
+          width: 0.7,
+        ),
       ),
-      child: const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-        child: Icon(Icons.download_done_rounded, size: 13, color: Colors.white),
+      child: const Icon(
+        Icons.download_done_rounded,
+        size: 13,
+        color: Colors.white,
       ),
     );
   }

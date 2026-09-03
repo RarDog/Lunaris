@@ -95,7 +95,7 @@ class PostMasonryGrid extends StatelessWidget {
         itemBuilder: (context, index) {
           if (index >= posts.length) return const LoadingSkeleton();
           return ClipRRect(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(14),
             child: SizedBox.expand(
               child: FittedBox(
                 fit: BoxFit.cover,

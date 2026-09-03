@@ -1,5 +1,18 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.0.12',
+    title: 'Feed 2.0: Pinterest Modern Redesign & Sleek Cards',
+    bullets: [
+      'Feed 2.0 Design: modern squircle post cards with 14dp border radius, subtle micro-borders, and depth shadows.',
+      'Unified Media Badges: sleek glassmorphism capsules for booru providers, ratings, video/GIF indicators, and status badges.',
+      'Cinematic Bottom Gradient: gentle shading on post cards for clean presentation without obscuring art.',
+      'Tactile Floating Favorite Button: circular glassmorphism heart button with neon glow and instant feedback.',
+      'Compact 2-Tier Feed Toolbar: 22dp search capsule, filter count badge, and single unified horizontal scroll for sources and time periods.',
+      'Quick Filter & Actions: direct access to random post, selection mode, rating picker, and active filter resets.',
+      'Polished Search Presets: stylish bookmark capsules for quick access to saved search queries.',
+    ],
+  ),
+  LunarisChange(
     version: '2.0.11',
     title: 'Mobile Video Player Redesign & Format Recognition Fix',
     bullets: [
