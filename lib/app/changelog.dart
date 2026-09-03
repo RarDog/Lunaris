@@ -1,5 +1,14 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.0.4',
+    title: 'Platform service selection & media type filtering in artist posts',
+    bullets: [
+      'Added multi-select platform filters (Patreon, Pixiv Fanbox, Fantia, Boosty, Discord) in the Artists tab.',
+      'Added multi-select media type filter chips (Photos, Videos, GIFs) in artist posts with counts.',
+      'Full-screen post pager respects active media type filters during swiping.',
+    ],
+  ),
+  LunarisChange(
     version: '2.0.3',
     title: 'Infinite artist pagination, favorite artists modal, and card layout polish',
     bullets: [

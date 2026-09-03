@@ -91,66 +91,56 @@ class KemonoProvider
   @override
   Future<List<ArtistProfile>> listArtists({
     String? service,
+    List<String>? services,
     String? query,
     int page = 1,
     int limit = 30,
   }) async {
-    final searchText = query?.trim() ?? '';
-    if (searchText.isNotEmpty) {
-      try {
-        final response = await _creatorDio.get<dynamic>(
-          _creatorPath(),
-          queryParameters: {
-            'keyword': searchText,
-            'page': page,
-            'itemsPerPage': limit.clamp(1, 100),
-          },
-        );
-        final artists = _rankArtists(
-          _artistsFromResponse(response.data)
-              .where((artist) =>
-                  service == null ||
-                  service.isEmpty ||
-                  artist.service == service)
-              .toList(growable: false),
-          searchText,
-        );
-        if (artists.isNotEmpty) return artists;
-      } catch (_) {
-        // Fall through to the indexed creator endpoints.
-      }
-    }
+    final effectiveService =
+        services != null && services.length == 1 ? services.first : service;
+    List<ArtistProfile> list;
     try {
       final response = await _creatorDio.get<dynamic>(
-        service == null || service.isEmpty
+        effectiveService == null || effectiveService.isEmpty
             ? _creatorPath()
-            : '${_creatorPath()}/$service',
+            : '${_creatorPath()}/$effectiveService',
         queryParameters: {
           'page': page,
           'itemsPerPage': limit.clamp(1, 100),
           if (query != null && query.trim().isNotEmpty) 'keyword': query.trim(),
         },
       );
-      return _rankArtists(_artistsFromResponse(response.data), query ?? '');
+      list = _rankArtists(_artistsFromResponse(response.data), query ?? '');
     } catch (_) {
-      return _listArtistsFromPublicApi(
-        service: service,
+      list = await _listArtistsFromPublicApi(
+        service: effectiveService,
         query: query,
         page: page,
         limit: limit,
       );
     }
+    if (services != null && services.isNotEmpty) {
+      final sSet = services.map((s) => s.toLowerCase()).toSet();
+      list = list.where((a) => sSet.contains(a.service.toLowerCase())).toList();
+    }
+    return list;
   }
 
   @override
   Future<List<ArtistProfile>> searchArtists(
     String query, {
     String? service,
+    List<String>? services,
     int page = 1,
     int limit = 30,
   }) {
     return listArtists(
-        service: service, query: query, page: page, limit: limit);
+      service: service,
+      services: services,
+      query: query,
+      page: page,
+      limit: limit,
+    );
   }
 
   @override

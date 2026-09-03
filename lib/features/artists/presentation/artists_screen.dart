@@ -34,6 +34,7 @@ class ArtistsScreen extends ConsumerStatefulWidget {
 class _ArtistsScreenState extends ConsumerState<ArtistsScreen> {
   final _search = TextEditingController();
   final _scroll = ScrollController();
+  final Set<String> _selectedServices = <String>{};
   String? _providerId;
   var _page = 1;
   var _loading = false;
@@ -145,14 +146,36 @@ class _ArtistsScreenState extends ConsumerState<ArtistsScreen> {
             WidgetsBinding.instance
                 .addPostFrameCallback((_) => _refresh(items));
           }
+          final displayedArtists = _selectedServices.isEmpty
+              ? _artists
+              : _artists
+                  .where((a) =>
+                      _selectedServices.contains(a.service.toLowerCase()))
+                  .toList(growable: false);
+
           return Column(
             children: [
               _ArtistsHeader(
                 searchController: _search,
                 providers: items,
                 selectedProviderId: _providerId,
+                selectedServices: _selectedServices,
                 onProviderChanged: (value) {
                   setState(() => _providerId = value);
+                  _refresh(items);
+                },
+                onToggleService: (service) {
+                  setState(() {
+                    if (_selectedServices.contains(service)) {
+                      _selectedServices.remove(service);
+                    } else {
+                      _selectedServices.add(service);
+                    }
+                  });
+                  _refresh(items);
+                },
+                onClearServices: () {
+                  setState(() => _selectedServices.clear());
                   _refresh(items);
                 },
                 onSearch: () => _refresh(items),
@@ -163,10 +186,33 @@ class _ArtistsScreenState extends ConsumerState<ArtistsScreen> {
                         message: _friendlyArtistError(_error),
                         onRetry: () => _refresh(items),
                       )
-                    : _artists.isEmpty && !_loading
-                        ? const EmptyView(
-                            title: 'No artists',
-                            message: 'Try another name or provider.',
+                    : displayedArtists.isEmpty && !_loading
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.person_search_outlined,
+                                      size: 48),
+                                  const SizedBox(height: 12),
+                                  const Text(
+                                    'Нет авторов по выбранным фильтрам',
+                                    style:
+                                        TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  FilledButton.tonal(
+                                    onPressed: () {
+                                      setState(
+                                          () => _selectedServices.clear());
+                                      _refresh(items);
+                                    },
+                                    child: const Text('Показать все сервисы'),
+                                  ),
+                                ],
+                              ),
+                            ),
                           )
                         : LayoutBuilder(
                             builder: (context, constraints) {
@@ -189,12 +235,13 @@ class _ArtistsScreenState extends ConsumerState<ArtistsScreen> {
                                   mainAxisExtent:
                                       Responsive.isMobile(context) ? 104 : 116,
                                 ),
-                                itemCount: _artists.length + (_loading ? 1 : 0),
+                                itemCount:
+                                    displayedArtists.length + (_loading ? 1 : 0),
                                 itemBuilder: (context, index) {
-                                  if (index >= _artists.length) {
+                                  if (index >= displayedArtists.length) {
                                     return const _ArtistSkeletonCard();
                                   }
-                                  final artist = _artists[index];
+                                  final artist = displayedArtists[index];
                                   final isFav = favoriteKeys.contains(
                                       '${artist.providerId}:${artist.service}:${artist.id}');
                                   return _ArtistCard(
@@ -250,6 +297,7 @@ class _ArtistsScreenState extends ConsumerState<ArtistsScreen> {
       );
       final next = await provider.searchArtists(
         _search.text.trim(),
+        services: _selectedServices.isEmpty ? null : _selectedServices.toList(),
         page: _page,
         limit: 30,
       );
@@ -317,15 +365,40 @@ class _ArtistsHeader extends StatelessWidget {
     required this.searchController,
     required this.providers,
     required this.selectedProviderId,
+    required this.selectedServices,
     required this.onProviderChanged,
+    required this.onToggleService,
+    required this.onClearServices,
     required this.onSearch,
   });
 
   final TextEditingController searchController;
   final List<ContentProviderConfig> providers;
   final String? selectedProviderId;
+  final Set<String> selectedServices;
   final ValueChanged<String?> onProviderChanged;
+  final ValueChanged<String> onToggleService;
+  final VoidCallback onClearServices;
   final VoidCallback onSearch;
+
+  static const _availableServices = ['patreon', 'fanbox', 'fantia', 'boosty', 'discord'];
+
+  String _formatServiceName(String s) {
+    switch (s.toLowerCase()) {
+      case 'patreon':
+        return 'Patreon';
+      case 'fanbox':
+        return 'Pixiv Fanbox';
+      case 'fantia':
+        return 'Fantia';
+      case 'boosty':
+        return 'Boosty';
+      case 'discord':
+        return 'Discord';
+      default:
+        return s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -380,6 +453,29 @@ class _ArtistsHeader extends StatelessWidget {
                       onSelected: (_) => onProviderChanged(provider.id),
                     );
                   },
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 36,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    FilterChip(
+                      selected: selectedServices.isEmpty,
+                      label: const Text('Все платформы'),
+                      onSelected: (_) => onClearServices(),
+                    ),
+                    const SizedBox(width: 8),
+                    for (final service in _availableServices) ...[
+                      FilterChip(
+                        selected: selectedServices.contains(service),
+                        label: Text(_formatServiceName(service)),
+                        onSelected: (_) => onToggleService(service),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                  ],
                 ),
               ),
             ],

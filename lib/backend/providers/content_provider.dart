@@ -47,6 +47,7 @@ abstract class TagMetadataProvider {
 abstract class ArtistProvider {
   Future<List<ArtistProfile>> listArtists({
     String? service,
+    List<String>? services,
     String? query,
     int page = 1,
     int limit = 30,
@@ -55,6 +56,7 @@ abstract class ArtistProvider {
   Future<List<ArtistProfile>> searchArtists(
     String query, {
     String? service,
+    List<String>? services,
     int page = 1,
     int limit = 30,
   });

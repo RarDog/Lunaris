@@ -46,6 +46,7 @@ class ArtistPostsScreen extends ConsumerStatefulWidget {
 class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
   final _scrollController = ScrollController();
   final List<Post> _posts = [];
+  final Set<String> _selectedTypes = <String>{};
   int _page = 0;
   bool _loading = false;
   bool _hasMore = true;
@@ -138,12 +139,108 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
     }
   }
 
+  bool _matchesTypeFilter(Post post) {
+    if (_selectedTypes.isEmpty) return true;
+    final isVid = MediaUrlSelector.isVideo(post);
+    final isGif = MediaUrlSelector.isGif(post);
+    final isPhoto = !isVid && !isGif;
+
+    if (_selectedTypes.contains('video') && isVid) return true;
+    if (_selectedTypes.contains('gif') && isGif) return true;
+    if (_selectedTypes.contains('photo') && isPhoto) return true;
+    return false;
+  }
+
+  Widget _buildMediaTypeFilters() {
+    final scheme = Theme.of(context).colorScheme;
+    final photoCount = _posts
+        .where((p) => !MediaUrlSelector.isVideo(p) && !MediaUrlSelector.isGif(p))
+        .length;
+    final videoCount = _posts.where(MediaUrlSelector.isVideo).length;
+    final gifCount = _posts.where(MediaUrlSelector.isGif).length;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            FilterChip(
+              selected: _selectedTypes.isEmpty,
+              label: Text('Все (${_posts.length})'),
+              onSelected: (_) => setState(() => _selectedTypes.clear()),
+            ),
+            const SizedBox(width: 8),
+            FilterChip(
+              selected: _selectedTypes.contains('photo'),
+              avatar: Icon(Icons.photo_outlined,
+                  size: 16,
+                  color: _selectedTypes.contains('photo')
+                      ? scheme.onPrimaryContainer
+                      : scheme.onSurfaceVariant),
+              label: Text('Фото ($photoCount)'),
+              onSelected: (selected) {
+                setState(() {
+                  if (selected) {
+                    _selectedTypes.add('photo');
+                  } else {
+                    _selectedTypes.remove('photo');
+                  }
+                });
+              },
+            ),
+            const SizedBox(width: 8),
+            FilterChip(
+              selected: _selectedTypes.contains('video'),
+              avatar: Icon(Icons.videocam_outlined,
+                  size: 16,
+                  color: _selectedTypes.contains('video')
+                      ? scheme.onPrimaryContainer
+                      : scheme.onSurfaceVariant),
+              label: Text('Видео ($videoCount)'),
+              onSelected: (selected) {
+                setState(() {
+                  if (selected) {
+                    _selectedTypes.add('video');
+                  } else {
+                    _selectedTypes.remove('video');
+                  }
+                });
+              },
+            ),
+            const SizedBox(width: 8),
+            FilterChip(
+              selected: _selectedTypes.contains('gif'),
+              avatar: Icon(Icons.gif_rounded,
+                  size: 20,
+                  color: _selectedTypes.contains('gif')
+                      ? scheme.onPrimaryContainer
+                      : scheme.onSurfaceVariant),
+              label: Text('GIF ($gifCount)'),
+              onSelected: (selected) {
+                setState(() {
+                  if (selected) {
+                    _selectedTypes.add('gif');
+                  } else {
+                    _selectedTypes.remove('gif');
+                  }
+                });
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings =
         ref.watch(appSettingsProvider).value ?? AppSettings.defaults;
     final favoriteKeys = ref.watch(favoriteKeysProvider).value ?? <String>{};
     final viewedKeys = ref.watch(viewedKeysProvider).value ?? <String>{};
+
+    final displayedPosts = _posts.where(_matchesTypeFilter).toList(growable: false);
 
     return AdaptiveScaffold(
       title: widget.artistName,
@@ -166,45 +263,80 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
                       title: 'No works',
                       message: 'This artist has no visible media yet.',
                     )
-                  : PostMasonryGrid(
-                      posts: _posts,
-                      controller: _scrollController,
-                      loading: _loading,
-                      columns: Responsive.columnsFor(
-                        context,
-                        mobileColumns: settings.mobileColumns,
-                        desktopColumns: settings.desktopColumns,
-                      ),
-                      blurExplicit: settings.blurExplicitContent,
-                      showBadges: settings.showPostBadges,
-                      nsfwEnabled: settings.nsfwEnabled,
-                      mediaQualityMode:
-                          MediaQualityMode.fromName(settings.mediaQualityMode),
-                      favoriteKeys: favoriteKeys,
-                      viewedKeys: viewedKeys,
-                      onOpen: (post) => context.push(
-                        '/post/${post.providerId}/${post.id}',
-                        extra: PostNavigationContext(
-                          currentPost: post,
-                          posts: _posts,
+                  : Column(
+                      children: [
+                        _buildMediaTypeFilters(),
+                        Expanded(
+                          child: displayedPosts.isEmpty
+                              ? Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(24),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.filter_alt_off_rounded,
+                                            size: 48),
+                                        const SizedBox(height: 12),
+                                        const Text(
+                                          'Нет медиа по выбранным фильтрам',
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        FilledButton.tonal(
+                                          onPressed: () => setState(
+                                              () => _selectedTypes.clear()),
+                                          child: const Text('Показать все'),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              : PostMasonryGrid(
+                                  posts: displayedPosts,
+                                  controller: _scrollController,
+                                  loading: _loading,
+                                  columns: Responsive.columnsFor(
+                                    context,
+                                    mobileColumns: settings.mobileColumns,
+                                    desktopColumns: settings.desktopColumns,
+                                  ),
+                                  blurExplicit: settings.blurExplicitContent,
+                                  showBadges: settings.showPostBadges,
+                                  nsfwEnabled: settings.nsfwEnabled,
+                                  mediaQualityMode: MediaQualityMode.fromName(
+                                      settings.mediaQualityMode),
+                                  favoriteKeys: favoriteKeys,
+                                  viewedKeys: viewedKeys,
+                                  onOpen: (post) => context.push(
+                                    '/post/${post.providerId}/${post.id}',
+                                    extra: PostNavigationContext(
+                                      currentPost: post,
+                                      posts: displayedPosts,
+                                    ),
+                                  ),
+                                  onFavorite: (post) async {
+                                    if (favoriteKeys.contains(post.cacheKey)) {
+                                      await ref
+                                          .read(favoriteServiceProvider)
+                                          .removeFavorite(
+                                              post.id, post.providerId);
+                                    } else {
+                                      await ref
+                                          .read(favoriteServiceProvider)
+                                          .addFavorite(
+                                            post,
+                                            settings: settings,
+                                            downloadManager: ref.read(
+                                                downloadManagerServiceProvider),
+                                          );
+                                    }
+                                    ref.invalidate(favoriteKeysProvider);
+                                    ref.invalidate(favoritesControllerProvider);
+                                  },
+                                ),
                         ),
-                      ),
-                      onFavorite: (post) async {
-                        if (favoriteKeys.contains(post.cacheKey)) {
-                          await ref
-                              .read(favoriteServiceProvider)
-                              .removeFavorite(post.id, post.providerId);
-                        } else {
-                          await ref.read(favoriteServiceProvider).addFavorite(
-                                post,
-                                settings: settings,
-                                downloadManager:
-                                    ref.read(downloadManagerServiceProvider),
-                              );
-                        }
-                        ref.invalidate(favoriteKeysProvider);
-                        ref.invalidate(favoritesControllerProvider);
-                      },
+                      ],
                     ),
     );
   }

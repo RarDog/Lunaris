@@ -122,16 +122,23 @@ class PawchiveProvider
   @override
   Future<List<ArtistProfile>> listArtists({
     String? service,
+    List<String>? services,
     String? query,
     int page = 1,
     int limit = 30,
   }) async {
     final allArtists = await _ensureArtistsLoaded();
     final queryText = (query ?? '').trim().toLowerCase();
+    final activeServices = services != null && services.isNotEmpty
+        ? services.map((s) => s.trim().toLowerCase()).toSet()
+        : null;
     final filtered = allArtists.where((artist) {
-      final matchService = service == null ||
-          service.isEmpty ||
-          artist.service.toLowerCase() == service.toLowerCase();
+      final artistService = artist.service.toLowerCase();
+      final matchService = activeServices != null
+          ? activeServices.contains(artistService)
+          : service == null ||
+              service.isEmpty ||
+              artistService == service.toLowerCase();
       if (!matchService) return false;
       if (queryText.isEmpty) return true;
       return artist.displayName.toLowerCase().contains(queryText) ||
@@ -147,11 +154,13 @@ class PawchiveProvider
   Future<List<ArtistProfile>> searchArtists(
     String query, {
     String? service,
+    List<String>? services,
     int page = 1,
     int limit = 30,
   }) {
     return listArtists(
       service: service,
+      services: services,
       query: query,
       page: page,
       limit: limit,
