@@ -242,18 +242,34 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
 
   Widget _buildTagChip(BuildContext context, String tag) {
     final scheme = Theme.of(context).colorScheme;
+    final isAnd = tag.toLowerCase() == 'and';
     return InputChip(
-      label: Text(tag),
-      avatar: const Icon(Icons.tag_rounded, size: 16),
+      label: Text(
+        isAnd ? 'AND' : tag,
+        style: TextStyle(
+          color: isAnd
+              ? scheme.onSecondaryContainer
+              : scheme.onPrimaryContainer,
+          fontWeight: isAnd ? FontWeight.w900 : FontWeight.w700,
+          letterSpacing: isAnd ? 0.8 : 0,
+        ),
+      ),
+      avatar: Icon(
+        isAnd ? Icons.alt_route_rounded : Icons.tag_rounded,
+        size: 16,
+        color: isAnd ? scheme.secondary : scheme.primary,
+      ),
       deleteIcon: const Icon(Icons.close_rounded, size: 16),
       onPressed: () => _editTag(tag),
       onDeleted: () => _removeTag(tag),
-      backgroundColor: scheme.primaryContainer.withValues(alpha: 0.54),
-      labelStyle: TextStyle(
-        color: scheme.onPrimaryContainer,
-        fontWeight: FontWeight.w700,
+      backgroundColor: isAnd
+          ? scheme.secondaryContainer.withValues(alpha: 0.7)
+          : scheme.primaryContainer.withValues(alpha: 0.54),
+      side: BorderSide(
+        color: isAnd
+            ? scheme.secondary.withValues(alpha: 0.4)
+            : scheme.primary.withValues(alpha: 0.18),
       ),
-      side: BorderSide(color: scheme.primary.withValues(alpha: 0.18)),
       visualDensity: VisualDensity.compact,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
@@ -306,7 +322,9 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
     _localDirty = true;
     setState(() {
       for (final tag in additions) {
-        if (!_tags.contains(tag)) _tags.add(tag);
+        if (tag.toLowerCase() == 'and' || !_tags.contains(tag)) {
+          _tags.add(tag);
+        }
       }
       _controller.clear();
     });
@@ -359,10 +377,19 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
     _localDirty = true;
     setState(() {
       if (draft.isNotEmpty) {
-        final draftTags = _parseTags(draft);
-        _tags.removeWhere(draftTags.contains);
+        final tokens = _parseTags(draft);
+        if (tokens.isNotEmpty) {
+          final prefixTokens = tokens.sublist(0, tokens.length - 1);
+          for (final token in prefixTokens) {
+            if (token.toLowerCase() == 'and' || !_tags.contains(token)) {
+              _tags.add(token);
+            }
+          }
+        }
       }
-      if (!_tags.contains(suggestion)) _tags.add(suggestion);
+      if (!_tags.contains(suggestion)) {
+        _tags.add(suggestion);
+      }
       _controller.clear();
     });
     _notifyChanged();
@@ -387,7 +414,8 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
     final result = <String>[];
     for (final raw in query.trim().split(RegExp(r'\s+'))) {
       final tag = raw.trim();
-      if (tag.isEmpty || !seen.add(tag)) continue;
+      if (tag.isEmpty) continue;
+      if (tag.toLowerCase() != 'and' && !seen.add(tag.toLowerCase())) continue;
       result.add(tag);
     }
     return result;

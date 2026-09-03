@@ -43,6 +43,17 @@ void main() {
     expect(service.parseTags('  cat   cute cat '), ['cat', 'cute']);
   });
 
+  test('parses query preserving and operators and grouping', () {
+    expect(
+      service.parseTags('cat and dog and fox'),
+      ['cat', 'and', 'dog', 'and', 'fox'],
+    );
+    expect(
+      service.parseTags('(cat and dog) anthro'),
+      ['(cat', 'and', 'dog)', 'anthro'],
+    );
+  });
+
   test('recent searches are ordered by searchedAt', () async {
     await service.saveSearch('old', 1);
     await Future<void>.delayed(const Duration(milliseconds: 1));

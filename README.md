@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2.0.9-blueviolet?style=for-the-badge" alt="Version 2.0.9" />
+  <img src="https://img.shields.io/badge/Version-2.0.10-blueviolet?style=for-the-badge" alt="Version 2.0.10" />
   <img src="https://img.shields.io/badge/Flutter-3.47+-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter" />
   <img src="https://img.shields.io/badge/Platform-Android%20%7C%20Linux%20%7C%20Windows-brightgreen?style=for-the-badge" alt="Platforms" />
   <img src="https://img.shields.io/badge/Gitea-RarDog%2FLunaris-orange?style=for-the-badge&logo=gitea&logoColor=white" alt="Gitea" />
@@ -69,9 +69,9 @@
 
 🔗 **[Gitea Releases (RarDog/Lunaris)](https://gitea.rardogsynapse.online/RarDog/Lunaris/releases)**
 
-- **Android**: `Lunaris-v2.0.9.apk`
-- **Linux (x64)**: `Lunaris-v2.0.9-linux-x64.tar.gz`
-- **Windows**: `LunarisSetup-v2.0.9.exe` / `LunarisPortable-v2.0.9.zip`
+- **Android**: `Lunaris-v2.0.10.apk`
+- **Linux (x64)**: `Lunaris-v2.0.10-linux-x64.tar.gz`
+- **Windows**: `LunarisSetup-v2.0.10.exe` / `LunarisPortable-v2.0.10.zip`
 
 ---
 

@@ -1,5 +1,15 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.0.10',
+    title: 'Fix "and" Tag Operator Retention, Suggestion Preceding Drafts & AND Chip Styling',
+    bullets: [
+      'Fixed "and" operator disappearing when submitting search or applying autocompletions.',
+      'Preserved preceding draft tokens (e.g. typing "cat and d" then picking "dog" now retains "cat", "AND", and "dog").',
+      'Supported multiple "and" separators without accidental deduplication.',
+      'Distinct visual styling for AND separator chips with secondary theme container and alt-route icon.',
+    ],
+  ),
+  LunarisChange(
     version: '2.0.9',
     title: 'Instant Tag Suggestions, Persistent Disk Cache, Expanded History & Match Highlighting',
     bullets: [

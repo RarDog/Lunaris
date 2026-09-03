@@ -288,6 +288,57 @@ void main() {
     expect(size.height, lessThan(96));
     expect(find.text('touhou'), findsOneWidget);
   });
+
+  testWidgets('preserves AND operator chips when submitted', (tester) async {
+    String submitted = '';
+    await tester.pumpWidget(_Harness(
+      child: TagInputSearchBar(
+        initialValue: 'cat and dog',
+        onSubmitted: (query) => submitted = query,
+      ),
+    ));
+
+    expect(find.text('cat'), findsOneWidget);
+    expect(find.text('AND'), findsOneWidget);
+    expect(find.text('dog'), findsOneWidget);
+
+    await tester.showKeyboard(find.byType(TextField));
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
+
+    expect(submitted, 'cat and dog');
+  });
+
+  testWidgets('applying suggestion preserves preceding tokens and AND operator',
+      (tester) async {
+    String applied = '';
+    await tester.pumpWidget(_Harness(
+      child: TagInputSearchBar(
+        suggestions: const [
+          TagSuggestion(
+            name: 'dog',
+            category: TagCategory.general,
+            postCount: 50,
+            providerId: 'test',
+          ),
+        ],
+        onSuggestionApplied: (query) => applied = query,
+        onSubmitted: (_) {},
+      ),
+    ));
+
+    await tester.enterText(find.byType(TextField), 'cat and d');
+    await tester.pumpAndSettle();
+
+    expect(find.text('dog'), findsOneWidget);
+    await tester.tap(find.text('dog'));
+    await tester.pumpAndSettle();
+
+    expect(applied, 'cat and dog');
+    expect(find.text('cat'), findsOneWidget);
+    expect(find.text('AND'), findsOneWidget);
+    expect(find.text('dog'), findsOneWidget);
+  });
 }
 
 class _Harness extends StatelessWidget {

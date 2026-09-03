@@ -28,13 +28,15 @@ class SearchService {
   }
 
   List<String> parseTags(String query) {
-    return query
-        .trim()
-        .split(RegExp(r'\s+'))
-        .map(sanitizeToken)
-        .where((tag) => tag.isNotEmpty && tag != 'and')
-        .toSet()
-        .toList();
+    final seen = <String>{};
+    final result = <String>[];
+    for (final raw in query.trim().split(RegExp(r'\s+'))) {
+      final tag = raw.trim();
+      if (tag.isEmpty) continue;
+      if (tag.toLowerCase() != 'and' && !seen.add(tag.toLowerCase())) continue;
+      result.add(tag);
+    }
+    return result;
   }
 
   Future<Result<void>> saveSearch(
