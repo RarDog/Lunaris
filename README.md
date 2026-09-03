@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2.0.12-blueviolet?style=for-the-badge" alt="Version 2.0.12" />
+  <img src="https://img.shields.io/badge/Version-2.0.13-blueviolet?style=for-the-badge" alt="Version 2.0.13" />
   <img src="https://img.shields.io/badge/Flutter-3.47+-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter" />
   <img src="https://img.shields.io/badge/Platform-Android%20%7C%20Linux%20%7C%20Windows-brightgreen?style=for-the-badge" alt="Platforms" />
   <img src="https://img.shields.io/badge/Gitea-RarDog%2FLunaris-orange?style=for-the-badge&logo=gitea&logoColor=white" alt="Gitea" />

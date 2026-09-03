@@ -179,7 +179,9 @@ class _FeedToolbarState extends State<FeedToolbar> {
                     ),
                     const SizedBox(width: 8),
                   ],
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 4),
+                  const _ToolbarDivider(),
+                  const SizedBox(width: 10),
                 ],
                 for (final period in TopPeriodFilter.values) ...[
                   ChoiceChip(
@@ -286,6 +288,8 @@ class _FeedToolbarState extends State<FeedToolbar> {
                   onPressed: widget.onRefresh,
                 ),
                 const SizedBox(width: 6),
+                const _ToolbarDivider(),
+                const SizedBox(width: 6),
                 FilterChip(
                   visualDensity: VisualDensity.compact,
                   selected: widget.rating != null,
@@ -293,6 +297,8 @@ class _FeedToolbarState extends State<FeedToolbar> {
                   label: Text(widget.rating ?? 'Рейтинг'),
                   onSelected: (_) => widget.onRatingFilter(),
                 ),
+                const SizedBox(width: 6),
+                const _ToolbarDivider(),
                 const SizedBox(width: 6),
                 if (widget.providers.isNotEmpty) ...[
                   FilterChip(
@@ -313,6 +319,9 @@ class _FeedToolbarState extends State<FeedToolbar> {
                     ),
                     const SizedBox(width: 6),
                   ],
+                  const SizedBox(width: 2),
+                  const _ToolbarDivider(),
+                  const SizedBox(width: 6),
                 ],
                 for (final period in TopPeriodFilter.values) ...[
                   ChoiceChip(
@@ -328,6 +337,20 @@ class _FeedToolbarState extends State<FeedToolbar> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ToolbarDivider extends StatelessWidget {
+  const _ToolbarDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 20,
+      margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
+      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
     );
   }
 }

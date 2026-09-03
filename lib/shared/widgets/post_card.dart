@@ -244,7 +244,7 @@ class _PostCardState extends ConsumerState<PostCard>
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  height: 48,
+                  height: 64,
                   child: IgnorePointer(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
@@ -252,7 +252,7 @@ class _PostCardState extends ConsumerState<PostCard>
                           begin: Alignment.bottomCenter,
                           end: Alignment.topCenter,
                           colors: [
-                            Colors.black.withValues(alpha: 0.65),
+                            Colors.black.withValues(alpha: 0.72),
                             Colors.transparent,
                           ],
                         ),
@@ -266,34 +266,36 @@ class _PostCardState extends ConsumerState<PostCard>
                     top: 8,
                     child: _ProviderBadge(name: post.providerName),
                   ),
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (post.fileType.toLowerCase().contains('video') ||
-                            post.fileType.toLowerCase().contains('webm') ||
-                            post.fileType.toLowerCase().contains('mp4') ||
-                            post.fileType.toLowerCase().contains('gif')) ...[
-                          _MediaBadge(fileType: post.fileType),
-                          const SizedBox(width: 4),
-                        ],
-                        RatingBadge(rating: post.rating),
-                      ],
+                  if (post.fileType.toLowerCase().contains('video') ||
+                      post.fileType.toLowerCase().contains('webm') ||
+                      post.fileType.toLowerCase().contains('mp4') ||
+                      post.fileType.toLowerCase().contains('gif'))
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: _MediaBadge(fileType: post.fileType),
                     ),
-                  ),
                   Positioned(
                     left: 8,
                     bottom: 8,
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (widget.isViewed) ...[
-                          const _SeenBadge(),
-                          const SizedBox(width: 4),
+                        if (widget.isViewed || widget.isDownloaded) ...[
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (widget.isViewed) const _SeenBadge(),
+                              if (widget.isViewed && widget.isDownloaded)
+                                const SizedBox(width: 4),
+                              if (widget.isDownloaded)
+                                const _DownloadedBadge(),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
                         ],
-                        if (widget.isDownloaded) const _DownloadedBadge(),
+                        RatingBadge(rating: post.rating),
                       ],
                     ),
                   ),

@@ -1,5 +1,15 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.0.13',
+    title: 'Toolbar Section Dividers & Post Card Badge Stacking Fix',
+    bullets: [
+      'Toolbar Section Dividers: added subtle vertical dividers between Actions (Reset/Refresh), Rating, Providers, and Top Periods to prevent visual clutter.',
+      'Post Card Badge Deconfliction: moved Rating badge (Explicit/Questionable/Safe) to the bottom-left beneath the Seen/Downloaded indicators.',
+      'Separated Provider & Media Badges: booru source (e.g. Gelbooru) remains top-left and Video/GIF badge remains top-right, preventing them from overlapping on narrow screens.',
+      'Expanded Bottom Gradient: increased bottom cinematic gradient height to 64dp for clean text and badge contrast.',
+    ],
+  ),
+  LunarisChange(
     version: '2.0.12',
     title: 'Feed 2.0: Pinterest Modern Redesign & Sleek Cards',
     bullets: [

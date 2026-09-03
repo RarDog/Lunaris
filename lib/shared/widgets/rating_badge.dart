@@ -14,16 +14,23 @@ class RatingBadge extends StatelessWidget {
       'explicit' || 'e' => Colors.red,
       _ => Colors.blueGrey,
     };
-    return DecoratedBox(
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6.5, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.circular(6),
+        color: color.withValues(alpha: 0.88),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.18),
+          width: 0.7,
+        ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-        child: Text(
-          rating.isEmpty ? 'unknown' : rating,
-          style: const TextStyle(fontSize: 11, color: Colors.white),
+      child: Text(
+        rating.isEmpty ? 'unknown' : rating,
+        style: const TextStyle(
+          fontSize: 10.5,
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.2,
         ),
       ),
     );
