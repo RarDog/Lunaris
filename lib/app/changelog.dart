@@ -1,5 +1,19 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.0.11',
+    title: 'Mobile Video Player Redesign & Format Recognition Fix',
+    bullets: [
+      'Fixed "Failed to recognize file format" error on initial video load by providing synchronous Referer headers and automatic retry.',
+      'Modern Mobile Video Player: cinematic top and bottom gradient glassmorphism overlays with immersive controls.',
+      'Double-Tap Seek: double-tap left side to seek -10s, right side to seek +10s with glowing ripple animations.',
+      'Hold for 2X Speed Boost: press and hold video to temporarily play at 2.0x with glowing badge, release to resume regular speed.',
+      'Vertical Volume Swipe: swipe up/down on the right half of the screen to adjust player volume with a floating badge.',
+      'Playback Speed Selector: quick chip button supporting 0.5x, 0.75x, 1.0x, 1.25x, 1.5x, 2.0x speeds.',
+      'Screen Lock Mode: lock player controls with one tap to prevent accidental touches during video watching.',
+      'Sleek Neon Seekbar with live network buffer progress indicator.',
+    ],
+  ),
+  LunarisChange(
     version: '2.0.10',
     title: 'Fix "and" Tag Operator Retention, Suggestion Preceding Drafts & AND Chip Styling',
     bullets: [
