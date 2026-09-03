@@ -165,29 +165,24 @@ class ProviderManager {
 
   static List<List<String>> splitTagGroups(List<String> rawTags) {
     final groups = <List<String>>[];
-    List<String> currentAndGroup = [];
+    List<String> currentGroup = [];
 
-    for (int i = 0; i < rawTags.length; i++) {
-      final token = rawTags[i].trim();
+    for (final raw in rawTags) {
+      final token = raw.trim();
       if (token.isEmpty) continue;
 
       if (token.toLowerCase() == 'and') {
-        continue;
-      }
-
-      final prevWasAnd = i > 0 && rawTags[i - 1].trim().toLowerCase() == 'and';
-      if (prevWasAnd) {
-        currentAndGroup.add(token);
-      } else {
-        if (currentAndGroup.isNotEmpty) {
-          groups.add(currentAndGroup);
+        if (currentGroup.isNotEmpty) {
+          groups.add(currentGroup);
+          currentGroup = [];
         }
-        currentAndGroup = [token];
+      } else {
+        currentGroup.add(token);
       }
     }
 
-    if (currentAndGroup.isNotEmpty) {
-      groups.add(currentAndGroup);
+    if (currentGroup.isNotEmpty) {
+      groups.add(currentGroup);
     }
 
     return groups.isEmpty ? [const []] : groups;

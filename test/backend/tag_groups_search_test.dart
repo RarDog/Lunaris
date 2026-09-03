@@ -2,49 +2,46 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gel_rule_app/backend/providers/provider_manager.dart';
 
 void main() {
-  group('Tag groups splitting with local and connector', () {
+  group('Tag groups splitting: space groups together, and separates streams', () {
     test('single tag returns one group', () {
       final groups = ProviderManager.splitTagGroups(['cat']);
       expect(groups, equals([['cat']]));
     });
 
-    test('multiple tags without and are split into separate independent groups', () {
-      final groups = ProviderManager.splitTagGroups(['cat', 'dog', 'bird']);
+    test('tags separated by space are grouped together in one query', () {
+      final groups = ProviderManager.splitTagGroups(['raiden', 'miku']);
       expect(groups, equals([
-        ['cat'],
-        ['dog'],
-        ['bird'],
+        ['raiden', 'miku'],
       ]));
     });
 
-    test('tags connected by and are merged into the same group', () {
-      final groups = ProviderManager.splitTagGroups(['cat', 'and', 'dog']);
+    test('tags separated by and are split into independent query streams', () {
+      final groups = ProviderManager.splitTagGroups(['raiden', 'and', 'miku']);
       expect(groups, equals([
-        ['cat', 'dog'],
+        ['raiden'],
+        ['miku'],
       ]));
     });
 
-    test('mixed independent tags and and-connected tags', () {
+    test('multiple multi-tag groups separated by and', () {
       final groups = ProviderManager.splitTagGroups([
         'genshin',
-        'and',
         'raiden',
-        'miku',
-        'vocaloid',
         'and',
-        'hatsune',
+        'vocaloid',
+        'miku',
       ]);
       expect(groups, equals([
         ['genshin', 'raiden'],
-        ['miku'],
-        ['vocaloid', 'hatsune'],
+        ['vocaloid', 'miku'],
       ]));
     });
 
-    test('case-insensitive AND handling', () {
-      final groups = ProviderManager.splitTagGroups(['2girls', 'AND', 'yuri']);
+    test('case-insensitive AND separator', () {
+      final groups = ProviderManager.splitTagGroups(['cat', 'AND', 'dog']);
       expect(groups, equals([
-        ['2girls', 'yuri'],
+        ['cat'],
+        ['dog'],
       ]));
     });
 
