@@ -173,6 +173,18 @@ class ProviderRepository {
         createdAt: now,
         updatedAt: now,
       ),
+      ContentProviderConfig(
+        id: 'pawchive',
+        name: 'Pawchive',
+        baseUrl: 'https://pawchive.pw',
+        apiType: 'pawchive',
+        enabled: true,
+        priority: 12,
+        timeoutSeconds: 20,
+        customHeaders: const {},
+        createdAt: now,
+        updatedAt: now,
+      ),
     ];
   }
 

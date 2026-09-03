@@ -7,6 +7,7 @@ import 'e621_provider.dart';
 import 'gelbooru_provider.dart';
 import 'kemono_provider.dart';
 import 'moebooru_provider.dart';
+import 'pawchive_provider.dart';
 import 'realbooru_html_provider.dart';
 import 'rule34_provider.dart';
 import 'rule34_paheal_provider.dart';
@@ -84,6 +85,14 @@ class ProviderFactory {
       case 'kemono':
       case 'coomer':
         return KemonoProvider(
+          id: config.id,
+          name: config.name,
+          baseUrl: config.baseUrl,
+          dioClient: client,
+          queryParameters: queryParameters,
+        );
+      case 'pawchive':
+        return PawchiveProvider(
           id: config.id,
           name: config.name,
           baseUrl: config.baseUrl,

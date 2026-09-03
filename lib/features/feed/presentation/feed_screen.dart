@@ -34,6 +34,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
   final _scrollController = ScrollController();
   final Set<String> _selectedKeys = {};
   bool _selectionMode = false;
+  bool _showScrollToTop = false;
   String? _appliedInitialQuery;
   Timer? _scrollSaveDebounce;
   double _lastKnownScrollOffset = 0;
@@ -47,6 +48,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
         ref.read(feedControllerProvider.notifier).loadNextPage();
       }
       _lastKnownScrollOffset = _scrollController.offset;
+      final shouldShow =
+          _scrollController.hasClients && _scrollController.offset > 1200;
+      if (shouldShow != _showScrollToTop) {
+        setState(() => _showScrollToTop = shouldShow);
+      }
       _scrollSaveDebounce?.cancel();
       _scrollSaveDebounce = Timer(const Duration(milliseconds: 600), () {
         ref
@@ -173,6 +179,19 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
         child: AdaptiveScaffold(
           title: 'Feed',
           titleWidget: const _FeedTitle(),
+          floatingActionButton: _showScrollToTop
+              ? FloatingActionButton.small(
+                  tooltip: 'Наверх',
+                  onPressed: () {
+                    _scrollController.animateTo(
+                      0,
+                      duration: const Duration(milliseconds: 450),
+                      curve: Curves.easeOutCubic,
+                    );
+                  },
+                  child: const Icon(Icons.arrow_upward_rounded),
+                )
+              : null,
           body: feed.when(
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (error, _) => ErrorView(

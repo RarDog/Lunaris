@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gel_rule_app/backend/models/post.dart';
 import 'package:gel_rule_app/features/post/presentation/widgets/post_tags_panel.dart';
@@ -26,7 +27,11 @@ void main() {
       ],
     );
 
-    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp.router(routerConfig: router),
+      ),
+    );
 
     expect(find.text('Artist'), findsOneWidget);
     expect(find.text('Character'), findsOneWidget);

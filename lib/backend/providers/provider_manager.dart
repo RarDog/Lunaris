@@ -580,7 +580,7 @@ class ProviderManager {
 
   static bool _isArtistConfig(ContentProviderConfig config) {
     final type = config.apiType.toLowerCase();
-    return type == 'kemono' || type == 'coomer';
+    return type == 'kemono' || type == 'coomer' || type == 'pawchive';
   }
 
   static bool _isFeedConfig(ContentProviderConfig config) {

@@ -92,7 +92,13 @@ void main() {
       'paheal',
       'kemono',
       'coomer',
+      'pawchive',
     ]);
+    final pawchive =
+        providers.singleWhere((provider) => provider.id == 'pawchive');
+    expect(pawchive.enabled, isTrue);
+    expect(pawchive.apiType, 'pawchive');
+    expect(pawchive.baseUrl, 'https://pawchive.pw');
     final realbooru =
         providers.singleWhere((provider) => provider.id == 'realbooru');
     expect(realbooru.enabled, isTrue);

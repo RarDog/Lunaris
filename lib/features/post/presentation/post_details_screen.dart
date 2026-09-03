@@ -125,7 +125,11 @@ class PostDetailsScreen extends ConsumerWidget {
             shortcuts: {
               LogicalKeySet(LogicalKeyboardKey.arrowLeft):
                   const _PreviousPostIntent(),
+              LogicalKeySet(LogicalKeyboardKey.keyA):
+                  const _PreviousPostIntent(),
               LogicalKeySet(LogicalKeyboardKey.arrowRight):
+                  const _NextPostIntent(),
+              LogicalKeySet(LogicalKeyboardKey.keyD):
                   const _NextPostIntent(),
               LogicalKeySet(LogicalKeyboardKey.keyF):
                   const _ToggleFavoriteIntent(),
