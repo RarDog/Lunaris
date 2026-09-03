@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2.0.7-blueviolet?style=for-the-badge" alt="Version 2.0.7" />
+  <img src="https://img.shields.io/badge/Version-2.0.8-blueviolet?style=for-the-badge" alt="Version 2.0.8" />
   <img src="https://img.shields.io/badge/Flutter-3.47+-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter" />
   <img src="https://img.shields.io/badge/Platform-Android%20%7C%20Linux%20%7C%20Windows-brightgreen?style=for-the-badge" alt="Platforms" />
   <img src="https://img.shields.io/badge/Gitea-RarDog%2FLunaris-orange?style=for-the-badge&logo=gitea&logoColor=white" alt="Gitea" />
@@ -20,8 +20,8 @@
 
 ## ✨ Основные возможности
 
-- **🔀 Раздельный мульти-поиск по тегам**: Ввод нескольких тегов через пробел обрабатывает каждый тег независимо, выдавая контент по обоим тегам в одной ленте.
-- **➕ Локальный оператор `and`**: Для строгого объединения тегов на одном арте достаточно написать между ними `and` (например: `genshin and raiden`).
+- **🎯 Общие модификаторы в мультипоиске**: При вводе `cat and dog anthro` модификатор `anthro` автоматически применится к обоим тегам (`cat anthro` + `dog anthro`).
+- **🔀 Раздельный мульти-поиск по тегам через `and`**: Оператор `and` опрашивает серверную базу по каждому тегу независимо и плавно чередует посты обоих тегов в общей ленте.
 - **🌐 Pawchive в главной ленте**: Глобальная лента недавних постов с Pawchive подключена прямо в общий Feed наравне с Rule34, Gelbooru, e621 и Realbooru.
 - **🏷️ Интерактивные теги автора**: Быстрая фильтрация по темам с живыми счётчиками постов (`#tag (count)`).
 - **📢 Анонсы и новости авторов**: Всплывающее окно анонсов автора с датами и текстом обращений к аудитории.
@@ -66,9 +66,9 @@
 
 🔗 **[Gitea Releases (RarDog/Lunaris)](https://gitea.rardogsynapse.online/RarDog/Lunaris/releases)**
 
-- **Android**: `Lunaris-v2.0.7.apk`
-- **Linux (x64)**: `Lunaris-v2.0.7-linux-x64.tar.gz`
-- **Windows**: `LunarisSetup-v2.0.7.exe` / `LunarisPortable-v2.0.7.zip`
+- **Android**: `Lunaris-v2.0.8.apk`
+- **Linux (x64)**: `Lunaris-v2.0.8-linux-x64.tar.gz`
+- **Windows**: `LunarisSetup-v2.0.8.exe` / `LunarisPortable-v2.0.8.zip`
 
 ---
 

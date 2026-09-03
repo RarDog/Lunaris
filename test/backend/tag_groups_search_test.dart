@@ -23,6 +23,39 @@ void main() {
       ]));
     });
 
+    test('cat and dog anthro applies trailing anthro tag to both branches', () {
+      final groups = ProviderManager.splitTagGroups(['cat', 'and', 'dog', 'anthro']);
+      expect(groups, equals([
+        ['cat', 'anthro'],
+        ['dog', 'anthro'],
+      ]));
+    });
+
+    test('multiple trailing modifiers apply to all and-branches', () {
+      final groups = ProviderManager.splitTagGroups([
+        'cat',
+        'and',
+        'dog',
+        'and',
+        'fox',
+        'anthro',
+        'solo',
+      ]);
+      expect(groups, equals([
+        ['cat', 'anthro', 'solo'],
+        ['dog', 'anthro', 'solo'],
+        ['fox', 'anthro', 'solo'],
+      ]));
+    });
+
+    test('supports optional parentheses around and branches', () {
+      final groups = ProviderManager.splitTagGroups(['(cat', 'and', 'dog)', 'anthro']);
+      expect(groups, equals([
+        ['cat', 'anthro'],
+        ['dog', 'anthro'],
+      ]));
+    });
+
     test('multiple multi-tag groups separated by and', () {
       final groups = ProviderManager.splitTagGroups([
         'genshin',

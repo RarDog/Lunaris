@@ -1,5 +1,14 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.0.8',
+    title: 'Shared Context Modifiers for Multi-Tag Search & Clean Tag Filtering',
+    bullets: [
+      'Trailing context modifiers: typing "cat and dog anthro" automatically distributes "anthro" to all "and" branches (cat anthro + dog anthro).',
+      'Optional grouping parenthesis support: e.g. "(cat and dog) anthro".',
+      'Resolved "No posts yet" bug by adapting client post validation to multi-tag stream groups and stripping operator keywords from booru queries.',
+    ],
+  ),
+  LunarisChange(
     version: '2.0.7',
     title: 'Independent Multi-Tag Search Streams, Local "and" Connector, Pawchive in Main Feed & Reverts',
     bullets: [

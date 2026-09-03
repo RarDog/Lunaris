@@ -164,28 +164,65 @@ class ProviderManager {
   }
 
   static List<List<String>> splitTagGroups(List<String> rawTags) {
-    final groups = <List<String>>[];
-    List<String> currentGroup = [];
+    final segments = <List<String>>[];
+    List<String> current = [];
 
     for (final raw in rawTags) {
-      final token = raw.trim();
+      var token = raw.trim();
+      token = token.replaceAll(RegExp(r'^[\(\)]+|[\(\)]+$'), '').trim();
       if (token.isEmpty) continue;
 
       if (token.toLowerCase() == 'and') {
-        if (currentGroup.isNotEmpty) {
-          groups.add(currentGroup);
-          currentGroup = [];
+        if (current.isNotEmpty) {
+          segments.add(current);
+          current = [];
         }
       } else {
-        currentGroup.add(token);
+        current.add(token);
       }
     }
 
-    if (currentGroup.isNotEmpty) {
-      groups.add(currentGroup);
+    if (current.isNotEmpty) {
+      segments.add(current);
     }
 
-    return groups.isEmpty ? [const []] : groups;
+    if (segments.isEmpty) {
+      return [const []];
+    }
+
+    if (segments.length == 1) {
+      return segments;
+    }
+
+    // Multiple segments separated by 'and'
+    // If the last segment has trailing tags after the branch tag (e.g. 'cat and dog anthro'):
+    // The trailing tags apply as common modifier tags to ALL branches!
+    final lastSegment = segments.last;
+    final prevSegment = segments[segments.length - 2];
+    final branchLen = prevSegment.length.clamp(1, lastSegment.length);
+
+    if (lastSegment.length > branchLen) {
+      final commonTail = lastSegment.sublist(branchLen);
+      final adjustedSegments = <List<String>>[];
+
+      for (int i = 0; i < segments.length; i++) {
+        final seg = i == segments.length - 1
+            ? lastSegment
+            : [...segments[i], ...commonTail];
+
+        final seen = <String>{};
+        final deduped = <String>[];
+        for (final t in seg) {
+          if (seen.add(t.toLowerCase())) {
+            deduped.add(t);
+          }
+        }
+        adjustedSegments.add(deduped);
+      }
+      return adjustedSegments;
+    }
+
+    return segments;
   }
 
   Future<Result<List<Post>>> searchAcrossProviders({
