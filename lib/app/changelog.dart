@@ -1,5 +1,16 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.0.6',
+    title: 'Pawchive Deep Integration: Global Posts Feed, Artist Tags, Announcements, Links & Server Media Filter',
+    bullets: [
+      'Connected Pawchive global recent posts (/api/v1/posts) to the main Feed screen with search.',
+      'Interactive artist tags bar (/tags) with live post counts (#tag (N)) and instant topic filtering.',
+      'Linked accounts bar (/links) with direct navigation to author profiles across platforms.',
+      'Artist announcements modal (/announcements) showing creator news, dates and status updates.',
+      'Server-side media filtering (Photos, Videos, GIFs) querying the entire author archive through the API.',
+    ],
+  ),
+  LunarisChange(
     version: '2.0.5',
     title: '10 QoL Super-Update: AMOLED, Dynamic Colors, Grid switch, Share, Presets, Cache & Backup',
     bullets: [

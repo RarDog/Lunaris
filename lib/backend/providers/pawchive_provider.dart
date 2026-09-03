@@ -3,7 +3,10 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 
 import '../../core/http/dio_client.dart';
+import '../models/artist_announcement.dart';
+import '../models/artist_link.dart';
 import '../models/artist_profile.dart';
+import '../models/artist_tag.dart';
 import '../models/artist_work_query.dart';
 import '../models/post.dart';
 import '../models/post_comment.dart';
@@ -42,7 +45,34 @@ class PawchiveProvider
     String? rating,
     TopPeriodFilter topPeriod = TopPeriodFilter.none,
   }) async {
-    return const [];
+    final offset = (page - 1).clamp(0, 999999) * 50;
+    final queryText = tags.join(' ').trim();
+    try {
+      final response = await _dio.get<dynamic>(
+        '/api/v1/posts',
+        queryParameters: {
+          if (queryText.isNotEmpty) 'q': queryText,
+          'o': offset,
+        },
+      );
+      final posts = _postItems(response.data);
+      final mapped = <Post>[];
+      for (final post in posts.whereType<Map>()) {
+        final json = Map<String, dynamic>.from(post);
+        final service = (json['service'] ?? 'fanbox').toString();
+        final userId = (json['user'] ?? '').toString();
+        final dummyQuery = ArtistWorkQuery(
+          providerId: id,
+          service: service,
+          artistId: userId,
+          artistName: userId,
+        );
+        mapped.addAll(_postsFromArtistPost(json, query: dummyQuery));
+      }
+      return mapped;
+    } catch (_) {
+      return const [];
+    }
   }
 
   @override
@@ -178,7 +208,13 @@ class PawchiveProvider
     try {
       final response = await _dio.get<dynamic>(
         path,
-        queryParameters: {'o': offset},
+        queryParameters: {
+          'o': offset,
+          if (query.tagFilter != null && query.tagFilter!.isNotEmpty)
+            'tag': query.tagFilter,
+          if (query.queryText != null && query.queryText!.isNotEmpty)
+            'q': query.queryText,
+        },
       );
       final posts = _postItems(response.data);
       final mapped = <Post>[];
@@ -214,6 +250,72 @@ class PawchiveProvider
       }
       return const [];
     }
+  }
+
+  @override
+  Future<List<ArtistTag>> getArtistTags(String service, String artistId) async {
+    try {
+      final response = await _dio.get<dynamic>(
+        '/api/v1/$service/user/$artistId/tags',
+        options: Options(
+          receiveTimeout: const Duration(seconds: 15),
+          sendTimeout: const Duration(seconds: 10),
+        ),
+      );
+      final items = response.data;
+      if (items is List) {
+        return items
+            .whereType<Map>()
+            .map((item) => ArtistTag.fromJson(Map<String, dynamic>.from(item)))
+            .toList(growable: false);
+      }
+    } catch (_) {}
+    return const [];
+  }
+
+  @override
+  Future<List<ArtistLink>> getArtistLinks(
+      String service, String artistId) async {
+    try {
+      final response = await _dio.get<dynamic>(
+        '/api/v1/$service/user/$artistId/links',
+        options: Options(
+          receiveTimeout: const Duration(seconds: 15),
+          sendTimeout: const Duration(seconds: 10),
+        ),
+      );
+      final items = response.data;
+      if (items is List) {
+        return items
+            .whereType<Map>()
+            .map((item) => ArtistLink.fromJson(Map<String, dynamic>.from(item)))
+            .toList(growable: false);
+      }
+    } catch (_) {}
+    return const [];
+  }
+
+  @override
+  Future<List<ArtistAnnouncement>> getArtistAnnouncements(
+      String service, String artistId) async {
+    try {
+      final response = await _dio.get<dynamic>(
+        '/api/v1/$service/user/$artistId/announcements',
+        options: Options(
+          receiveTimeout: const Duration(seconds: 15),
+          sendTimeout: const Duration(seconds: 10),
+        ),
+      );
+      final items = response.data;
+      if (items is List) {
+        return items
+            .whereType<Map>()
+            .map((item) =>
+                ArtistAnnouncement.fromJson(Map<String, dynamic>.from(item)))
+            .toList(growable: false);
+      }
+    } catch (_) {}
+    return const [];
   }
 
   @override

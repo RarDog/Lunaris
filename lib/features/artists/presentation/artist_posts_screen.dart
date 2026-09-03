@@ -47,6 +47,12 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
   final _scrollController = ScrollController();
   final List<Post> _posts = [];
   final Set<String> _selectedTypes = <String>{};
+
+  List<ArtistTag> _tags = [];
+  List<ArtistLink> _links = [];
+  List<ArtistAnnouncement> _announcements = [];
+  String? _selectedTag;
+
   int _page = 0;
   bool _loading = false;
   bool _hasMore = true;
@@ -60,13 +66,39 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
         _loadMore();
       }
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadMore());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadMore();
+      _loadMetadata();
+    });
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadMetadata() async {
+    try {
+      final providers =
+          await ref.read(providerManagerProvider).activeArtistProviders();
+      if (providers is! Success<List<ArtistProvider>>) return;
+      final provider = providers.data.firstWhere(
+        (item) => (item as ContentProvider).id == widget.providerId,
+      );
+
+      final tagsRes = await provider.getArtistTags(widget.service, widget.artistId);
+      final linksRes = await provider.getArtistLinks(widget.service, widget.artistId);
+      final annRes =
+          await provider.getArtistAnnouncements(widget.service, widget.artistId);
+
+      if (!mounted) return;
+      setState(() {
+        _tags = tagsRes;
+        _links = linksRes;
+        _announcements = annRes;
+      });
+    } catch (_) {}
   }
 
   Future<void> _refresh() async {
@@ -76,7 +108,7 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
       _hasMore = true;
       _error = null;
     });
-    await _loadMore();
+    await Future.wait([_loadMore(), _loadMetadata()]);
   }
 
   Future<void> _loadMore() async {
@@ -86,11 +118,19 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
       _error = null;
     });
 
+    String? queryText;
+    if (_selectedTypes.length == 1) {
+      if (_selectedTypes.contains('video')) queryText = 'mp4';
+      if (_selectedTypes.contains('gif')) queryText = 'gif';
+    }
+
     final query = ArtistWorkQuery(
       providerId: widget.providerId,
       service: widget.service,
       artistId: widget.artistId,
       artistName: widget.artistName,
+      queryText: queryText,
+      tagFilter: _selectedTag,
     );
 
     try {
@@ -139,6 +179,33 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
     }
   }
 
+  void _onTagSelected(String? tag) {
+    if (_selectedTag == tag) return;
+    setState(() {
+      _selectedTag = tag;
+      _posts.clear();
+      _page = 0;
+      _hasMore = true;
+      _error = null;
+    });
+    _loadMore();
+  }
+
+  void _onMediaTypeToggled(String type, bool selected) {
+    setState(() {
+      if (selected) {
+        _selectedTypes.add(type);
+      } else {
+        _selectedTypes.remove(type);
+      }
+      _posts.clear();
+      _page = 0;
+      _hasMore = true;
+      _error = null;
+    });
+    _loadMore();
+  }
+
   bool _matchesTypeFilter(Post post) {
     if (_selectedTypes.isEmpty) return true;
     final isVid = MediaUrlSelector.isVideo(post);
@@ -151,6 +218,70 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
     return false;
   }
 
+  void _showAnnouncements() {
+    final theme = Theme.of(context);
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.6,
+        maxChildSize: 0.9,
+        builder: (_, scroll) => Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(
+                children: [
+                  Icon(Icons.campaign_rounded, color: theme.colorScheme.primary),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Анонсы автора (${_announcements.length})',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(),
+            Expanded(
+              child: ListView.separated(
+                controller: scroll,
+                padding: const EdgeInsets.all(16),
+                itemCount: _announcements.length,
+                separatorBuilder: (_, __) => const Divider(height: 24),
+                itemBuilder: (context, index) {
+                  final a = _announcements[index];
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (a.added != null)
+                        Text(
+                          '${a.added!.year}-${a.added!.month.toString().padLeft(2, '0')}-${a.added!.day.toString().padLeft(2, '0')}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: theme.colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      const SizedBox(height: 6),
+                      SelectableText(
+                        a.content,
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildMediaTypeFilters() {
     final scheme = Theme.of(context).colorScheme;
     final photoCount = _posts
@@ -160,7 +291,7 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
     final gifCount = _posts.where(MediaUrlSelector.isGif).length;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
@@ -168,7 +299,18 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
             FilterChip(
               selected: _selectedTypes.isEmpty,
               label: Text('Все (${_posts.length})'),
-              onSelected: (_) => setState(() => _selectedTypes.clear()),
+              onSelected: (_) {
+                if (_selectedTypes.isNotEmpty) {
+                  setState(() {
+                    _selectedTypes.clear();
+                    _posts.clear();
+                    _page = 0;
+                    _hasMore = true;
+                    _error = null;
+                  });
+                  _loadMore();
+                }
+              },
             ),
             const SizedBox(width: 8),
             FilterChip(
@@ -179,15 +321,7 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
                       ? scheme.onPrimaryContainer
                       : scheme.onSurfaceVariant),
               label: Text('Фото ($photoCount)'),
-              onSelected: (selected) {
-                setState(() {
-                  if (selected) {
-                    _selectedTypes.add('photo');
-                  } else {
-                    _selectedTypes.remove('photo');
-                  }
-                });
-              },
+              onSelected: (selected) => _onMediaTypeToggled('photo', selected),
             ),
             const SizedBox(width: 8),
             FilterChip(
@@ -198,15 +332,7 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
                       ? scheme.onPrimaryContainer
                       : scheme.onSurfaceVariant),
               label: Text('Видео ($videoCount)'),
-              onSelected: (selected) {
-                setState(() {
-                  if (selected) {
-                    _selectedTypes.add('video');
-                  } else {
-                    _selectedTypes.remove('video');
-                  }
-                });
-              },
+              onSelected: (selected) => _onMediaTypeToggled('video', selected),
             ),
             const SizedBox(width: 8),
             FilterChip(
@@ -217,20 +343,95 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
                       ? scheme.onPrimaryContainer
                       : scheme.onSurfaceVariant),
               label: Text('GIF ($gifCount)'),
-              onSelected: (selected) {
-                setState(() {
-                  if (selected) {
-                    _selectedTypes.add('gif');
-                  } else {
-                    _selectedTypes.remove('gif');
-                  }
-                });
-              },
+              onSelected: (selected) => _onMediaTypeToggled('gif', selected),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildTagsBar() {
+    if (_tags.isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            if (_selectedTag != null) ...[
+              InputChip(
+                selected: true,
+                avatar: const Icon(Icons.close_rounded, size: 16),
+                label: Text('#$_selectedTag'),
+                onSelected: (_) => _onTagSelected(null),
+              ),
+              const SizedBox(width: 8),
+            ],
+            for (final tag in _tags)
+              if (tag.tag != _selectedTag) ...[
+                ActionChip(
+                  label: Text('#${tag.tag} (${tag.postCount})'),
+                  onPressed: () => _onTagSelected(tag.tag),
+                ),
+                const SizedBox(width: 8),
+              ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLinksBar() {
+    if (_links.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            for (final link in _links) ...[
+              ActionChip(
+                avatar: Icon(
+                  _serviceIcon(link.service),
+                  size: 16,
+                  color: theme.colorScheme.primary,
+                ),
+                label: Text('${_serviceLabel(link.service)}: ${link.name}'),
+                onPressed: () {
+                  context.push(
+                    '/artists/${widget.providerId}/${link.service}/${link.id}?name=${Uri.encodeComponent(link.name)}',
+                  );
+                },
+              ),
+              const SizedBox(width: 8),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _serviceIcon(String service) {
+    return switch (service.toLowerCase()) {
+      'patreon' => Icons.loyalty_rounded,
+      'fanbox' => Icons.favorite_border_rounded,
+      'discord' => Icons.chat_bubble_outline_rounded,
+      'boosty' => Icons.bolt_rounded,
+      _ => Icons.link_rounded,
+    };
+  }
+
+  String _serviceLabel(String service) {
+    return switch (service.toLowerCase()) {
+      'patreon' => 'Patreon',
+      'fanbox' => 'Pixiv Fanbox',
+      'discord' => 'Discord',
+      'boosty' => 'Boosty',
+      'fantia' => 'Fantia',
+      _ => service,
+    };
   }
 
   @override
@@ -240,13 +441,23 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
     final favoriteKeys = ref.watch(favoriteKeysProvider).value ?? <String>{};
     final viewedKeys = ref.watch(viewedKeysProvider).value ?? <String>{};
 
-    final displayedPosts = _posts.where(_matchesTypeFilter).toList(growable: false);
+    final displayedPosts =
+        _posts.where(_matchesTypeFilter).toList(growable: false);
 
     return AdaptiveScaffold(
       title: widget.artistName,
       actions: [
+        if (_announcements.isNotEmpty)
+          IconButton(
+            tooltip: 'Анонсы автора',
+            onPressed: _showAnnouncements,
+            icon: Badge.count(
+              count: _announcements.length,
+              child: const Icon(Icons.campaign_rounded),
+            ),
+          ),
         IconButton(
-          tooltip: 'Refresh',
+          tooltip: 'Обновить',
           onPressed: _refresh,
           icon: const Icon(Icons.refresh_rounded),
         ),
@@ -259,13 +470,23 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
                   onRetry: _refresh,
                 )
               : _posts.isEmpty
-                  ? const EmptyView(
-                      title: 'No works',
-                      message: 'This artist has no visible media yet.',
+                  ? Column(
+                      children: [
+                        _buildLinksBar(),
+                        _buildTagsBar(),
+                        const Expanded(
+                          child: EmptyView(
+                            title: 'Нет работ',
+                            message: 'У этого автора пока нет видимых постов.',
+                          ),
+                        ),
+                      ],
                     )
                   : Column(
                       children: [
                         _buildMediaTypeFilters(),
+                        _buildTagsBar(),
+                        _buildLinksBar(),
                         Expanded(
                           child: displayedPosts.isEmpty
                               ? Center(
@@ -274,7 +495,8 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.filter_alt_off_rounded,
+                                        const Icon(
+                                            Icons.filter_alt_off_rounded,
                                             size: 48),
                                         const SizedBox(height: 12),
                                         const Text(
@@ -284,9 +506,17 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
                                         ),
                                         const SizedBox(height: 8),
                                         FilledButton.tonal(
-                                          onPressed: () => setState(
-                                              () => _selectedTypes.clear()),
-                                          child: const Text('Показать все'),
+                                          onPressed: () {
+                                            setState(() {
+                                              _selectedTypes.clear();
+                                              _selectedTag = null;
+                                              _posts.clear();
+                                              _page = 0;
+                                              _hasMore = true;
+                                            });
+                                            _loadMore();
+                                          },
+                                          child: const Text('Сбросить фильтры'),
                                         ),
                                       ],
                                     ),
@@ -296,6 +526,7 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
                                   posts: displayedPosts,
                                   controller: _scrollController,
                                   loading: _loading,
+                                  gridMode: settings.gridMode,
                                   columns: Responsive.columnsFor(
                                     context,
                                     mobileColumns: settings.mobileColumns,
@@ -332,7 +563,8 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
                                           );
                                     }
                                     ref.invalidate(favoriteKeysProvider);
-                                    ref.invalidate(favoritesControllerProvider);
+                                    ref.invalidate(
+                                        favoritesControllerProvider);
                                   },
                                 ),
                         ),
@@ -345,7 +577,7 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
     final message = error.toString();
     if (message.contains('HandshakeException') ||
         message.contains('artist works are unavailable')) {
-      return 'Artist works are unavailable from this provider right now. Try again later or choose another artist/provider.';
+      return 'Работы автора временно недоступны. Попробуйте обновить позже.';
     }
     return message;
   }

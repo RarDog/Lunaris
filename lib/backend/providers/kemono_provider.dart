@@ -1,7 +1,10 @@
 import 'package:dio/dio.dart';
 
 import '../../core/http/dio_client.dart';
+import '../models/artist_announcement.dart';
+import '../models/artist_link.dart';
 import '../models/artist_profile.dart';
+import '../models/artist_tag.dart';
 import '../models/artist_work_query.dart';
 import '../models/post.dart';
 import '../models/post_comment.dart';
@@ -213,6 +216,21 @@ class KemonoProvider
     if (parts.length < 4) return const [];
     return getArtistPostComments(parts[0], parts[1], parts[2]);
   }
+
+  @override
+  Future<List<ArtistTag>> getArtistTags(
+          String service, String artistId) async =>
+      const [];
+
+  @override
+  Future<List<ArtistLink>> getArtistLinks(
+          String service, String artistId) async =>
+      const [];
+
+  @override
+  Future<List<ArtistAnnouncement>> getArtistAnnouncements(
+          String service, String artistId) async =>
+      const [];
 
   String _creatorPath() => _isCoomer ? '/coomer' : '/kemono';
 

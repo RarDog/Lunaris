@@ -1,10 +1,13 @@
+import '../models/artist_announcement.dart';
+import '../models/artist_link.dart';
+import '../models/artist_profile.dart';
+import '../models/artist_tag.dart';
+import '../models/artist_work_query.dart';
 import '../models/post.dart';
 import '../models/post_comment.dart';
 import '../models/provider_health.dart';
 import '../models/tag_suggestion.dart';
 import '../models/top_period_filter.dart';
-import '../models/artist_profile.dart';
-import '../models/artist_work_query.dart';
 
 abstract class ContentProvider {
   String get id;
@@ -72,4 +75,15 @@ abstract class ArtistProvider {
     String artistId,
     String postId,
   );
+
+  Future<List<ArtistTag>> getArtistTags(String service, String artistId) async =>
+      const [];
+
+  Future<List<ArtistLink>> getArtistLinks(
+          String service, String artistId) async =>
+      const [];
+
+  Future<List<ArtistAnnouncement>> getArtistAnnouncements(
+          String service, String artistId) async =>
+      const [];
 }
