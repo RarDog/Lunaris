@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -34,20 +35,29 @@ class GelRuleApp extends ConsumerWidget {
       ),
       data: (_) {
         final appSettings = settings.value ?? AppSettings.defaults;
-        return MaterialApp.router(
-          title: 'Lunaris',
-          debugShowCheckedModeBanner: false,
-          theme: buildTheme(
-            Brightness.light,
-            seedColor: appSettings.appSeedColor,
-          ),
-          darkTheme: buildTheme(
-            Brightness.dark,
-            seedColor: appSettings.appSeedColor,
-          ),
-          themeMode: parseThemeMode(appSettings.themeMode),
-          routerConfig: router,
-          builder: (context, child) => _AppOverlay(child: child),
+        final amoled = appSettings.amoledMode;
+        final useDynamic = appSettings.useDynamicColor;
+        return DynamicColorBuilder(
+          builder: (lightDynamic, darkDynamic) {
+            return MaterialApp.router(
+              title: 'Lunaris',
+              debugShowCheckedModeBanner: false,
+              theme: buildTheme(
+                Brightness.light,
+                seedColor: appSettings.appSeedColor,
+                dynamicColorScheme: useDynamic ? lightDynamic : null,
+              ),
+              darkTheme: buildTheme(
+                Brightness.dark,
+                seedColor: appSettings.appSeedColor,
+                amoled: amoled,
+                dynamicColorScheme: useDynamic ? darkDynamic : null,
+              ),
+              themeMode: parseThemeMode(appSettings.themeMode),
+              routerConfig: router,
+              builder: (context, child) => _AppOverlay(child: child),
+            );
+          },
         );
       },
     );

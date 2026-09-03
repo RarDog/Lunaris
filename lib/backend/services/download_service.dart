@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -16,7 +15,54 @@ class DownloadService {
 
   final Dio _dio;
 
-  Future<String?> downloadPost(
+  String resolveSubDir(Post post, String template) {
+    if (template.isEmpty) return '';
+    String artist = 'Unknown';
+    final artistGroup =
+        post.tagGroups['artist'] ?? post.tagGroups['creator'];
+    if (artistGroup != null && artistGroup.isNotEmpty) {
+      artist = artistGroup.first;
+    } else {
+      for (final tag in post.tags) {
+        final lower = tag.toLowerCase();
+        if (lower.startsWith('artist:') || lower.startsWith('creator:')) {
+          final parts = tag.split(':');
+          if (parts.length > 1 && parts[1].isNotEmpty) {
+            artist = parts.sublist(1).join(':');
+            break;
+          }
+        }
+      }
+    }
+    artist = artist.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+
+    final now = DateTime.now();
+    final dateStr =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+    var cleanTemplate = template.trim();
+    if (cleanTemplate.toLowerCase().endsWith('/{id}')) {
+      cleanTemplate =
+          cleanTemplate.substring(0, cleanTemplate.length - 5).trim();
+    }
+
+    final resolved = cleanTemplate
+        .replaceAll(
+            '{Artist}', artist)
+        .replaceAll(
+            '{Provider}', post.providerName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_'))
+        .replaceAll(
+            '{Service}', post.providerId.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_'))
+        .replaceAll(
+            '{Rating}', post.rating.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_'))
+        .replaceAll(
+            '{ID}', post.id.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_'))
+        .replaceAll('{Date}', dateStr);
+
+    return resolved;
+  }
+
+  Future<String> prepareFileForShare(
     Post post, {
     void Function(int received, int total)? onProgress,
   }) async {
@@ -25,6 +71,38 @@ class DownloadService {
       throw StateError('No downloadable URL for this post.');
     }
     final fileName = _fileName(post, url);
+    final tempDir = await getTemporaryDirectory();
+    final shareDir = Directory(p.join(tempDir.path, 'shares'));
+    if (!shareDir.existsSync()) {
+      shareDir.createSync(recursive: true);
+    }
+    final filePath = p.join(shareDir.path, fileName);
+    if (File(filePath).existsSync() && File(filePath).lengthSync() > 0) {
+      return filePath;
+    }
+    await _dio.download(
+      url,
+      filePath,
+      onReceiveProgress: onProgress,
+      options: Options(headers: _headersFor(post)),
+    );
+    return filePath;
+  }
+
+  Future<String?> downloadPost(
+    Post post, {
+    String? folderTemplate,
+    void Function(int received, int total)? onProgress,
+  }) async {
+    final url = _downloadUrl(post);
+    if (url == null) {
+      throw StateError('No downloadable URL for this post.');
+    }
+    final fileName = _fileName(post, url);
+    final subDir = folderTemplate != null && folderTemplate.isNotEmpty
+        ? resolveSubDir(post, folderTemplate)
+        : null;
+
     if (Platform.isAndroid) {
       final tempDir = await getTemporaryDirectory();
       final tempPath = p.join(tempDir.path, fileName);
@@ -38,19 +116,27 @@ class DownloadService {
         'path': tempPath,
         'fileName': fileName,
         'mimeType': _mimeType(fileName, post.fileType),
+        if (subDir != null && subDir.isNotEmpty) 'subDir': subDir,
       });
       return saved ?? fileName;
     }
 
-    final location = await getSaveLocation(suggestedName: fileName);
-    if (location == null) return null;
+    final downloads =
+        await getDownloadsDirectory() ?? await getTemporaryDirectory();
+    final targetDir = subDir != null && subDir.isNotEmpty
+        ? Directory(p.join(downloads.path, subDir))
+        : downloads;
+    if (!targetDir.existsSync()) {
+      targetDir.createSync(recursive: true);
+    }
+    final savePath = p.join(targetDir.path, fileName);
     await _dio.download(
       url,
-      location.path,
+      savePath,
       onReceiveProgress: onProgress,
       options: Options(headers: _headersFor(post)),
     );
-    return location.path;
+    return savePath;
   }
 
   Future<String?> downloadUrl(

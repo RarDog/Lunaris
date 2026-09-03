@@ -26,7 +26,8 @@ class MainActivity : FlutterActivity() {
                             val path = call.argument<String>("path") ?: error("Missing path")
                             val fileName = call.argument<String>("fileName") ?: File(path).name
                             val mimeType = call.argument<String>("mimeType") ?: "application/octet-stream"
-                            result.success(saveToDownloads(path, fileName, mimeType))
+                            val subDir = call.argument<String>("subDir")
+                            result.success(saveToDownloads(path, fileName, mimeType, subDir))
                         }
                         "openFile" -> {
                             val path = call.argument<String>("path") ?: error("Missing path")
@@ -61,13 +62,19 @@ class MainActivity : FlutterActivity() {
             }
     }
 
-    private fun saveToDownloads(path: String, fileName: String, mimeType: String): String {
+    private fun saveToDownloads(path: String, fileName: String, mimeType: String, subDir: String? = null): String {
         val source = File(path)
+        val relPath = if (!subDir.isNullOrBlank()) {
+            val clean = subDir.trim().removePrefix("/").removeSuffix("/")
+            "${Environment.DIRECTORY_DOWNLOADS}/$clean"
+        } else {
+            Environment.DIRECTORY_DOWNLOADS
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val values = ContentValues().apply {
                 put(MediaStore.Downloads.DISPLAY_NAME, fileName)
                 put(MediaStore.Downloads.MIME_TYPE, mimeType)
-                put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                put(MediaStore.Downloads.RELATIVE_PATH, relPath)
                 put(MediaStore.Downloads.IS_PENDING, 1)
             }
             val resolver = applicationContext.contentResolver
@@ -83,9 +90,10 @@ class MainActivity : FlutterActivity() {
         }
 
         @Suppress("DEPRECATION")
-        val downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        downloads.mkdirs()
-        val destination = File(downloads, fileName)
+        val baseDownloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        val targetDir = if (!subDir.isNullOrBlank()) File(baseDownloads, subDir.trim()) else baseDownloads
+        targetDir.mkdirs()
+        val destination = File(targetDir, fileName)
         FileInputStream(source).use { input ->
             FileOutputStream(destination).use { output -> input.copyTo(output) }
         }

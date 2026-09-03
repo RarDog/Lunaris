@@ -10,6 +10,7 @@ class PostActionBar extends StatelessWidget {
     this.onOpenSource,
     this.onDownload,
     this.onDeleteLocalFile,
+    this.onShare,
     this.downloaded = false,
     this.labels,
     this.onSimilar,
@@ -25,6 +26,7 @@ class PostActionBar extends StatelessWidget {
   final bool isFavorite;
   final VoidCallback? onDownload;
   final VoidCallback? onDeleteLocalFile;
+  final VoidCallback? onShare;
   final VoidCallback? onSimilar;
   final VoidCallback? onHide;
   final bool downloaded;
@@ -91,6 +93,12 @@ class PostActionBar extends StatelessWidget {
             onPressed: onHide,
             icon: const Icon(Icons.visibility_off_rounded),
           ),
+        if (onShare != null)
+          IconButton.filledTonal(
+            tooltip: text.share,
+            onPressed: onShare,
+            icon: const Icon(Icons.share_rounded),
+          ),
       ],
     );
   }
@@ -108,6 +116,7 @@ class PostActionLabels {
     this.download = 'Download',
     this.deleteLocalFile = 'Delete local file',
     this.hidePost = 'Hide post locally',
+    this.share = 'Share',
   });
 
   final String favorite;
@@ -120,4 +129,5 @@ class PostActionLabels {
   final String download;
   final String deleteLocalFile;
   final String hidePost;
+  final String share;
 }

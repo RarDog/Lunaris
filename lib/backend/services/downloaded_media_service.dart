@@ -46,4 +46,6 @@ class DownloadedMediaService {
   }
 
   Future<Result<void>> clearMissingFiles() => _repository.clearMissingFiles();
+
+  Future<Result<int>> count() => _repository.count();
 }

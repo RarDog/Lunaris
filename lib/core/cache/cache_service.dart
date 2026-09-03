@@ -62,6 +62,12 @@ class CacheService {
     });
   }
 
+  Future<Result<int>> getCachedPostsCount() {
+    return _databaseService.safeRead((isar) async {
+      return isar.cachedPostEntitys.count();
+    });
+  }
+
   Future<void> _evictOverflow(Isar isar, int maxItems) async {
     final entities = await isar.cachedPostEntitys.where().findAll();
     if (entities.length <= maxItems) return;

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,6 +18,7 @@ import '../../../shared/widgets/post_card.dart';
 import '../../../shared/widgets/post_masonry_grid.dart';
 import '../../collections/presentation/collection_form_dialog.dart';
 import '../../favorites/presentation/favorites_controller.dart';
+import '../../settings/presentation/settings_controller.dart';
 import 'feed_controller.dart';
 import 'widgets/feed_toolbar.dart';
 
@@ -179,6 +181,20 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
         child: AdaptiveScaffold(
           title: 'Feed',
           titleWidget: const _FeedTitle(),
+          actions: [
+            if (feed.value != null && feed.value!.selectedTags.isNotEmpty)
+              IconButton(
+                icon: const Icon(Icons.bookmark_add_rounded),
+                tooltip: 'Сохранить пресет',
+                onPressed: () => _saveCurrentPreset(
+                    context, feed.value!.selectedTags, settings),
+              ),
+            IconButton(
+              icon: Icon(_gridModeIcon(settings.gridMode)),
+              tooltip: 'Вид сетки',
+              onPressed: () => _cycleGridMode(settings),
+            ),
+          ],
           floatingActionButton: _showScrollToTop
               ? FloatingActionButton.small(
                   tooltip: 'Наверх',
@@ -201,6 +217,26 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
             ),
             data: (state) => Column(
               children: [
+                // --- Search Presets Bar ---
+                if (settings.searchPresets.isNotEmpty)
+                  _SearchPresetsBar(
+                    presets: settings.searchPresets,
+                    currentTags: state.selectedTags,
+                    onApply: (preset) {
+                      final decoded =
+                          _decodePreset(preset);
+                      _submitSearch(decoded['tags'] ?? '');
+                    },
+                    onDelete: (preset) async {
+                      final updated = settings.searchPresets
+                          .where((p) => p != preset)
+                          .toList();
+                      await ref
+                          .read(settingsControllerProvider.notifier)
+                          .saveSettings(
+                              settings.copyWith(searchPresets: updated));
+                    },
+                  ),
                 FeedToolbar(
                   selectedTags: state.selectedTags,
                   selectedProviderIds: state.selectedProviderIds,
@@ -294,6 +330,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
                             viewedKeys: viewedKeys,
                             selectionMode: _selectionMode,
                             selectedKeys: _selectedKeys,
+                            gridMode: settings.gridMode,
                             onOpen: (post) => context.push(
                               '/post/${post.providerId}/${post.id}',
                               extra: PostNavigationContext(
@@ -527,6 +564,75 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
     if (!settings.autoDownloadFavorites || !settings.allowDownloads) return;
     await ref.read(downloadManagerServiceProvider).start(post);
   }
+
+  // ── Grid mode helpers ────────────────────────────────────────────
+  IconData _gridModeIcon(String mode) {
+    return switch (mode) {
+      'grid' => Icons.grid_4x4_rounded,
+      'list' => Icons.view_list_rounded,
+      _ => Icons.dashboard_rounded,
+    };
+  }
+
+  Future<void> _cycleGridMode(AppSettings settings) async {
+    const modes = ['masonry', 'grid', 'list'];
+    final idx = modes.indexOf(settings.gridMode);
+    final next = modes[(idx + 1) % modes.length];
+    await ref
+        .read(settingsControllerProvider.notifier)
+        .saveSettings(settings.copyWith(gridMode: next));
+  }
+
+  // ── Search preset helpers ─────────────────────────────────────────
+  Map<String, String> _decodePreset(String raw) {
+    try {
+      final map = jsonDecode(raw) as Map<String, dynamic>;
+      return {'name': map['name'] as String, 'tags': map['tags'] as String};
+    } catch (_) {
+      return {'name': raw, 'tags': raw};
+    }
+  }
+
+  Future<String?> _showSavePresetDialog(
+      BuildContext context, String tags) async {
+    final ctrl = TextEditingController(text: tags);
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Сохранить пресет'),
+        content: TextField(
+          controller: ctrl,
+          decoration: const InputDecoration(
+            labelText: 'Название пресета',
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Отмена'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+            child: const Text('Сохранить'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveCurrentPreset(
+      BuildContext context, List<String> tags, AppSettings settings) async {
+    if (tags.isEmpty) return;
+    final tagsStr = tags.join(' ');
+    final name = await _showSavePresetDialog(context, tagsStr);
+    if (name == null || name.isEmpty || !context.mounted) return;
+    final preset = jsonEncode({'name': name, 'tags': tagsStr});
+    final updated = [...settings.searchPresets, preset];
+    await ref
+        .read(settingsControllerProvider.notifier)
+        .saveSettings(settings.copyWith(searchPresets: updated));
+  }
 }
 
 class _RefreshIntent extends Intent {
@@ -631,3 +737,86 @@ class _BatchActionBar extends StatelessWidget {
     );
   }
 }
+
+// ── Search Presets Bar ─────────────────────────────────────────────────────
+class _SearchPresetsBar extends StatelessWidget {
+  const _SearchPresetsBar({
+    required this.presets,
+    required this.currentTags,
+    required this.onApply,
+    required this.onDelete,
+  });
+
+  final List<String> presets;
+  final List<String> currentTags;
+  final ValueChanged<String> onApply;
+  final ValueChanged<String> onDelete;
+
+  Map<String, String> _decode(String raw) {
+    try {
+      final map = jsonDecode(raw) as Map<String, dynamic>;
+      return {'name': map['name'] as String, 'tags': map['tags'] as String};
+    } catch (_) {
+      return {'name': raw, 'tags': raw};
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      height: 40,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        scrollDirection: Axis.horizontal,
+        itemCount: presets.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, i) {
+          final raw = presets[i];
+          final decoded = _decode(raw);
+          final name = decoded['name'] ?? raw;
+          final tags = decoded['tags'] ?? raw;
+          final active = currentTags.join(' ') == tags;
+          return GestureDetector(
+            onLongPress: () {
+              showDialog<void>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: Text('«$name»'),
+                  content: Text('Теги: $tags'),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        onDelete(raw);
+                      },
+                      child: const Text('Удалить',
+                          style: TextStyle(color: Colors.red)),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('Закрыть'),
+                    ),
+                  ],
+                ),
+              );
+            },
+            child: FilterChip(
+              label: Text(name),
+              selected: active,
+              onSelected: (_) => onApply(raw),
+              selectedColor: scheme.primaryContainer,
+              checkmarkColor: scheme.onPrimaryContainer,
+              labelStyle: TextStyle(
+                color: active ? scheme.onPrimaryContainer : scheme.onSurface,
+                fontWeight:
+                    active ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+

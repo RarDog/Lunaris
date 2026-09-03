@@ -54,26 +54,63 @@ class PostCard extends ConsumerStatefulWidget {
   ConsumerState<PostCard> createState() => _PostCardState();
 }
 
-class _PostCardState extends ConsumerState<PostCard> {
+class _PostCardState extends ConsumerState<PostCard>
+    with SingleTickerProviderStateMixin {
   static final Map<String, Post> _resolvedRealbooruPosts = {};
 
   bool _hovered = false;
   Post? _resolvedPost;
+  bool _showHeart = false;
+  late final AnimationController _heartController;
+  late final Animation<double> _heartScale;
+  late final Animation<double> _heartOpacity;
 
   @override
   void initState() {
     super.initState();
     _resolvedPost = _resolvedRealbooruPosts[widget.post.cacheKey];
     _maybeResolveRealbooruPost();
+    _heartController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _heartScale = TweenSequence<double>([
+      TweenSequenceItem(
+          tween: Tween(begin: 0.4, end: 1.3)
+              .chain(CurveTween(curve: Curves.easeOut)),
+          weight: 40),
+      TweenSequenceItem(
+          tween: Tween(begin: 1.3, end: 1.0)
+              .chain(CurveTween(curve: Curves.easeIn)),
+          weight: 30),
+      TweenSequenceItem(
+          tween: Tween(begin: 1.0, end: 1.0), weight: 30),
+    ]).animate(_heartController);
+    _heartOpacity = TweenSequence<double>([
+      TweenSequenceItem(tween: ConstantTween(1.0), weight: 60),
+      TweenSequenceItem(
+          tween: Tween(begin: 1.0, end: 0.0)
+              .chain(CurveTween(curve: Curves.easeIn)),
+          weight: 40),
+    ]).animate(_heartController);
+    _heartController.addStatusListener((status) {
+      if (status == AnimationStatus.completed && mounted) {
+        setState(() => _showHeart = false);
+        _heartController.reset();
+      }
+    });
   }
 
   @override
-  void didUpdateWidget(covariant PostCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.post.cacheKey != widget.post.cacheKey) {
-      _resolvedPost = _resolvedRealbooruPosts[widget.post.cacheKey];
-      _maybeResolveRealbooruPost();
-    }
+  void dispose() {
+    _heartController.dispose();
+    super.dispose();
+  }
+
+  void _triggerDoubleTapFavorite() {
+    widget.onFavorite();
+    setState(() => _showHeart = true);
+    _heartController.forward();
   }
 
   @override
@@ -97,6 +134,7 @@ class _PostCardState extends ConsumerState<PostCard> {
           }
           widget.onOpen();
         },
+        onDoubleTap: _triggerDoubleTapFavorite,
         onLongPress: () {
           if (widget.selectionMode && widget.onToggleSelected != null) {
             widget.onToggleSelected!();
@@ -245,6 +283,32 @@ class _PostCardState extends ConsumerState<PostCard> {
                   child: _FavoriteButton(
                     isFavorite: widget.isFavorite,
                     onPressed: widget.onFavorite,
+                  ),
+                ),
+              // Double-tap heart animation overlay
+              if (_showHeart)
+                Positioned.fill(
+                  child: Center(
+                    child: AnimatedBuilder(
+                      animation: _heartController,
+                      builder: (context, _) => Opacity(
+                        opacity: _heartOpacity.value,
+                        child: Transform.scale(
+                          scale: _heartScale.value,
+                          child: const Icon(
+                            Icons.favorite_rounded,
+                            color: Colors.white,
+                            size: 72,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black54,
+                                blurRadius: 12,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               Positioned.fill(

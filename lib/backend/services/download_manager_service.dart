@@ -1,19 +1,24 @@
 import 'dart:async';
 
+import '../../core/utils/result.dart';
 import '../models/download_task.dart';
 import '../models/post.dart';
 import '../utils/media_quality.dart';
 import 'download_service.dart';
 import 'downloaded_media_service.dart';
+import 'settings_service.dart';
 
 class DownloadManagerService {
   DownloadManagerService(
     this._downloadService, {
     DownloadedMediaService? downloadedMediaService,
-  }) : _downloadedMediaService = downloadedMediaService;
+    SettingsService? settingsService,
+  })  : _downloadedMediaService = downloadedMediaService,
+        _settingsService = settingsService;
 
   final DownloadService _downloadService;
   final DownloadedMediaService? _downloadedMediaService;
+  final SettingsService? _settingsService;
   final _controller = StreamController<List<DownloadTask>>.broadcast();
   final Map<String, DownloadTask> _tasks = {};
   final Set<String> _runningTaskIds = {};
@@ -100,9 +105,17 @@ class DownloadManagerService {
     if (!_runningTaskIds.add(task.id)) return;
     _set(task.copyWith(status: DownloadTaskStatus.running));
     try {
+      String? folderTemplate;
+      if (_settingsService != null) {
+        final settingsRes = await _settingsService.getSettings();
+        if (settingsRes is Success<AppSettings>) {
+          folderTemplate = settingsRes.data.downloadPathTemplate;
+        }
+      }
       final saved = task.sourceUrl == null
           ? await _downloadService.downloadPost(
               task.post!,
+              folderTemplate: folderTemplate,
               onProgress: (received, total) {
                 _updateProgress(task.id, received, total);
               },

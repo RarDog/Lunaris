@@ -83,5 +83,11 @@ class DownloadedMediaRepository {
     });
   }
 
+  Future<Result<int>> count() {
+    return _databaseService.safeRead((isar) async {
+      return isar.downloadedMediaEntitys.count();
+    });
+  }
+
   String fileNameForPath(String path) => p.basename(path);
 }

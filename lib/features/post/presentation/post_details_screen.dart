@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/app.dart';
@@ -269,6 +270,7 @@ class PostDetailsScreen extends ConsumerWidget {
                           : null,
                       onDeleteLocalFile: () =>
                           _deleteLocalFile(context, ref, post),
+                      onShare: () => _sharePost(context, ref, post),
                     ),
                     const SizedBox(height: 16),
                     Wrap(
@@ -377,6 +379,7 @@ class PostDetailsScreen extends ConsumerWidget {
                 ? () => _download(context, ref, post)
                 : null,
             onDeleteLocalFile: () => _deleteLocalFile(context, ref, post),
+            onShare: () => _sharePost(context, ref, post),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -446,6 +449,30 @@ class PostDetailsScreen extends ConsumerWidget {
     Future<void>.delayed(const Duration(seconds: 2), () {
       ref.invalidate(downloadedMediaByKeyProvider(post.cacheKey));
     });
+  }
+
+  Future<void> _sharePost(BuildContext context, WidgetRef ref, Post post) async {
+    final strings = ref.read(appStringsProvider);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          strings.ru
+              ? 'Подготовка файла к отправке...'
+              : 'Preparing file for sharing...',
+        ),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+    try {
+      final path =
+          await ref.read(downloadServiceProvider).prepareFileForShare(post);
+      await Share.shareXFiles([XFile(path)], text: post.source ?? post.fileUrl);
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка отправки: $e')),
+      );
+    }
   }
 
   Future<void> _showMobileQuickActions(
@@ -558,6 +585,7 @@ class PostDetailsScreen extends ConsumerWidget {
       download: strings.download,
       deleteLocalFile: strings.deleteLocalFile,
       hidePost: strings.hidePost,
+      share: strings.ru ? 'Поделиться' : 'Share',
     );
   }
 

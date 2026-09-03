@@ -31,6 +31,7 @@ import '../services/search_service.dart';
 import '../services/settings_service.dart';
 import '../services/update_service.dart';
 import '../services/viewed_history_service.dart';
+import '../services/backup_service.dart';
 
 final appDatabaseProvider = FutureProvider<AppDatabase>((ref) async {
   final database = await AppDatabase.open();
@@ -169,6 +170,7 @@ final downloadManagerServiceProvider = Provider<DownloadManagerService>((ref) {
   return DownloadManagerService(
     ref.watch(downloadServiceProvider),
     downloadedMediaService: ref.watch(downloadedMediaServiceProvider),
+    settingsService: ref.watch(settingsServiceProvider),
   );
 });
 
@@ -214,4 +216,8 @@ final updateServiceProvider = Provider<UpdateService>((ref) {
     ),
     ref.watch(settingsServiceProvider),
   );
+});
+
+final backupServiceProvider = Provider<BackupService>((ref) {
+  return BackupService(ref.watch(settingsServiceProvider));
 });

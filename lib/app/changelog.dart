@@ -1,5 +1,20 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.0.5',
+    title: '10 QoL Super-Update: AMOLED, Dynamic Colors, Grid switch, Share, Presets, Cache & Backup',
+    bullets: [
+      'AMOLED Pure Black theme (#000000) for OLED battery saving.',
+      'Material You dynamic color support on Android matching system wallpaper.',
+      'Grid layout mode switcher in the feed toolbar: Masonry, 1:1 Square Grid, and List.',
+      'Swipe down to dismiss and double-tap with animated heart overlay to favorite.',
+      'Direct file sharing (Share sheet) from post details.',
+      'Saved search presets with instant filtering and bookmark creation.',
+      'Smart download folder template support ({Artist}, {Provider}, {Service}, {ID}, {Date}).',
+      'Interactive Cache Manager screen with detailed storage breakdown and selective cleanup.',
+      'Full JSON backup export and import for seamless configuration sync.',
+    ],
+  ),
+  LunarisChange(
     version: '2.0.4',
     title: 'Platform service selection & media type filtering in artist posts',
     bullets: [

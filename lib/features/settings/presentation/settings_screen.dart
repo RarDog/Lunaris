@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../app/app.dart';
 import '../../../app/app_version.dart';
 import '../../../app/changelog.dart';
 import '../../../app/app_strings.dart';
@@ -112,6 +113,99 @@ class _SettingsContent extends ConsumerWidget {
                 settings.copyWith(autoDownloadFavorites: value),
               ),
             ),
+            if (settings.allowDownloads) ...[
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                initialValue: const [
+                  '{Artist}/{ID}',
+                  '{Artist}',
+                  '{Provider}/{Artist}',
+                  '{Service}/{ID}',
+                  '{Date}/{Artist}',
+                ].contains(settings.downloadPathTemplate)
+                    ? settings.downloadPathTemplate
+                    : 'custom',
+                decoration: InputDecoration(
+                  labelText: settings.languageCode == 'ru'
+                      ? 'Структура папок скачивания'
+                      : 'Download folder structure',
+                  helperText: '{Artist}, {Provider}, {Service}, {ID}, {Date}',
+                ),
+                items: [
+                  const DropdownMenuItem(
+                    value: '{Artist}/{ID}',
+                    child: Text('{Artist}/{ID}'),
+                  ),
+                  const DropdownMenuItem(
+                    value: '{Artist}',
+                    child: Text('{Artist}'),
+                  ),
+                  const DropdownMenuItem(
+                    value: '{Provider}/{Artist}',
+                    child: Text('{Provider}/{Artist}'),
+                  ),
+                  const DropdownMenuItem(
+                    value: '{Service}/{ID}',
+                    child: Text('{Service}/{ID}'),
+                  ),
+                  const DropdownMenuItem(
+                    value: '{Date}/{Artist}',
+                    child: Text('{Date}/{Artist}'),
+                  ),
+                  if (![
+                    '{Artist}/{ID}',
+                    '{Artist}',
+                    '{Provider}/{Artist}',
+                    '{Service}/{ID}',
+                    '{Date}/{Artist}',
+                  ].contains(settings.downloadPathTemplate))
+                    DropdownMenuItem(
+                      value: settings.downloadPathTemplate,
+                      child: Text(settings.downloadPathTemplate),
+                    ),
+                  const DropdownMenuItem(
+                    value: 'custom',
+                    child: Text('Пользовательский шаблон...'),
+                  ),
+                ],
+                onChanged: (value) async {
+                  if (value == 'custom') {
+                    final ctrl = TextEditingController(
+                        text: settings.downloadPathTemplate);
+                    final custom = await showDialog<String>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Шаблон пути скачивания'),
+                        content: TextField(
+                          controller: ctrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Шаблон',
+                            helperText:
+                                'Доступно: {Artist}, {Provider}, {Service}, {ID}, {Date}',
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              child: const Text('Отмена')),
+                          FilledButton(
+                              onPressed: () =>
+                                  Navigator.pop(ctx, ctrl.text.trim()),
+                              child: const Text('Сохранить')),
+                        ],
+                      ),
+                    );
+                    if (custom != null && custom.isNotEmpty) {
+                      _update(ref,
+                          settings.copyWith(downloadPathTemplate: custom));
+                    }
+                  } else if (value != null) {
+                    _update(ref,
+                        settings.copyWith(downloadPathTemplate: value));
+                  }
+                },
+              ),
+            ],
           ],
         ),
         _SettingsSection(
@@ -130,6 +224,33 @@ class _SettingsContent extends ConsumerWidget {
                 settings.copyWith(languageCode: value ?? 'ru'),
               ),
             ),
+            SwitchListTile(
+              value: settings.amoledMode,
+              title: Text(settings.languageCode == 'ru'
+                  ? 'AMOLED Pure Black тема'
+                  : 'AMOLED Pure Black theme'),
+              subtitle: Text(settings.languageCode == 'ru'
+                  ? 'Абсолютно черный фон (#000000) для OLED дисплеев.'
+                  : 'Pitch-black background (#000000) for OLED displays.'),
+              onChanged: (value) => _update(
+                ref,
+                settings.copyWith(amoledMode: value),
+              ),
+            ),
+            if (isAndroid)
+              SwitchListTile(
+                value: settings.useDynamicColor,
+                title: Text(settings.languageCode == 'ru'
+                    ? 'Динамические цвета Material You'
+                    : 'Material You Dynamic Colors'),
+                subtitle: Text(settings.languageCode == 'ru'
+                    ? 'Палитра интерфейса подстраивается под обои системы.'
+                    : 'Palette adapts to device wallpaper colors.'),
+                onChanged: (value) => _update(
+                  ref,
+                  settings.copyWith(useDynamicColor: value),
+                ),
+              ),
             const SizedBox(height: 12),
             _ColorSwatches(
               selected: settings.appSeedColor,
@@ -281,6 +402,13 @@ class _SettingsContent extends ConsumerWidget {
                   label: Text(strings.clearCache),
                 ),
                 FilledButton.tonalIcon(
+                  onPressed: () => context.go('/settings/cache'),
+                  icon: const Icon(Icons.pie_chart_rounded),
+                  label: Text(settings.languageCode == 'ru'
+                      ? 'Менеджер кэша'
+                      : 'Cache Manager'),
+                ),
+                FilledButton.tonalIcon(
                   onPressed: () => ref
                       .read(settingsControllerProvider.notifier)
                       .clearViewedHistory(),
@@ -369,6 +497,20 @@ class _SettingsContent extends ConsumerWidget {
                   icon: const Icon(Icons.download_for_offline_rounded),
                   label: Text(strings.importJson),
                 ),
+                FilledButton.tonalIcon(
+                  onPressed: () => _exportBackupFile(context, ref),
+                  icon: const Icon(Icons.file_upload_rounded),
+                  label: Text(settings.languageCode == 'ru'
+                      ? 'Экспорт бэкапа'
+                      : 'Export backup'),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: () => _importBackupFile(context, ref),
+                  icon: const Icon(Icons.file_download_rounded),
+                  label: Text(settings.languageCode == 'ru'
+                      ? 'Импорт бэкапа'
+                      : 'Import backup'),
+                ),
               ],
             ),
             const SizedBox(height: 8),
@@ -411,6 +553,33 @@ class _SettingsContent extends ConsumerWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Settings JSON copied')),
     );
+  }
+
+  Future<void> _exportBackupFile(BuildContext context, WidgetRef ref) async {
+    final success = await ref.read(backupServiceProvider).exportBackup();
+    if (!context.mounted) return;
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Бэкап сохранен / отправлен')),
+      );
+    }
+  }
+
+  Future<void> _importBackupFile(BuildContext context, WidgetRef ref) async {
+    final result = await ref.read(backupServiceProvider).importBackup();
+    if (!context.mounted) return;
+    if (result == null) return;
+    if (result is Success<AppSettings>) {
+      ref.invalidate(appSettingsProvider);
+      ref.invalidate(settingsControllerProvider);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Настройки успешно импортированы!')),
+      );
+    } else if (result is Error<AppSettings>) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка импорта: ${result.failure.message}')),
+      );
+    }
   }
 
   Future<void> _importDialog(BuildContext context, WidgetRef ref) async {

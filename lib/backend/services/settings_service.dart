@@ -53,6 +53,11 @@ class AppSettings {
     this.lastUpdateCheckAt,
     this.defaultRatingFilter,
     this.lastFeedRating,
+    this.amoledMode = false,
+    this.useDynamicColor = false,
+    this.gridMode = 'masonry',
+    this.searchPresets = const [],
+    this.downloadPathTemplate = '{Artist}/{ID}',
   });
 
   final List<String> favoriteArtists;
@@ -96,6 +101,11 @@ class AppSettings {
   final String? lastUpdateCheckAt;
   final String? defaultRatingFilter;
   final String? lastFeedRating;
+  final bool amoledMode;
+  final bool useDynamicColor;
+  final String gridMode;
+  final List<String> searchPresets;
+  final String downloadPathTemplate;
 
   static const defaults = AppSettings(
     enabledProviderIds: ['gelbooru', 'rule34', 'realbooru'],
@@ -184,6 +194,11 @@ class AppSettings {
     String? lastFeedRating,
     bool clearLastFeedRating = false,
     List<String>? favoriteArtists,
+    bool? amoledMode,
+    bool? useDynamicColor,
+    String? gridMode,
+    List<String>? searchPresets,
+    String? downloadPathTemplate,
   }) {
     return AppSettings(
       favoriteArtists: favoriteArtists ?? this.favoriteArtists,
@@ -234,6 +249,11 @@ class AppSettings {
       defaultRatingFilter: defaultRatingFilter ?? this.defaultRatingFilter,
       lastFeedRating:
           clearLastFeedRating ? null : lastFeedRating ?? this.lastFeedRating,
+      amoledMode: amoledMode ?? this.amoledMode,
+      useDynamicColor: useDynamicColor ?? this.useDynamicColor,
+      gridMode: gridMode ?? this.gridMode,
+      searchPresets: searchPresets ?? this.searchPresets,
+      downloadPathTemplate: downloadPathTemplate ?? this.downloadPathTemplate,
     );
   }
 
@@ -279,6 +299,11 @@ class AppSettings {
         'lastUpdateCheckAt': lastUpdateCheckAt,
         'defaultRatingFilter': defaultRatingFilter,
         'lastFeedRating': lastFeedRating,
+        'amoledMode': amoledMode,
+        'useDynamicColor': useDynamicColor,
+        'gridMode': gridMode,
+        'searchPresets': searchPresets,
+        'downloadPathTemplate': downloadPathTemplate,
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
@@ -378,6 +403,14 @@ class AppSettings {
         lastUpdateCheckAt: json['lastUpdateCheckAt'] as String?,
         defaultRatingFilter: json['defaultRatingFilter'] as String?,
         lastFeedRating: json['lastFeedRating'] as String?,
+        amoledMode: (json['amoledMode'] as bool?) ?? false,
+        useDynamicColor: (json['useDynamicColor'] as bool?) ?? false,
+        gridMode: (json['gridMode'] as String?) ?? 'masonry',
+        searchPresets: List<String>.from(
+          (json['searchPresets'] as List?) ?? const [],
+        ),
+        downloadPathTemplate:
+            (json['downloadPathTemplate'] as String?) ?? '{Artist}/{ID}',
       );
 }
 

@@ -1,26 +1,53 @@
 import 'package:flutter/material.dart';
 
-ThemeData buildTheme(Brightness brightness, {int seedColor = 0xFFE84D8A}) {
+ThemeData buildTheme(
+  Brightness brightness, {
+  int seedColor = 0xFFE84D8A,
+  bool amoled = false,
+  ColorScheme? dynamicColorScheme,
+}) {
   final dark = brightness == Brightness.dark;
-  final scheme = ColorScheme.fromSeed(
-    seedColor: Color(seedColor),
-    brightness: brightness,
-  );
+  final scheme = dynamicColorScheme ??
+      ColorScheme.fromSeed(
+        seedColor: Color(seedColor),
+        brightness: brightness,
+      );
+
+  final scaffoldBg = amoled && dark
+      ? const Color(0xFF000000)
+      : dark
+          ? const Color(0xFF101114)
+          : const Color(0xFFF8F8FA);
+  final cardBg = amoled && dark
+      ? const Color(0xFF0A0A0A)
+      : dark
+          ? const Color(0xFF191B20)
+          : Colors.white;
+  final navBg = amoled && dark
+      ? const Color(0xFF000000)
+      : dark
+          ? const Color(0xFF15161A)
+          : Colors.white;
+  final appBarBg = amoled && dark
+      ? const Color(0xFF000000)
+      : dark
+          ? const Color(0xFF101114)
+          : const Color(0xFFF8F8FA);
+
   return ThemeData(
     useMaterial3: true,
     brightness: brightness,
     colorScheme: scheme,
-    scaffoldBackgroundColor:
-        dark ? const Color(0xFF101114) : const Color(0xFFF8F8FA),
-    cardColor: dark ? const Color(0xFF191B20) : Colors.white,
+    scaffoldBackgroundColor: scaffoldBg,
+    cardColor: cardBg,
     navigationRailTheme: NavigationRailThemeData(
-      backgroundColor: dark ? const Color(0xFF15161A) : Colors.white,
+      backgroundColor: navBg,
       selectedIconTheme: IconThemeData(color: scheme.primary),
     ),
     appBarTheme: AppBarTheme(
       centerTitle: false,
       elevation: 0,
-      backgroundColor: dark ? const Color(0xFF101114) : const Color(0xFFF8F8FA),
+      backgroundColor: appBarBg,
       foregroundColor: scheme.onSurface,
     ),
     cardTheme: CardThemeData(
