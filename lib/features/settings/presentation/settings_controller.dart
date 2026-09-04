@@ -23,6 +23,16 @@ class SettingsController extends AsyncNotifier<AppSettings> {
     ref.invalidate(appSettingsProvider);
   }
 
+  Future<void> setVideoPlayerVolume(double volume) async {
+    final current = state.value ?? AppSettings.defaults;
+    final clamped = volume.clamp(0.0, 100.0);
+    if ((current.videoPlayerVolume - clamped).abs() < 0.01) return;
+    final updated = current.copyWith(videoPlayerVolume: clamped);
+    state = AsyncData(updated);
+    await ref.read(settingsServiceProvider).setVideoPlayerVolume(clamped);
+    ref.invalidate(appSettingsProvider);
+  }
+
   Future<void> clearCache() async {
     await ref.read(cacheServiceProvider).clear();
   }

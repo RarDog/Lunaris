@@ -39,6 +39,7 @@ class AppSettings {
     required this.motionRefreshMode,
     required this.autoBatterySaver60Hz,
     required this.videoPlayerMuted,
+    this.videoPlayerVolume = 100.0,
     required this.videoPlayerHalfVolume,
     required this.videoPlayerLoop,
     required this.videoPlayerCover,
@@ -94,6 +95,7 @@ class AppSettings {
   final String motionRefreshMode;
   final bool autoBatterySaver60Hz;
   final bool videoPlayerMuted;
+  final double videoPlayerVolume;
   final bool videoPlayerHalfVolume;
   final bool videoPlayerLoop;
   final bool videoPlayerCover;
@@ -146,6 +148,7 @@ class AppSettings {
     motionRefreshMode: 'auto',
     autoBatterySaver60Hz: true,
     videoPlayerMuted: false,
+    videoPlayerVolume: 100.0,
     videoPlayerHalfVolume: false,
     videoPlayerLoop: false,
     videoPlayerCover: false,
@@ -191,6 +194,7 @@ class AppSettings {
     String? motionRefreshMode,
     bool? autoBatterySaver60Hz,
     bool? videoPlayerMuted,
+    double? videoPlayerVolume,
     bool? videoPlayerHalfVolume,
     bool? videoPlayerLoop,
     bool? videoPlayerCover,
@@ -252,6 +256,7 @@ class AppSettings {
       motionRefreshMode: motionRefreshMode ?? this.motionRefreshMode,
       autoBatterySaver60Hz: autoBatterySaver60Hz ?? this.autoBatterySaver60Hz,
       videoPlayerMuted: videoPlayerMuted ?? this.videoPlayerMuted,
+      videoPlayerVolume: videoPlayerVolume ?? this.videoPlayerVolume,
       videoPlayerHalfVolume:
           videoPlayerHalfVolume ?? this.videoPlayerHalfVolume,
       videoPlayerLoop: videoPlayerLoop ?? this.videoPlayerLoop,
@@ -309,6 +314,7 @@ class AppSettings {
         'motionRefreshMode': motionRefreshMode,
         'autoBatterySaver60Hz': autoBatterySaver60Hz,
         'videoPlayerMuted': videoPlayerMuted,
+        'videoPlayerVolume': videoPlayerVolume,
         'videoPlayerHalfVolume': videoPlayerHalfVolume,
         'videoPlayerLoop': videoPlayerLoop,
         'videoPlayerCover': videoPlayerCover,
@@ -392,6 +398,8 @@ class AppSettings {
             defaults.autoBatterySaver60Hz,
         videoPlayerMuted:
             (json['videoPlayerMuted'] as bool?) ?? defaults.videoPlayerMuted,
+        videoPlayerVolume: (json['videoPlayerVolume'] as num?)?.toDouble() ??
+            defaults.videoPlayerVolume,
         videoPlayerHalfVolume: (json['videoPlayerHalfVolume'] as bool?) ??
             defaults.videoPlayerHalfVolume,
         videoPlayerLoop:
@@ -599,6 +607,17 @@ class SettingsService {
       }
     }
     return updateSettings(settings.copyWith(videoPlaybackPositions: positions));
+  }
+
+  Future<Result<void>> setVideoPlayerVolume(double volume) async {
+    final result = await getSettings();
+    if (result is Error<AppSettings>) return Error(result.failure);
+    final settings = (result as Success<AppSettings>).data;
+    final clamped = volume.clamp(0.0, 100.0);
+    if ((settings.videoPlayerVolume - clamped).abs() < 0.01) {
+      return const Success(null);
+    }
+    return updateSettings(settings.copyWith(videoPlayerVolume: clamped));
   }
 
   Future<Result<void>> appendDiagnosticLog(String message) async {

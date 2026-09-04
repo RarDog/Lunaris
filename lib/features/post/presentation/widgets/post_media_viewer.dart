@@ -27,10 +27,12 @@ class PostMediaViewer extends StatefulWidget {
     this.initialMuted = false,
     this.initialCoverVideo = false,
     this.initialHalfVolume = false,
+    this.initialVolume = 100.0,
     this.qualityMode = MediaQualityMode.auto,
     this.mediaHeaders = const {},
     this.onPlaybackSnapshot,
     this.onPlaybackPreferencesChanged,
+    this.onVolumeChanged,
     this.onMediaGestureLockChanged,
     super.key,
   });
@@ -44,10 +46,12 @@ class PostMediaViewer extends StatefulWidget {
   final bool initialMuted;
   final bool initialCoverVideo;
   final bool initialHalfVolume;
+  final double initialVolume;
   final MediaQualityMode qualityMode;
   final Map<String, String> mediaHeaders;
   final ValueChanged<VideoPlaybackSnapshot>? onPlaybackSnapshot;
   final ValueChanged<VideoPlaybackSnapshot>? onPlaybackPreferencesChanged;
+  final ValueChanged<double>? onVolumeChanged;
   final ValueChanged<bool>? onMediaGestureLockChanged;
 
   @override
@@ -68,6 +72,7 @@ class _PostMediaViewerState extends State<PostMediaViewer>
   late bool _muted;
   late bool _loopVideo;
   late bool _halfVolume;
+  late double _currentVolume;
   String? _videoError;
   bool _retriedFormatError = false;
   Timer? _hideTimer;
@@ -83,6 +88,7 @@ class _PostMediaViewerState extends State<PostMediaViewer>
     _muted = widget.initialMuted;
     _loopVideo = widget.initialLoop;
     _halfVolume = widget.initialHalfVolume;
+    _currentVolume = widget.initialVolume;
     _imageUrls = _buildImageUrls(widget.post);
     _videoUrls = _buildVideoUrls(widget.post);
     if (_isVideo(widget.post) && _videoUrls.isNotEmpty) {
@@ -167,6 +173,11 @@ class _PostMediaViewerState extends State<PostMediaViewer>
               muted: _muted,
               loopVideo: _loopVideo,
               halfVolume: _halfVolume,
+              initialVolume: _currentVolume,
+              onVolumeChanged: (vol) {
+                _currentVolume = vol;
+                widget.onVolumeChanged?.call(vol);
+              },
               fullscreen: widget.fullscreen,
               errorMessage: _videoError,
               onInteract: _showControls,
@@ -534,6 +545,7 @@ class _PostMediaViewerState extends State<PostMediaViewer>
           muted: _muted,
           halfVolume: _halfVolume,
           coverVideo: _coverVideo,
+          initialVolume: _currentVolume,
           errorMessage: _videoError,
           onRetry: _retryVideo,
           onChanged: (snapshot) {
@@ -560,12 +572,14 @@ class _PostMediaViewerState extends State<PostMediaViewer>
       _loopVideo = snapshot.loopVideo;
       _coverVideo = snapshot.coverVideo;
       _halfVolume = snapshot.halfVolume;
+      _currentVolume = snapshot.volume;
     });
     await _applyVolume();
     await _player?.setPlaylistMode(
       _loopVideo ? PlaylistMode.single : PlaylistMode.none,
     );
     _emitPlaybackPreferences();
+    widget.onVolumeChanged?.call(_currentVolume);
   }
 
   VideoPlaybackSnapshot _snapshot() {
@@ -577,15 +591,16 @@ class _PostMediaViewerState extends State<PostMediaViewer>
       halfVolume: _halfVolume,
       loopVideo: _loopVideo,
       coverVideo: _coverVideo,
+      volume: _currentVolume,
     );
   }
 
   Future<void> _applyVolume() async {
     await _player?.setVolume(_muted
-        ? 0
+        ? 0.0
         : _halfVolume
-            ? 50
-            : 100);
+            ? 50.0
+            : _currentVolume);
   }
 
   void _emitPlaybackPreferences() {
@@ -656,6 +671,7 @@ class VideoPlaybackSnapshot {
     required this.halfVolume,
     required this.loopVideo,
     required this.coverVideo,
+    this.volume = 100.0,
   });
 
   final Duration position;
@@ -664,6 +680,7 @@ class VideoPlaybackSnapshot {
   final bool halfVolume;
   final bool loopVideo;
   final bool coverVideo;
+  final double volume;
 }
 
 class _FullscreenVideoPage extends StatefulWidget {
@@ -675,6 +692,7 @@ class _FullscreenVideoPage extends StatefulWidget {
     required this.muted,
     required this.halfVolume,
     required this.coverVideo,
+    this.initialVolume = 100.0,
     required this.errorMessage,
     required this.onRetry,
     required this.onChanged,
@@ -687,6 +705,7 @@ class _FullscreenVideoPage extends StatefulWidget {
   final bool muted;
   final bool halfVolume;
   final bool coverVideo;
+  final double initialVolume;
   final String? errorMessage;
   final VoidCallback onRetry;
   final ValueChanged<VideoPlaybackSnapshot> onChanged;
@@ -701,6 +720,7 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
   late bool _muted;
   late bool _loopVideo;
   late bool _halfVolume;
+  late double _currentVolume;
   late bool _isLandscape;
   Timer? _hideTimer;
 
@@ -711,6 +731,7 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
     _muted = widget.muted;
     _loopVideo = widget.loopVideo;
     _halfVolume = widget.halfVolume;
+    _currentVolume = widget.initialVolume;
     _isLandscape = widget.aspectRatio > 1.05;
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _applyOrientation();
@@ -790,6 +811,11 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
                       muted: _muted,
                       loopVideo: _loopVideo,
                       halfVolume: _halfVolume,
+                      initialVolume: _currentVolume,
+                      onVolumeChanged: (vol) {
+                        _currentVolume = vol;
+                        widget.onChanged(_snapshot());
+                      },
                       fullscreen: true,
                       errorMessage: widget.errorMessage,
                       onInteract: _showControls,
@@ -883,10 +909,10 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
 
   Future<void> _applyVolume() async {
     await widget.player.setVolume(_muted
-        ? 0
+        ? 0.0
         : _halfVolume
-            ? 50
-            : 100);
+            ? 50.0
+            : _currentVolume);
   }
 
   VideoPlaybackSnapshot _snapshot() {
@@ -897,6 +923,7 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
       halfVolume: _halfVolume,
       loopVideo: _loopVideo,
       coverVideo: _coverVideo,
+      volume: _currentVolume,
     );
   }
 }
@@ -915,6 +942,8 @@ class _VideoSurface extends StatefulWidget {
     required this.muted,
     required this.halfVolume,
     required this.loopVideo,
+    this.initialVolume = 100.0,
+    this.onVolumeChanged,
     required this.fullscreen,
     required this.errorMessage,
     required this.onInteract,
@@ -934,6 +963,8 @@ class _VideoSurface extends StatefulWidget {
   final bool muted;
   final bool halfVolume;
   final bool loopVideo;
+  final double initialVolume;
+  final ValueChanged<double>? onVolumeChanged;
   final bool fullscreen;
   final String? errorMessage;
   final VoidCallback onInteract;
@@ -965,7 +996,9 @@ class _VideoSurfaceState extends State<_VideoSurface> {
   @override
   void initState() {
     super.initState();
-    _currentVolume = widget.player.state.volume;
+    _currentVolume = widget.player.state.volume > 0
+        ? widget.player.state.volume
+        : widget.initialVolume;
   }
 
   @override
@@ -983,26 +1016,37 @@ class _VideoSurfaceState extends State<_VideoSurface> {
     if (target < Duration.zero) target = Duration.zero;
     if (dur > Duration.zero && target > dur) target = dur;
     widget.player.seek(target);
+    widget.onInteract();
+    if (delta.inSeconds < 0) {
+      setState(() => _showLeftSeek = true);
+      _seekLeftTimer?.cancel();
+      _seekLeftTimer = Timer(const Duration(milliseconds: 650), () {
+        if (mounted) setState(() => _showLeftSeek = false);
+      });
+    } else if (delta.inSeconds > 0) {
+      setState(() => _showRightSeek = true);
+      _seekRightTimer?.cancel();
+      _seekRightTimer = Timer(const Duration(milliseconds: 650), () {
+        if (mounted) setState(() => _showRightSeek = false);
+      });
+    }
   }
 
   void _onDoubleTapAt(Offset localPosition, double width) {
     if (_isLocked) return;
     if (localPosition.dx < width * 0.4) {
       _seekBy(const Duration(seconds: -10));
-      setState(() => _showLeftSeek = true);
-      _seekLeftTimer?.cancel();
-      _seekLeftTimer = Timer(const Duration(milliseconds: 650), () {
-        if (mounted) setState(() => _showLeftSeek = false);
-      });
     } else if (localPosition.dx > width * 0.6) {
       _seekBy(const Duration(seconds: 10));
-      setState(() => _showRightSeek = true);
-      _seekRightTimer?.cancel();
-      _seekRightTimer = Timer(const Duration(milliseconds: 650), () {
-        if (mounted) setState(() => _showRightSeek = false);
-      });
     } else {
-      widget.player.playOrPause();
+      if (widget.player.state.playing) {
+        widget.player.pause();
+      } else {
+        if (widget.player.state.completed) {
+          widget.player.seek(Duration.zero);
+        }
+        widget.player.play();
+      }
       widget.onInteract();
     }
   }
@@ -1025,6 +1069,7 @@ class _VideoSurfaceState extends State<_VideoSurface> {
     final newVol = (_currentVolume - deltaY * 0.5).clamp(0.0, 100.0);
     _currentVolume = newVol;
     widget.player.setVolume(newVol);
+    widget.onVolumeChanged?.call(newVol);
     setState(() => _showVolumeIndicator = true);
     _volumeTimer?.cancel();
     _volumeTimer = Timer(const Duration(milliseconds: 1100), () {
@@ -1094,6 +1139,7 @@ class _VideoSurfaceState extends State<_VideoSurface> {
                   onToggleLoop: widget.onToggleLoop,
                   onFullscreen: widget.onFullscreen,
                   onSeekBy: _seekBy,
+                  onInteract: widget.onInteract,
                 ),
               ),
             ),
@@ -1728,6 +1774,7 @@ class _VideoControls extends StatelessWidget {
     required this.onToggleLoop,
     required this.onFullscreen,
     required this.onSeekBy,
+    this.onInteract,
   });
 
   final Player player;
@@ -1744,6 +1791,7 @@ class _VideoControls extends StatelessWidget {
   final VoidCallback onToggleLoop;
   final VoidCallback onFullscreen;
   final void Function(Duration) onSeekBy;
+  final VoidCallback? onInteract;
 
   @override
   Widget build(BuildContext context) {
@@ -1864,7 +1912,10 @@ class _VideoControls extends StatelessWidget {
                         icon: Icons.replay_10_rounded,
                         size: 46,
                         iconSize: 26,
-                        onPressed: () => onSeekBy(const Duration(seconds: -10)),
+                        onPressed: () {
+                          onSeekBy(const Duration(seconds: -10));
+                          onInteract?.call();
+                        },
                       ),
                       const SizedBox(width: 32),
                       Container(
@@ -1885,7 +1936,17 @@ class _VideoControls extends StatelessWidget {
                           tooltip: playing ? 'Пауза' : 'Воспроизведение',
                           iconSize: 42,
                           color: scheme.onPrimary,
-                          onPressed: player.playOrPause,
+                          onPressed: () async {
+                            if (player.state.playing) {
+                              await player.pause();
+                            } else {
+                              if (player.state.completed) {
+                                await player.seek(Duration.zero);
+                              }
+                              await player.play();
+                            }
+                            onInteract?.call();
+                          },
                           icon: Icon(
                             playing
                                 ? Icons.pause_rounded
@@ -1899,7 +1960,10 @@ class _VideoControls extends StatelessWidget {
                         icon: Icons.forward_10_rounded,
                         size: 46,
                         iconSize: 26,
-                        onPressed: () => onSeekBy(const Duration(seconds: 10)),
+                        onPressed: () {
+                          onSeekBy(const Duration(seconds: 10));
+                          onInteract?.call();
+                        },
                       ),
                     ],
                   );

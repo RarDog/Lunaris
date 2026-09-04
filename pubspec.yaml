@@ -1,7 +1,7 @@
 name: gel_rule_app
 description: Local backend/core layer for a Flutter booru browser app.
 publish_to: "none"
-version: 3.1.4+65
+version: 3.1.5+66
 
 environment:
   sdk: ">=3.3.0 <4.0.0"

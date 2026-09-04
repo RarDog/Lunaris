@@ -21,6 +21,7 @@ import '../../../shared/widgets/rating_badge.dart';
 import '../../collections/presentation/collection_form_dialog.dart';
 import '../../favorites/presentation/favorites_controller.dart';
 import '../../feed/presentation/feed_controller.dart';
+import '../../settings/presentation/settings_controller.dart';
 import '../../viewed/presentation/viewed_controller.dart';
 import 'post_details_controller.dart';
 import 'widgets/cloud_mirrors_card.dart';
@@ -249,6 +250,10 @@ class PostDetailsScreen extends ConsumerWidget {
                                         initialCoverVideo: settings.videoPlayerCover,
                                         initialHalfVolume:
                                             settings.videoPlayerHalfVolume,
+                                        initialVolume: settings.videoPlayerVolume,
+                                        onVolumeChanged: (vol) => ref
+                                            .read(settingsControllerProvider.notifier)
+                                            .setVideoPlayerVolume(vol),
                                         onPlaybackSnapshot: (snapshot) =>
                                             _saveVideoSnapshot(ref, post, snapshot),
                                         onPlaybackPreferencesChanged: (snapshot) =>
@@ -278,6 +283,10 @@ class PostDetailsScreen extends ConsumerWidget {
                                       initialCoverVideo: settings.videoPlayerCover,
                                       initialHalfVolume:
                                           settings.videoPlayerHalfVolume,
+                                      initialVolume: settings.videoPlayerVolume,
+                                      onVolumeChanged: (vol) => ref
+                                          .read(settingsControllerProvider.notifier)
+                                          .setVideoPlayerVolume(vol),
                                       onPlaybackSnapshot: (snapshot) =>
                                           _saveVideoSnapshot(ref, post, snapshot),
                                       onPlaybackPreferencesChanged: (snapshot) =>
@@ -392,6 +401,7 @@ class PostDetailsScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 16),
                     _CommentsSection(post: post),
+                    const SizedBox(height: 80),
                   ],
                 ),
               ),
@@ -436,7 +446,12 @@ class PostDetailsScreen extends ConsumerWidget {
         if ((details.primaryVelocity ?? 0) > 900) _close(context);
       },
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(8, 8, 8, 16),
+        padding: EdgeInsets.fromLTRB(
+          8,
+          8,
+          8,
+          120 + MediaQuery.paddingOf(context).bottom,
+        ),
         children: [
           GestureDetector(
             behavior: HitTestBehavior.deferToChild,
@@ -473,6 +488,10 @@ class PostDetailsScreen extends ConsumerWidget {
                           initialMuted: settings.videoPlayerMuted,
                           initialCoverVideo: settings.videoPlayerCover,
                           initialHalfVolume: settings.videoPlayerHalfVolume,
+                          initialVolume: settings.videoPlayerVolume,
+                          onVolumeChanged: (vol) => ref
+                              .read(settingsControllerProvider.notifier)
+                              .setVideoPlayerVolume(vol),
                           onPlaybackSnapshot: (snapshot) =>
                               _saveVideoSnapshot(ref, post, snapshot),
                           onPlaybackPreferencesChanged: (snapshot) =>
@@ -503,6 +522,10 @@ class PostDetailsScreen extends ConsumerWidget {
                       initialMuted: settings.videoPlayerMuted,
                       initialCoverVideo: settings.videoPlayerCover,
                       initialHalfVolume: settings.videoPlayerHalfVolume,
+                      initialVolume: settings.videoPlayerVolume,
+                      onVolumeChanged: (vol) => ref
+                          .read(settingsControllerProvider.notifier)
+                          .setVideoPlayerVolume(vol),
                       onPlaybackSnapshot: (snapshot) =>
                           _saveVideoSnapshot(ref, post, snapshot),
                       onPlaybackPreferencesChanged: (snapshot) =>
@@ -609,6 +632,7 @@ class PostDetailsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           _CommentsSection(post: post),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -855,7 +879,8 @@ class PostDetailsScreen extends ConsumerWidget {
     if (settings.videoPlayerMuted == snapshot.muted &&
         settings.videoPlayerHalfVolume == snapshot.halfVolume &&
         settings.videoPlayerLoop == snapshot.loopVideo &&
-        settings.videoPlayerCover == snapshot.coverVideo) {
+        settings.videoPlayerCover == snapshot.coverVideo &&
+        (settings.videoPlayerVolume - snapshot.volume).abs() < 0.01) {
       return;
     }
     await ref.read(settingsServiceProvider).updateSettings(
@@ -864,6 +889,7 @@ class PostDetailsScreen extends ConsumerWidget {
             videoPlayerHalfVolume: snapshot.halfVolume,
             videoPlayerLoop: snapshot.loopVideo,
             videoPlayerCover: snapshot.coverVideo,
+            videoPlayerVolume: snapshot.volume,
           ),
         );
     ref.invalidate(appSettingsProvider);
@@ -1160,7 +1186,7 @@ class _CommentsSectionState extends ConsumerState<_CommentsSection> {
       ),
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
         initiallyExpanded: false,
         shape: const Border(),

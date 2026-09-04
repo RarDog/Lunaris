@@ -374,7 +374,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
   void _submitSearch(String query) {
     final trimmed = query.trim();
     if (trimmed.isEmpty) {
-      _clearFilters();
+      if (widget.initialQuery != null) {
+        context.go('/');
+      } else {
+        _applySearchQuery('');
+      }
       return;
     }
     final location = '/?q=${Uri.encodeQueryComponent(trimmed)}';

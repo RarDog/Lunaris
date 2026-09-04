@@ -167,8 +167,10 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
   void _scrollToEnd() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_tagScrollController.hasClients) {
+        final max = _tagScrollController.position.maxScrollExtent;
+        final target = (max - 40).clamp(0.0, max);
         _tagScrollController.animateTo(
-          _tagScrollController.position.maxScrollExtent,
+          target,
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
         );
@@ -286,8 +288,8 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
                                   const SizedBox(width: 6),
                                 ],
                                 ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    minWidth: 120,
+                                  constraints: BoxConstraints(
+                                    minWidth: _tags.isEmpty ? 120 : 64,
                                     maxWidth: 300,
                                   ),
                                   child: Focus(
