@@ -3,7 +3,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/http/dio_client.dart';
-import '../di/backend_providers.dart';
 import '../models/favorite_artist_item.dart';
 import '../models/pawchive_account.dart';
 import 'settings_service.dart';
@@ -98,8 +97,23 @@ class PawchiveSyncService {
       }
 
       // Check if redirect points back to login with flash error
-      if (redirectLocation.contains('/account/login')) {
+      if (redirectLocation.contains('/account/login') ||
+          redirectLocation.contains('/login')) {
         throw StateError('Неверный логин или пароль');
+      }
+
+      // Check for flash errors in session cookie if present
+      try {
+        final dotIdx = sessionValue.indexOf('.');
+        final payloadBase64 =
+            dotIdx != -1 ? sessionValue.substring(0, dotIdx) : sessionValue;
+        final normalizedB64 = base64Url.normalize(payloadBase64);
+        final decoded = utf8.decode(base64Url.decode(normalizedB64));
+        if (decoded.contains('is incorrect') || decoded.contains('_flashes')) {
+          throw StateError('Неверный логин или пароль');
+        }
+      } catch (e) {
+        if (e is StateError) rethrow;
       }
 
       // Verify session and fetch initial artists
@@ -118,6 +132,15 @@ class PawchiveSyncService {
         isActive: true,
         syncedArtistsCount: remoteArtists.length,
       );
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 401 || code == 403) {
+        throw StateError('Неверный логин или пароль');
+      } else if (code != null) {
+        throw StateError('Ошибка сервера Pawchive (HTTP $code)');
+      } else {
+        throw StateError('Ошибка сети: ${e.message ?? e.type.name}');
+      }
     } catch (e) {
       if (e is StateError || e is ArgumentError) rethrow;
       throw StateError('Ошибка входа в Pawchive: $e');
@@ -156,7 +179,17 @@ class PawchiveSyncService {
         isActive: true,
         syncedArtistsCount: remoteArtists.length,
       );
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 401 || code == 403) {
+        throw StateError('Сессия недействительна или истекла');
+      } else if (code != null) {
+        throw StateError('Ошибка сервера Pawchive (HTTP $code)');
+      } else {
+        throw StateError('Ошибка сети: ${e.message ?? e.type.name}');
+      }
     } catch (e) {
+      if (e is StateError || e is ArgumentError) rethrow;
       throw StateError('Сессия недействительна или истекла: $e');
     }
   }
@@ -172,7 +205,7 @@ class PawchiveSyncService {
         : baseUrl;
 
     final response = await _dio.get<dynamic>(
-      '$normalizedBase/account/favorites',
+      '$normalizedBase/api/v1/account/favorites',
       queryParameters: {'type': 'artist'},
       options: Options(
         headers: {
@@ -180,8 +213,16 @@ class PawchiveSyncService {
           'Accept': 'application/json',
           'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
         },
+        validateStatus: (status) => status != null && status < 500,
       ),
     );
+
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      throw StateError('Сессия истекла или недействительна');
+    }
+    if (response.statusCode != 200) {
+      throw StateError('Ошибка сервера Pawchive (HTTP ${response.statusCode})');
+    }
 
     final data = response.data;
     if (data is! List) return const [];
@@ -344,7 +385,7 @@ class PawchiveSyncService {
         ? account.baseUrl.substring(0, account.baseUrl.length - 1)
         : account.baseUrl;
 
-    final path = '$normalizedBase/favorites/creator/$service/$artistId';
+    final path = '$normalizedBase/api/v1/favorites/creator/$service/$artistId';
     final options = Options(
       headers: {
         'Cookie': 'session=$cleanCookie',

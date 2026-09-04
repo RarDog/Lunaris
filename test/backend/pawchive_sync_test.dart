@@ -253,7 +253,7 @@ void main() {
       );
       expect(addResult, isTrue);
       expect(lastMethod, equals('POST'));
-      expect(lastPath, equals('https://pawchive.pw/favorites/creator/fanbox/12345'));
+      expect(lastPath, equals('https://pawchive.pw/api/v1/favorites/creator/fanbox/12345'));
 
       final removeResult = await service.toggleRemoteFavorite(
         account: account,
@@ -263,7 +263,7 @@ void main() {
       );
       expect(removeResult, isTrue);
       expect(lastMethod, equals('DELETE'));
-      expect(lastPath, equals('https://pawchive.pw/favorites/creator/fanbox/12345'));
+      expect(lastPath, equals('https://pawchive.pw/api/v1/favorites/creator/fanbox/12345'));
     });
   });
 }
