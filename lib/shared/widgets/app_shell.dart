@@ -10,7 +10,7 @@ import '../../app/responsive.dart';
 import '../../backend/backend.dart';
 import '../../core/utils/result.dart';
 
-class AppShell extends ConsumerWidget {
+class AppShell extends ConsumerStatefulWidget {
   const AppShell({required this.child, super.key});
 
   final Widget child;
@@ -33,69 +33,6 @@ class AppShell extends ConsumerWidget {
     _Destination('settings', 'Settings', Icons.settings_rounded, '/settings'),
   ];
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final settings =
-        ref.watch(appSettingsProvider).value ?? AppSettings.defaults;
-    final artistConfigs =
-        ref.watch(_enabledArtistConfigsProvider).value ?? const [];
-    final destinations =
-        _visibleDestinations(settings, artistConfigs.isNotEmpty);
-    final ru = settings.languageCode == 'ru';
-    return Shortcuts(
-      shortcuts: {
-        LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyF):
-            const _NavigateIntent('/search'),
-        LogicalKeySet(LogicalKeyboardKey.escape): const _BackIntent(),
-        LogicalKeySet(LogicalKeyboardKey.digit1): const _NavigateIntent('/'),
-        LogicalKeySet(LogicalKeyboardKey.digit2):
-            const _NavigateIntent('/search'),
-        LogicalKeySet(LogicalKeyboardKey.digit3):
-            const _NavigateIntent('/favorites'),
-        LogicalKeySet(LogicalKeyboardKey.digit4):
-            const _NavigateIntent('/viewed'),
-        LogicalKeySet(LogicalKeyboardKey.digit5):
-            const _NavigateIntent('/collections'),
-        LogicalKeySet(LogicalKeyboardKey.digit6):
-            const _NavigateIntent('/artists'),
-        LogicalKeySet(LogicalKeyboardKey.digit7):
-            const _NavigateIntent('/providers'),
-        LogicalKeySet(LogicalKeyboardKey.digit8):
-            const _NavigateIntent('/settings'),
-      },
-      child: Actions(
-        actions: {
-          _NavigateIntent: CallbackAction<_NavigateIntent>(
-            onInvoke: (intent) {
-              context.go(intent.location);
-              return null;
-            },
-          ),
-          _BackIntent: CallbackAction<_BackIntent>(
-            onInvoke: (_) {
-              if (Navigator.of(context).canPop()) Navigator.of(context).pop();
-              return null;
-            },
-          ),
-        },
-        child: Focus(
-          autofocus: true,
-          child: Responsive.isDesktop(context)
-              ? _DesktopShell(
-                  destinations: destinations,
-                  ru: ru,
-                  child: child,
-                )
-              : _MobileShell(
-                  destinations: destinations,
-                  ru: ru,
-                  child: child,
-                ),
-        ),
-      ),
-    );
-  }
-
   static List<_Destination> _visibleDestinations(
     AppSettings settings,
     bool hasArtists,
@@ -105,6 +42,139 @@ class AppShell extends ConsumerWidget {
       if (item.id == 'artists' && !hasArtists) return false;
       return true;
     }).toList(growable: false);
+  }
+
+  @override
+  ConsumerState<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends ConsumerState<AppShell> {
+  final List<String> _tabHistory = [];
+  String? _currentPath;
+  bool _isBackNavigating = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final path = GoRouterState.of(context).uri.path;
+    if (_isBackNavigating) {
+      _isBackNavigating = false;
+      _currentPath = path;
+      return;
+    }
+    if (_currentPath != null && _currentPath != path) {
+      if (path == '/') {
+        _tabHistory.clear();
+      } else {
+        _tabHistory.remove(_currentPath);
+        _tabHistory.add(_currentPath!);
+        if (_tabHistory.length > 25) {
+          _tabHistory.removeAt(0);
+        }
+      }
+    }
+    _currentPath = path;
+  }
+
+  bool _handleBack() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+      return true;
+    }
+
+    final currentPath = GoRouterState.of(context).uri.path;
+    while (_tabHistory.isNotEmpty && _tabHistory.last == currentPath) {
+      _tabHistory.removeLast();
+    }
+
+    if (_tabHistory.isNotEmpty) {
+      final previous = _tabHistory.removeLast();
+      _isBackNavigating = true;
+      context.go(previous);
+      return true;
+    }
+
+    if (currentPath != '/') {
+      _isBackNavigating = true;
+      context.go('/');
+      return true;
+    }
+
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final settings =
+        ref.watch(appSettingsProvider).value ?? AppSettings.defaults;
+    final artistConfigs =
+        ref.watch(_enabledArtistConfigsProvider).value ?? const [];
+    final destinations =
+        AppShell._visibleDestinations(settings, artistConfigs.isNotEmpty);
+    final ru = settings.languageCode == 'ru';
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        final handled = _handleBack();
+        if (!handled) {
+          SystemNavigator.pop();
+        }
+      },
+      child: Shortcuts(
+        shortcuts: {
+          LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyF):
+              const _NavigateIntent('/search'),
+          LogicalKeySet(LogicalKeyboardKey.escape): const _BackIntent(),
+          LogicalKeySet(LogicalKeyboardKey.digit1): const _NavigateIntent('/'),
+          LogicalKeySet(LogicalKeyboardKey.digit2):
+              const _NavigateIntent('/search'),
+          LogicalKeySet(LogicalKeyboardKey.digit3):
+              const _NavigateIntent('/favorites'),
+          LogicalKeySet(LogicalKeyboardKey.digit4):
+              const _NavigateIntent('/viewed'),
+          LogicalKeySet(LogicalKeyboardKey.digit5):
+              const _NavigateIntent('/collections'),
+          LogicalKeySet(LogicalKeyboardKey.digit6):
+              const _NavigateIntent('/artists'),
+          LogicalKeySet(LogicalKeyboardKey.digit7):
+              const _NavigateIntent('/providers'),
+          LogicalKeySet(LogicalKeyboardKey.digit8):
+              const _NavigateIntent('/settings'),
+        },
+        child: Actions(
+          actions: {
+            _NavigateIntent: CallbackAction<_NavigateIntent>(
+              onInvoke: (intent) {
+                context.go(intent.location);
+                return null;
+              },
+            ),
+            _BackIntent: CallbackAction<_BackIntent>(
+              onInvoke: (_) {
+                _handleBack();
+                return null;
+              },
+            ),
+          },
+          child: Focus(
+            autofocus: true,
+            child: Responsive.isDesktop(context)
+                ? _DesktopShell(
+                    destinations: destinations,
+                    ru: ru,
+                    child: widget.child,
+                  )
+                : _MobileShell(
+                    destinations: destinations,
+                    ru: ru,
+                    child: widget.child,
+                  ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
