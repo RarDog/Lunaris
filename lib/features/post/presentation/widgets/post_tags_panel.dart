@@ -298,7 +298,7 @@ class _TagGroupBlock extends StatelessWidget {
     required this.onLongPress,
   });
 
-  static const _collapsedLimit = 36;
+  static const _collapsedLimit = 28;
 
   final String label;
   final String group;
