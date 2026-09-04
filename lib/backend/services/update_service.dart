@@ -9,13 +9,26 @@ import '../../core/utils/result.dart';
 import '../models/app_update_info.dart';
 import 'settings_service.dart';
 
+enum UpdateSource {
+  gitea,
+  github,
+}
+
 class UpdateService {
   UpdateService(this._dio, this._settingsService);
 
-  static const latestReleaseUrl =
+  static const giteaLatestReleaseUrl =
+      'https://gitea.rardogsynapse.online/api/v1/repos/RarDog/Lunaris/releases/latest';
+  static const giteaReleasesUrl =
+      'https://gitea.rardogsynapse.online/api/v1/repos/RarDog/Lunaris/releases';
+
+  static const githubLatestReleaseUrl =
       'https://api.github.com/repos/RarDog/Lunaris/releases/latest';
-  static const releasesUrl =
+  static const githubReleasesUrl =
       'https://api.github.com/repos/RarDog/Lunaris/releases';
+
+  static const latestReleaseUrl = githubLatestReleaseUrl;
+  static const releasesUrl = githubReleasesUrl;
 
   static const _deviceChannel = MethodChannel('rulegel/device');
 
@@ -50,14 +63,17 @@ class UpdateService {
     }
   }
 
-  Future<Result<AppUpdateInfo?>> checkForUpdates({bool force = false}) async {
+  Future<Result<AppUpdateInfo?>> checkForUpdates({
+    bool force = false,
+    UpdateSource source = UpdateSource.gitea,
+  }) async {
     final settingsResult = await _settingsService.getSettings();
     final settings = settingsResult is Success<AppSettings>
         ? settingsResult.data
         : AppSettings.defaults;
 
     try {
-      final info = await _latestAllowedRelease(settings);
+      final info = await _latestAllowedRelease(settings, source: source);
       final nextSettings = settings.copyWith(
         lastUpdateCheckAt: DateTime.now().toIso8601String(),
       );
@@ -81,16 +97,29 @@ class UpdateService {
     }
   }
 
-  Future<AppUpdateInfo> _latestAllowedRelease(AppSettings settings) async {
+  Future<AppUpdateInfo> _latestAllowedRelease(
+    AppSettings settings, {
+    UpdateSource source = UpdateSource.gitea,
+  }) async {
+    final isGitea = source == UpdateSource.gitea;
+    final rUrl = isGitea ? giteaReleasesUrl : githubReleasesUrl;
+    final latestUrl = isGitea ? giteaLatestReleaseUrl : githubLatestReleaseUrl;
+
+    final options = Options(
+      headers: isGitea
+          ? {
+              'Authorization': 'token 1c744d6044d756759d7b1f693c94c80cf70d75fa',
+            }
+          : {
+              'User-Agent': 'Lunaris-App',
+              'Accept': 'application/vnd.github+json',
+            },
+    );
+
     final response = await _dio.get<dynamic>(
-      releasesUrl,
-      queryParameters: {'per_page': 30},
-      options: Options(
-        headers: {
-          'User-Agent': 'Lunaris-App',
-          'Accept': 'application/vnd.github+json',
-        },
-      ),
+      rUrl,
+      queryParameters: isGitea ? {'limit': 30} : {'per_page': 30},
+      options: options,
     );
     final items = (response.data as List?) ?? const [];
     final releases = items
@@ -102,13 +131,8 @@ class UpdateService {
         .toList(growable: false);
     if (releases.isEmpty) {
       final latest = await _dio.get<dynamic>(
-        latestReleaseUrl,
-        options: Options(
-          headers: {
-            'User-Agent': 'Lunaris-App',
-            'Accept': 'application/vnd.github+json',
-          },
-        ),
+        latestUrl,
+        options: options,
       );
       return _releaseFromJson(Map<String, dynamic>.from(latest.data as Map));
     }
