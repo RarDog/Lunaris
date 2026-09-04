@@ -1,0 +1,70 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows x64
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.27.4'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Windows Release
+        run: flutter build windows --release
+
+      - name: Package Windows Zip
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          if (-not $tag) { $tag = "v3.0.0" }
+          $zipName = "Lunaris-$tag-windows-x64.zip"
+          Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath $zipName
+          echo "ZIP_NAME=$zipName" >> $env:GITHUB_ENV
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ZIP_NAME }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Windows Zip to Gitea Release
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          if (-not $tag) { $tag = "v3.0.0" }
+          $token = "1c744d6044d756759d7b1f693c94c80cf70d75fa"
+          $giteaUrl = "https://gitea.rardogsynapse.online"
+          $repo = "RarDog/Lunaris"
+          $zipName = $env:ZIP_NAME
+
+          Write-Host "Fetching Gitea release info for tag $tag..."
+          $relUrl = "$giteaUrl/api/v1/repos/$repo/releases/tags/$tag"
+          $headers = @{ "Authorization" = "token $token" }
+          $rel = Invoke-RestMethod -Uri $relUrl -Headers $headers -Method Get
+          $releaseId = $rel.id
+          Write-Host "Found Gitea release ID: $releaseId"
+
+          $uploadUrl = "$giteaUrl/api/v1/repos/$repo/releases/$releaseId/assets?name=$zipName"
+          Write-Host "Uploading $zipName to $uploadUrl..."
+          curl.exe -X POST -H "Authorization: token $token" -F "attachment=@$zipName" $uploadUrl
+          Write-Host "Successfully uploaded Windows build to Gitea!"
