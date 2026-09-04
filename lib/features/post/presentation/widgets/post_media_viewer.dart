@@ -75,6 +75,7 @@ class _PostMediaViewerState extends State<PostMediaViewer>
   late double _currentVolume;
   String? _videoError;
   bool _retriedFormatError = false;
+  bool _softwareDecodingFallback = false;
   Timer? _hideTimer;
   StreamSubscription<String>? _errorSubscription;
   StreamSubscription<Duration>? _positionSubscription;
@@ -105,6 +106,7 @@ class _PostMediaViewerState extends State<PostMediaViewer>
       _videoIndex = 0;
       _videoError = null;
       _retriedFormatError = false;
+      _softwareDecodingFallback = false;
       _imageUrls = _buildImageUrls(widget.post);
       _videoUrls = _buildVideoUrls(widget.post);
       if (_isVideo(widget.post) && _videoUrls.isNotEmpty) {
@@ -359,13 +361,13 @@ class _PostMediaViewerState extends State<PostMediaViewer>
   void _initializeVideo() {
     MediaKit.ensureInitialized();
     _player = Player();
-    _controller = VideoController(_player!);
-    try {
-      final native = _player!.platform as dynamic;
-      native?.setProperty('hwdec', 'auto-safe', waitForInitialization: false);
-      native?.setProperty('vd-lavc-software-fallback', 'yes', waitForInitialization: false);
-      native?.setProperty('vd-lavc-check-hw-profile', 'yes', waitForInitialization: false);
-    } catch (_) {}
+    _controller = VideoController(
+      _player!,
+      configuration: VideoControllerConfiguration(
+        enableHardwareAcceleration: !_softwareDecodingFallback,
+        hwdec: _softwareDecodingFallback ? 'no' : 'auto-safe',
+      ),
+    );
     _applyVolume();
     _player!.setPlaylistMode(
       _loopVideo ? PlaylistMode.single : PlaylistMode.none,
@@ -437,14 +439,12 @@ class _PostMediaViewerState extends State<PostMediaViewer>
             lower.contains('stream format not recognized') ||
             lower.contains('failed to recognize file format'))) {
       _retriedFormatError = true;
-      try {
-        final native = _player?.platform as dynamic;
-        await native?.setProperty('hwdec', 'no', waitForInitialization: false);
-      } catch (_) {}
-      await Future<void>.delayed(const Duration(milliseconds: 300));
-      if (mounted && _player != null) {
+      _softwareDecodingFallback = true;
+      _disposeVideo();
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+      if (mounted) {
         _videoIndex = 0;
-        await _openVideo(play: play);
+        _initializeVideo();
         return;
       }
     }
@@ -456,11 +456,12 @@ class _PostMediaViewerState extends State<PostMediaViewer>
   Future<void> _retryVideo() async {
     _videoIndex = 0;
     _retriedFormatError = false;
-    try {
-      final native = _player?.platform as dynamic;
-      await native?.setProperty('hwdec', 'no', waitForInitialization: false);
-    } catch (_) {}
-    await _openVideo(play: true);
+    _softwareDecodingFallback = true;
+    _disposeVideo();
+    await Future<void>.delayed(const Duration(milliseconds: 150));
+    if (mounted) {
+      _initializeVideo();
+    }
   }
 
   void _disposeVideo() {
