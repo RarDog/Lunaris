@@ -1,5 +1,17 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.0.14',
+    title: 'Settings 2.0: Modern Grouped Design & Quick Ergonomics',
+    bullets: [
+      'Settings 2.0 Layout: reimagined settings experience with modern squircle card groups, smooth borders, and curated accent badges.',
+      'Category Quick Navigation: horizontal capsule strip at the top to smoothly jump between General, Appearance, Feed, Filters, Storage, Diagnostics, and About.',
+      'Instant Segmented Controls: replaced tedious dropdowns with fast 1-tap SegmentedButtons for Theme (Dark/Light/Auto), Language (RU/EN), and Media Quality (Auto/Data saver/HQ).',
+      'Folder Structure Bottom Sheet: intuitive download directory template picker with preset chips and custom pattern editor.',
+      'Interactive Stepper & Limit Controls: modernized desktop & mobile column steppers and disk cache limits with accent pill badges.',
+      'Hero Brand Banner: polished app presentation card in About section with glowing icon, version build badge, update checker, and Gitea repository link.',
+    ],
+  ),
+  LunarisChange(
     version: '2.0.13',
     title: 'Toolbar Section Dividers & Post Card Badge Stacking Fix',
     bullets: [

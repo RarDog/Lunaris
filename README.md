@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2.0.13-blueviolet?style=for-the-badge" alt="Version 2.0.13" />
+  <img src="https://img.shields.io/badge/Version-2.0.14-blueviolet?style=for-the-badge" alt="Version 2.0.14" />
   <img src="https://img.shields.io/badge/Flutter-3.47+-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter" />
   <img src="https://img.shields.io/badge/Platform-Android%20%7C%20Linux%20%7C%20Windows-brightgreen?style=for-the-badge" alt="Platforms" />
   <img src="https://img.shields.io/badge/Gitea-RarDog%2FLunaris-orange?style=for-the-badge&logo=gitea&logoColor=white" alt="Gitea" />
@@ -19,6 +19,8 @@
 ---
 
 ## ✨ Основные возможности
+
+- **⚙️ Settings 2.0**: Полный редизайн настроек с современными squircle-карточками, горизонтальной быстрой навигацией по разделам, мгновенными Segmented-кнопками выбора темы/языка/качества и стильной карточкой о приложении.
 
 - **⚡ Мгновенные подсказки тегов (0 мс) и постоянный файловый кэш**: Локальный JSON-кэш на телефоне и ПК обеспечивает мгновенный отклик при наборе, а Danbooru, Gelbooru, Moebooru и e621 динамически дополняют базу тегов.
 - **🎨 Цветные бейджи категорий и подсветка совпадений**: Выделение введенных букв жирным цветом акцента и четкая цветовая палитра категорий (художник — красный, персонаж — зеленый, копирайт — фиолетовый, вид — голубой).

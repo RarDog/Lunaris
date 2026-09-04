@@ -24,7 +24,8 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsControllerProvider);
     final strings = AppStrings(
-        settings.value?.languageCode ?? AppSettings.defaults.languageCode);
+      settings.value?.languageCode ?? AppSettings.defaults.languageCode,
+    );
     return AdaptiveScaffold(
       title: strings.settings,
       body: settings.when(
@@ -36,15 +37,51 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
-class _SettingsContent extends ConsumerWidget {
+class _SettingsContent extends ConsumerStatefulWidget {
   const _SettingsContent({required this.settings});
 
   final AppSettings settings;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_SettingsContent> createState() => _SettingsContentState();
+}
+
+class _SettingsContentState extends ConsumerState<_SettingsContent> {
+  final _scrollController = ScrollController();
+
+  final _generalKey = GlobalKey();
+  final _appearanceKey = GlobalKey();
+  final _feedKey = GlobalKey();
+  final _filtersKey = GlobalKey();
+  final _storageKey = GlobalKey();
+  final _diagnosticsKey = GlobalKey();
+  final _aboutKey = GlobalKey();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollTo(GlobalKey key) {
+    final ctx = key.currentContext;
+    if (ctx != null) {
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 380),
+        curve: Curves.easeOutCubic,
+        alignment: 0.04,
+      );
+    }
+  }
+
+  AppSettings get settings => widget.settings;
+
+  @override
+  Widget build(BuildContext context) {
     final isAndroid = Platform.isAndroid;
     final strings = AppStrings(settings.languageCode);
+    final isRu = strings.ru;
     final deviceInfo =
         isAndroid ? ref.watch(motionDeviceInfoProvider).value : null;
     final detectedHz =
@@ -56,538 +93,729 @@ class _SettingsContent extends ConsumerWidget {
             device: deviceInfo,
           )
         : null;
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _SettingsSection(
-          title: strings.general,
-          icon: Icons.tune_rounded,
+
+    final navCategories = [
+      (
+        key: _generalKey,
+        label: strings.general,
+        icon: Icons.tune_rounded,
+        color: const Color(0xFF6366F1),
+      ),
+      (
+        key: _appearanceKey,
+        label: strings.appearance,
+        icon: Icons.palette_rounded,
+        color: const Color(0xFF8B5CF6),
+      ),
+      (
+        key: _feedKey,
+        label: strings.feedLayout,
+        icon: Icons.dashboard_customize_rounded,
+        color: const Color(0xFF10B981),
+      ),
+      (
+        key: _filtersKey,
+        label: strings.filters,
+        icon: Icons.filter_alt_rounded,
+        color: const Color(0xFFF59E0B),
+      ),
+      (
+        key: _storageKey,
+        label: strings.storage,
+        icon: Icons.storage_rounded,
+        color: const Color(0xFF06B6D4),
+      ),
+      (
+        key: _diagnosticsKey,
+        label: isRu ? 'Диагностика' : 'Diagnostics',
+        icon: Icons.hub_rounded,
+        color: const Color(0xFF3B82F6),
+      ),
+      (
+        key: _aboutKey,
+        label: strings.about,
+        icon: Icons.info_rounded,
+        color: const Color(0xFFE84D8A),
+      ),
+    ];
+
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 860),
+        child: ListView(
+          controller: _scrollController,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           children: [
-            DropdownButtonFormField<String>(
-              initialValue: settings.themeMode,
-              decoration: InputDecoration(
-                labelText: strings.theme,
-              ),
-              items: const [
-                DropdownMenuItem(value: 'dark', child: Text('Dark')),
-                DropdownMenuItem(value: 'light', child: Text('Light')),
-                DropdownMenuItem(value: 'system', child: Text('System')),
-              ],
-              onChanged: (value) =>
-                  _update(ref, settings.copyWith(themeMode: value ?? 'dark')),
+            // Top Quick-Nav Bar
+            _CategoryQuickNav(
+              categories: navCategories,
+              onSelect: _scrollTo,
             ),
-            SwitchListTile(
-              value: settings.nsfwEnabled,
-              title: Text(strings.allowNsfw),
-              onChanged: (value) =>
-                  _update(ref, settings.copyWith(nsfwEnabled: value)),
-            ),
-            SwitchListTile(
-              value: settings.blurExplicitContent,
-              title: Text(strings.blurSensitive),
-              onChanged: (value) =>
-                  _update(ref, settings.copyWith(blurExplicitContent: value)),
-            ),
-            SwitchListTile(
-              value: settings.showPostBadges,
-              title: Text(strings.showPostBadges),
-              onChanged: (value) =>
-                  _update(ref, settings.copyWith(showPostBadges: value)),
-            ),
-            SwitchListTile(
-              value: settings.allowDownloads,
-              title: Text(strings.allowDownloads),
-              onChanged: (value) =>
-                  _update(ref, settings.copyWith(allowDownloads: value)),
-            ),
-            SwitchListTile(
-              value: settings.autoDownloadFavorites,
-              title: Text(settings.languageCode == 'ru'
-                  ? 'Offline избранное'
-                  : 'Offline favorites'),
-              subtitle: Text(settings.languageCode == 'ru'
-                  ? 'При добавлении фото или видео в избранное файл скачивается в фоне для просмотра офлайн.'
-                  : 'When a photo or video is added to Favorites, Lunaris downloads it in the background for offline viewing.'),
-              onChanged: (value) => _update(
-                ref,
-                settings.copyWith(autoDownloadFavorites: value),
-              ),
-            ),
-            if (settings.allowDownloads) ...[
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                initialValue: const [
-                  '{Artist}/{ID}',
-                  '{Artist}',
-                  '{Provider}/{Artist}',
-                  '{Service}/{ID}',
-                  '{Date}/{Artist}',
-                ].contains(settings.downloadPathTemplate)
-                    ? settings.downloadPathTemplate
-                    : 'custom',
-                decoration: InputDecoration(
-                  labelText: settings.languageCode == 'ru'
-                      ? 'Структура папок скачивания'
-                      : 'Download folder structure',
-                  helperText: '{Artist}, {Provider}, {Service}, {ID}, {Date}',
-                ),
-                items: [
-                  const DropdownMenuItem(
-                    value: '{Artist}/{ID}',
-                    child: Text('{Artist}/{ID}'),
-                  ),
-                  const DropdownMenuItem(
-                    value: '{Artist}',
-                    child: Text('{Artist}'),
-                  ),
-                  const DropdownMenuItem(
-                    value: '{Provider}/{Artist}',
-                    child: Text('{Provider}/{Artist}'),
-                  ),
-                  const DropdownMenuItem(
-                    value: '{Service}/{ID}',
-                    child: Text('{Service}/{ID}'),
-                  ),
-                  const DropdownMenuItem(
-                    value: '{Date}/{Artist}',
-                    child: Text('{Date}/{Artist}'),
-                  ),
-                  if (![
-                    '{Artist}/{ID}',
-                    '{Artist}',
-                    '{Provider}/{Artist}',
-                    '{Service}/{ID}',
-                    '{Date}/{Artist}',
-                  ].contains(settings.downloadPathTemplate))
-                    DropdownMenuItem(
-                      value: settings.downloadPathTemplate,
-                      child: Text(settings.downloadPathTemplate),
+            const SizedBox(height: 16),
+
+            // 1. General Section
+            _SettingsCardGroup(
+              sectionKey: _generalKey,
+              title: strings.general,
+              icon: Icons.tune_rounded,
+              accentColor: const Color(0xFF6366F1),
+              children: [
+                _SettingsTile(
+                  icon: Icons.brightness_6_rounded,
+                  iconColor: const Color(0xFF6366F1),
+                  title: strings.theme,
+                  subtitle: isRu
+                      ? 'Оформление цветовой схемы приложения'
+                      : 'App theme brightness mode',
+                  trailing: SegmentedButton<String>(
+                    showSelectedIcon: false,
+                    style: const ButtonStyle(
+                      visualDensity: VisualDensity.compact,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                  const DropdownMenuItem(
-                    value: 'custom',
-                    child: Text('Пользовательский шаблон...'),
-                  ),
-                ],
-                onChanged: (value) async {
-                  if (value == 'custom') {
-                    final ctrl = TextEditingController(
-                        text: settings.downloadPathTemplate);
-                    final custom = await showDialog<String>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        title: const Text('Шаблон пути скачивания'),
-                        content: TextField(
-                          controller: ctrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Шаблон',
-                            helperText:
-                                'Доступно: {Artist}, {Provider}, {Service}, {ID}, {Date}',
-                          ),
-                        ),
-                        actions: [
-                          TextButton(
-                              onPressed: () => Navigator.pop(ctx),
-                              child: const Text('Отмена')),
-                          FilledButton(
-                              onPressed: () =>
-                                  Navigator.pop(ctx, ctrl.text.trim()),
-                              child: const Text('Сохранить')),
-                        ],
+                    segments: [
+                      ButtonSegment(
+                        value: 'dark',
+                        icon: const Icon(Icons.dark_mode_rounded, size: 16),
+                        label: Text(isRu ? 'Темная' : 'Dark'),
                       ),
-                    );
-                    if (custom != null && custom.isNotEmpty) {
-                      _update(ref,
-                          settings.copyWith(downloadPathTemplate: custom));
-                    }
-                  } else if (value != null) {
-                    _update(ref,
-                        settings.copyWith(downloadPathTemplate: value));
-                  }
-                },
-              ),
-            ],
-          ],
-        ),
-        _SettingsSection(
-          title: strings.appearance,
-          icon: Icons.palette_rounded,
-          children: [
-            DropdownButtonFormField<String>(
-              initialValue: settings.languageCode,
-              decoration: InputDecoration(labelText: strings.language),
-              items: const [
-                DropdownMenuItem(value: 'ru', child: Text('Русский')),
-                DropdownMenuItem(value: 'en', child: Text('English')),
-              ],
-              onChanged: (value) => _update(
-                ref,
-                settings.copyWith(languageCode: value ?? 'ru'),
-              ),
-            ),
-            SwitchListTile(
-              value: settings.amoledMode,
-              title: Text(settings.languageCode == 'ru'
-                  ? 'AMOLED Pure Black тема'
-                  : 'AMOLED Pure Black theme'),
-              subtitle: Text(settings.languageCode == 'ru'
-                  ? 'Абсолютно черный фон (#000000) для OLED дисплеев.'
-                  : 'Pitch-black background (#000000) for OLED displays.'),
-              onChanged: (value) => _update(
-                ref,
-                settings.copyWith(amoledMode: value),
-              ),
-            ),
-            if (isAndroid)
-              SwitchListTile(
-                value: settings.useDynamicColor,
-                title: Text(settings.languageCode == 'ru'
-                    ? 'Динамические цвета Material You'
-                    : 'Material You Dynamic Colors'),
-                subtitle: Text(settings.languageCode == 'ru'
-                    ? 'Палитра интерфейса подстраивается под обои системы.'
-                    : 'Palette adapts to device wallpaper colors.'),
-                onChanged: (value) => _update(
-                  ref,
-                  settings.copyWith(useDynamicColor: value),
+                      ButtonSegment(
+                        value: 'light',
+                        icon: const Icon(Icons.light_mode_rounded, size: 16),
+                        label: Text(isRu ? 'Светлая' : 'Light'),
+                      ),
+                      ButtonSegment(
+                        value: 'system',
+                        icon: const Icon(Icons.brightness_auto_rounded, size: 16),
+                        label: Text(isRu ? 'Авто' : 'Auto'),
+                      ),
+                    ],
+                    selected: {settings.themeMode},
+                    onSelectionChanged: (set) => _update(
+                      ref,
+                      settings.copyWith(themeMode: set.first),
+                    ),
+                  ),
                 ),
-              ),
-            const SizedBox(height: 12),
-            _ColorSwatches(
-              selected: settings.appSeedColor,
-              onChanged: (color) =>
-                  _update(ref, settings.copyWith(appSeedColor: color)),
-            ),
-            const SizedBox(height: 12),
-            _TabVisibilityEditor(
-              hiddenTabs: settings.hiddenTabs,
-              onChanged: (hiddenTabs) =>
-                  _update(ref, settings.copyWith(hiddenTabs: hiddenTabs)),
-            ),
-            SwitchListTile(
-              value: settings.allowExperimentalUpdates,
-              title: Text(settings.languageCode == 'ru'
-                  ? 'Получать beta / experimental обновления'
-                  : 'Receive beta / experimental updates'),
-              subtitle: Text(settings.languageCode == 'ru'
-                  ? 'Обновлятор будет видеть prerelease-сборки Gitea.'
-                  : 'When enabled, the updater also sees prerelease Gitea builds.'),
-              onChanged: (value) => _update(
-                ref,
-                settings.copyWith(allowExperimentalUpdates: value),
-              ),
-            ),
-          ],
-        ),
-        _SettingsSection(
-          title: strings.feedLayout,
-          icon: Icons.dashboard_customize_rounded,
-          children: [
-            DropdownButtonFormField<String>(
-              initialValue: settings.mediaQualityMode,
-              decoration: InputDecoration(labelText: strings.mediaQuality),
-              items: [
-                for (final mode in MediaQualityMode.values)
-                  DropdownMenuItem(value: mode.name, child: Text(mode.label)),
-              ],
-              onChanged: (value) => _update(
-                ref,
-                settings.copyWith(mediaQualityMode: value ?? 'auto'),
-              ),
-            ),
-            if (isAndroid) ...[
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: settings.motionRefreshMode,
-                decoration: const InputDecoration(
-                  labelText: 'Animation refresh profile',
+                const _SettingsDivider(),
+                _SettingsSwitchTile(
+                  icon: Icons.explicit_rounded,
+                  iconColor: const Color(0xFFEF4444),
+                  title: strings.allowNsfw,
+                  subtitle: isRu
+                      ? 'Отображать контент с рейтингом Questionable и Explicit'
+                      : 'Show Questionable and Explicit rated media',
+                  value: settings.nsfwEnabled,
+                  onChanged: (val) =>
+                      _update(ref, settings.copyWith(nsfwEnabled: val)),
                 ),
-                items: [
-                  for (final mode in MotionRefreshMode.values)
-                    DropdownMenuItem(value: mode.name, child: Text(mode.label)),
+                const _SettingsDivider(),
+                _SettingsSwitchTile(
+                  icon: Icons.blur_on_rounded,
+                  iconColor: const Color(0xFFEC4899),
+                  title: strings.blurSensitive,
+                  subtitle: isRu
+                      ? 'Мягко размывать превью откровенных постов в ленте'
+                      : 'Blur sensitive thumbnails in feed grid',
+                  value: settings.blurExplicitContent,
+                  onChanged: (val) =>
+                      _update(ref, settings.copyWith(blurExplicitContent: val)),
+                ),
+                const _SettingsDivider(),
+                _SettingsSwitchTile(
+                  icon: Icons.label_important_outline_rounded,
+                  iconColor: const Color(0xFFF59E0B),
+                  title: strings.showPostBadges,
+                  subtitle: isRu
+                      ? 'Индикаторы видео, источников, рейтингов и статусов'
+                      : 'Show source, rating and media indicators on cards',
+                  value: settings.showPostBadges,
+                  onChanged: (val) =>
+                      _update(ref, settings.copyWith(showPostBadges: val)),
+                ),
+                const _SettingsDivider(),
+                _SettingsSwitchTile(
+                  icon: Icons.download_rounded,
+                  iconColor: const Color(0xFF10B981),
+                  title: strings.allowDownloads,
+                  subtitle: isRu
+                      ? 'Кнопки быстрого скачивания медиафайлов'
+                      : 'Enable direct download buttons on cards & viewer',
+                  value: settings.allowDownloads,
+                  onChanged: (val) =>
+                      _update(ref, settings.copyWith(allowDownloads: val)),
+                ),
+                const _SettingsDivider(),
+                _SettingsSwitchTile(
+                  icon: Icons.offline_pin_rounded,
+                  iconColor: const Color(0xFF06B6D4),
+                  title: isRu ? 'Offline избранное' : 'Offline favorites',
+                  subtitle: isRu
+                      ? 'Фоновая загрузка медиафайла при добавлении поста в избранное'
+                      : 'Automatically cache files in background when favorited',
+                  value: settings.autoDownloadFavorites,
+                  onChanged: (val) => _update(
+                    ref,
+                    settings.copyWith(autoDownloadFavorites: val),
+                  ),
+                ),
+                if (settings.allowDownloads) ...[
+                  const _SettingsDivider(),
+                  _SettingsFolderStructureTile(
+                    currentTemplate: settings.downloadPathTemplate,
+                    isRu: isRu,
+                    onChanged: (template) => _update(
+                      ref,
+                      settings.copyWith(downloadPathTemplate: template),
+                    ),
+                  ),
                 ],
-                onChanged: (value) => _update(
-                  ref,
-                  settings.copyWith(motionRefreshMode: value ?? 'auto'),
-                ),
-              ),
-              SwitchListTile(
-                value: settings.autoBatterySaver60Hz,
-                title: const Text('Auto 60 Hz below 20% battery'),
-                subtitle: Text(
-                  'Detected ${motion!.detectedHz.toStringAsFixed(0)} Hz'
-                  '${motion.batteryLevel == null ? '' : ', battery ${motion.batteryLevel}%'}'
-                  '${motion.batterySaverActive ? ', saver active' : ''}',
-                ),
-                onChanged: (value) => _update(
-                  ref,
-                  settings.copyWith(autoBatterySaver60Hz: value),
-                ),
-              ),
-            ],
-            _StepperTile(
-              title: strings.desktopColumns,
-              value: settings.desktopColumns,
-              min: 3,
-              max: 8,
-              onChanged: (value) => _update(
-                ref,
-                settings.copyWith(desktopColumns: value),
-              ),
+              ],
             ),
-            _StepperTile(
-              title: strings.mobileColumns,
-              value: settings.mobileColumns,
-              min: 1,
-              max: 3,
-              onChanged: (value) => _update(
-                ref,
-                settings.copyWith(mobileColumns: value),
-              ),
-            ),
-          ],
-        ),
-        _SettingsSection(
-          title: strings.filters,
-          icon: Icons.filter_alt_rounded,
-          children: [
-            SwitchListTile(
-              value: settings.hideViewedPosts,
-              title: Text(strings.hideViewed),
-              onChanged: (value) =>
-                  _update(ref, settings.copyWith(hideViewedPosts: value)),
-            ),
-            _TagListEditor(
-              title: strings.smartBlacklist,
-              icon: Icons.visibility_off_rounded,
-              tags: settings.smartBlacklistRules,
-              helper:
-                  'Examples: tag, tag_a tag_b, provider:e621, rating:explicit, type:video, score:<10, artist:name',
-              onChanged: (tags) => _update(
-                ref,
-                settings.copyWith(smartBlacklistRules: tags),
-              ),
-            ),
-            const SizedBox(height: 12),
-            _TagListEditor(
-              title: strings.whitelistedTags,
-              icon: Icons.verified_rounded,
-              tags: settings.whitelistedTags,
-              onChanged: (tags) => _update(
-                ref,
-                settings.copyWith(whitelistedTags: tags),
-              ),
-            ),
-          ],
-        ),
-        _SettingsSection(
-          title: strings.storage,
-          icon: Icons.storage_rounded,
-          children: [
-            _StepperTile(
-              title: strings.cacheMaxItems,
-              value: settings.cacheMaxItems,
-              min: 100,
-              max: 10000,
-              step: 100,
-              onChanged: (value) =>
-                  _update(ref, settings.copyWith(cacheMaxItems: value)),
-            ),
-            _StepperTile(
-              title: settings.languageCode == 'ru'
-                  ? 'Лимит истории поиска'
-                  : 'Search history limit',
-              value: settings.searchHistoryLimit,
-              min: 50,
-              max: 2000,
-              step: 50,
-              onChanged: (value) =>
-                  _update(ref, settings.copyWith(searchHistoryLimit: value)),
-            ),
-            _StepperTile(
-              title: settings.languageCode == 'ru'
-                  ? 'Лимит кэша тегов (диск)'
-                  : 'Tag cache limit (disk)',
-              value: settings.tagCacheLimit,
-              min: 500,
-              max: 20000,
-              step: 500,
-              onChanged: (value) =>
-                  _update(ref, settings.copyWith(tagCacheLimit: value)),
-            ),
-            _ActionGrid(
+
+            // 2. Appearance Section
+            _SettingsCardGroup(
+              sectionKey: _appearanceKey,
+              title: strings.appearance,
+              icon: Icons.palette_rounded,
+              accentColor: const Color(0xFF8B5CF6),
               children: [
-                FilledButton.tonalIcon(
-                  onPressed: () => ref
-                      .read(settingsControllerProvider.notifier)
-                      .clearCache(),
-                  icon: const Icon(Icons.cleaning_services_rounded),
-                  label: Text(strings.clearCache),
-                ),
-                FilledButton.tonalIcon(
-                  onPressed: () => context.go('/settings/cache'),
-                  icon: const Icon(Icons.pie_chart_rounded),
-                  label: Text(settings.languageCode == 'ru'
-                      ? 'Менеджер кэша'
-                      : 'Cache Manager'),
-                ),
-                FilledButton.tonalIcon(
-                  onPressed: () async {
-                    await ref
-                        .read(settingsControllerProvider.notifier)
-                        .clearTagCache();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            settings.languageCode == 'ru'
-                                ? 'Кэш подсказок тегов очищен'
-                                : 'Tag suggestions cache cleared',
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.label_off_rounded),
-                  label: Text(
-                    settings.languageCode == 'ru'
-                        ? 'Очистить кэш тегов'
-                        : 'Clear tag cache',
+                _SettingsTile(
+                  icon: Icons.translate_rounded,
+                  iconColor: const Color(0xFF8B5CF6),
+                  title: strings.language,
+                  subtitle: isRu
+                      ? 'Язык интерфейса приложения'
+                      : 'App user interface language',
+                  trailing: SegmentedButton<String>(
+                    showSelectedIcon: false,
+                    style: const ButtonStyle(
+                      visualDensity: VisualDensity.compact,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    segments: const [
+                      ButtonSegment(
+                        value: 'ru',
+                        label: Text('🇷🇺 RU'),
+                      ),
+                      ButtonSegment(
+                        value: 'en',
+                        label: Text('🇬🇧 EN'),
+                      ),
+                    ],
+                    selected: {settings.languageCode},
+                    onSelectionChanged: (set) => _update(
+                      ref,
+                      settings.copyWith(languageCode: set.first),
+                    ),
                   ),
                 ),
-                FilledButton.tonalIcon(
-                  onPressed: () async {
-                    await ref
-                        .read(settingsControllerProvider.notifier)
-                        .clearSearchHistory();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            settings.languageCode == 'ru'
-                                ? 'История поиска очищена'
-                                : 'Search history cleared',
-                          ),
-                        ),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.history_toggle_off_rounded),
-                  label: Text(
-                    settings.languageCode == 'ru'
-                        ? 'Очистить историю'
-                        : 'Clear search history',
+                const _SettingsDivider(),
+                _SettingsSwitchTile(
+                  icon: Icons.contrast_rounded,
+                  iconColor: const Color(0xFF475569),
+                  title: isRu ? 'AMOLED Pure Black' : 'AMOLED Pure Black',
+                  subtitle: isRu
+                      ? 'Абсолютно черный фон (#000000) для OLED-дисплеев'
+                      : 'Deep black (#000000) surfaces for OLED screens',
+                  value: settings.amoledMode,
+                  onChanged: (val) =>
+                      _update(ref, settings.copyWith(amoledMode: val)),
+                ),
+                if (isAndroid) ...[
+                  const _SettingsDivider(),
+                  _SettingsSwitchTile(
+                    icon: Icons.auto_awesome_rounded,
+                    iconColor: const Color(0xFFEC4899),
+                    title: isRu
+                        ? 'Динамические цвета Material You'
+                        : 'Material You Dynamic Colors',
+                    subtitle: isRu
+                        ? 'Палитра интерфейса подстраивается под обои системы'
+                        : 'Color palette adapts automatically to device wallpaper',
+                    value: settings.useDynamicColor,
+                    onChanged: (val) =>
+                        _update(ref, settings.copyWith(useDynamicColor: val)),
+                  ),
+                ],
+                const _SettingsDivider(),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  child: _ColorSwatches(
+                    selected: settings.appSeedColor,
+                    onChanged: (color) =>
+                        _update(ref, settings.copyWith(appSeedColor: color)),
                   ),
                 ),
-                FilledButton.tonalIcon(
-                  onPressed: () => ref
-                      .read(settingsControllerProvider.notifier)
-                      .clearViewedHistory(),
-                  icon: const Icon(Icons.visibility_off_rounded),
-                  label: Text(strings.clearViewed),
+                const _SettingsDivider(),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  child: _TabVisibilityEditor(
+                    hiddenTabs: settings.hiddenTabs,
+                    onChanged: (hiddenTabs) =>
+                        _update(ref, settings.copyWith(hiddenTabs: hiddenTabs)),
+                  ),
                 ),
-                FilledButton.tonalIcon(
-                  onPressed: settings.hiddenPostKeys.isEmpty
-                      ? null
-                      : () => context.go('/settings/hidden'),
-                  icon: const Icon(Icons.restore_rounded),
-                  label: const Text('Restore hidden'),
-                ),
-                FilledButton.tonalIcon(
-                  onPressed: () => ref
-                      .read(settingsControllerProvider.notifier)
-                      .clearHiddenPosts(),
-                  icon: const Icon(Icons.delete_sweep_rounded),
-                  label:
-                      Text('Clear hidden (${settings.hiddenPostKeys.length})'),
+                const _SettingsDivider(),
+                _SettingsSwitchTile(
+                  icon: Icons.science_rounded,
+                  iconColor: const Color(0xFFF97316),
+                  title: isRu
+                      ? 'Beta и экспериментальные обновления'
+                      : 'Receive beta & experimental updates',
+                  subtitle: isRu
+                      ? 'Проверка и уведомление о prerelease сборках Lunaris'
+                      : 'Include prerelease builds when checking for updates',
+                  value: settings.allowExperimentalUpdates,
+                  onChanged: (val) => _update(
+                    ref,
+                    settings.copyWith(allowExperimentalUpdates: val),
+                  ),
                 ),
               ],
             ),
-          ],
-        ),
-        _SettingsSection(
-          title: 'Providers & Diagnostics',
-          icon: Icons.hub_rounded,
-          children: [
-            _ActionGrid(
+
+            // 3. Feed & Layout Section
+            _SettingsCardGroup(
+              sectionKey: _feedKey,
+              title: strings.feedLayout,
+              icon: Icons.dashboard_customize_rounded,
+              accentColor: const Color(0xFF10B981),
               children: [
-                FilledButton.tonalIcon(
-                  onPressed: () => context.go('/providers'),
-                  icon: const Icon(Icons.hub_rounded),
-                  label: const Text('Providers'),
+                _SettingsTile(
+                  icon: Icons.high_quality_rounded,
+                  iconColor: const Color(0xFF10B981),
+                  title: strings.mediaQuality,
+                  subtitle: isRu
+                      ? 'Разрешение загружаемых картинок в сетке'
+                      : 'Resolution profile for feed thumbnails',
+                  trailing: SegmentedButton<String>(
+                    showSelectedIcon: false,
+                    style: const ButtonStyle(
+                      visualDensity: VisualDensity.compact,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    segments: [
+                      for (final mode in MediaQualityMode.values)
+                        ButtonSegment(
+                          value: mode.name,
+                          label: Text(
+                            isRu
+                                ? switch (mode) {
+                                    MediaQualityMode.auto => 'Авто',
+                                    MediaQualityMode.dataSaver => 'Трафик',
+                                    MediaQualityMode.highQuality => 'HQ',
+                                  }
+                                : mode.label,
+                          ),
+                        ),
+                    ],
+                    selected: {settings.mediaQualityMode},
+                    onSelectionChanged: (set) => _update(
+                      ref,
+                      settings.copyWith(mediaQualityMode: set.first),
+                    ),
+                  ),
                 ),
-                FilledButton.tonalIcon(
-                  onPressed: () => context.go('/providers/check'),
-                  icon: const Icon(Icons.network_check_rounded),
-                  label: const Text('Diagnostics'),
+                if (isAndroid) ...[
+                  const _SettingsDivider(),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981)
+                                    .withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.speed_rounded,
+                                size: 20,
+                                color: Color(0xFF10B981),
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    isRu
+                                        ? 'Частота обновления экрана'
+                                        : 'Animation refresh profile',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyLarge
+                                        ?.copyWith(fontWeight: FontWeight.w600),
+                                  ),
+                                  Text(
+                                    isRu
+                                        ? 'Оптимизация плавности скролла ленты'
+                                        : 'Fluid 120-165 Hz scrolling optimization',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final mode in MotionRefreshMode.values)
+                              ChoiceChip(
+                                label: Text(mode.label),
+                                selected: settings.motionRefreshMode == mode.name,
+                                onSelected: (selected) {
+                                  if (selected) {
+                                    _update(
+                                      ref,
+                                      settings.copyWith(
+                                        motionRefreshMode: mode.name,
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const _SettingsDivider(),
+                  _SettingsSwitchTile(
+                    icon: Icons.battery_saver_rounded,
+                    iconColor: const Color(0xFF22C55E),
+                    title: isRu
+                        ? 'Энергосбережение: 60 Гц при < 20% батареи'
+                        : 'Auto 60 Hz below 20% battery',
+                    subtitle: isRu
+                        ? 'Определено ${motion!.detectedHz.toStringAsFixed(0)} Гц'
+                            '${motion.batteryLevel == null ? '' : ', заряд ${motion.batteryLevel}%'}'
+                            '${motion.batterySaverActive ? ', режим энергосбережения' : ''}'
+                        : 'Detected ${motion!.detectedHz.toStringAsFixed(0)} Hz'
+                            '${motion.batteryLevel == null ? '' : ', battery ${motion.batteryLevel}%'}'
+                            '${motion.batterySaverActive ? ', saver active' : ''}',
+                    value: settings.autoBatterySaver60Hz,
+                    onChanged: (val) => _update(
+                      ref,
+                      settings.copyWith(autoBatterySaver60Hz: val),
+                    ),
+                  ),
+                ],
+                const _SettingsDivider(),
+                _SettingsStepperTile(
+                  icon: Icons.desktop_windows_rounded,
+                  iconColor: const Color(0xFF3B82F6),
+                  title: strings.desktopColumns,
+                  subtitle: isRu
+                      ? 'Количество столбцов постов на ПК и широких экранах'
+                      : 'Number of columns on desktop layout',
+                  value: settings.desktopColumns,
+                  min: 3,
+                  max: 8,
+                  onChanged: (val) =>
+                      _update(ref, settings.copyWith(desktopColumns: val)),
                 ),
-                FilledButton.tonalIcon(
-                  onPressed: () => _copyDiagnostics(context, ref),
-                  icon: const Icon(Icons.bug_report_rounded),
-                  label: const Text('Copy report'),
-                ),
-                FilledButton.tonalIcon(
-                  onPressed: () => _copyLogs(context, ref),
-                  icon: const Icon(Icons.receipt_long_rounded),
-                  label: const Text('Copy logs'),
-                ),
-                FilledButton.tonalIcon(
-                  onPressed: () => ref
-                      .read(settingsControllerProvider.notifier)
-                      .clearDiagnosticLogs(),
-                  icon: const Icon(Icons.delete_sweep_rounded),
-                  label: const Text('Clear logs'),
+                const _SettingsDivider(),
+                _SettingsStepperTile(
+                  icon: Icons.smartphone_rounded,
+                  iconColor: const Color(0xFF6366F1),
+                  title: strings.mobileColumns,
+                  subtitle: isRu
+                      ? 'Количество столбцов постов на телефонах'
+                      : 'Number of columns on phone layout',
+                  value: settings.mobileColumns,
+                  min: 1,
+                  max: 3,
+                  onChanged: (val) =>
+                      _update(ref, settings.copyWith(mobileColumns: val)),
                 ),
               ],
             ),
-          ],
-        ),
-        _SettingsSection(
-          title: strings.about,
-          icon: Icons.info_rounded,
-          children: [
-            _ActionGrid(
+
+            // 4. Filters & Blacklist Section
+            _SettingsCardGroup(
+              sectionKey: _filtersKey,
+              title: strings.filters,
+              icon: Icons.filter_alt_rounded,
+              accentColor: const Color(0xFFF59E0B),
               children: [
-                FilledButton.tonalIcon(
-                  onPressed: () => _checkUpdates(context, ref),
-                  icon: const Icon(Icons.system_update_alt_rounded),
-                  label: Text(strings.checkUpdates),
+                _SettingsSwitchTile(
+                  icon: Icons.visibility_off_rounded,
+                  iconColor: const Color(0xFFF59E0B),
+                  title: strings.hideViewed,
+                  subtitle: isRu
+                      ? 'Автоматически скрывать просмотренные посты из ленты'
+                      : 'Automatically hide already seen posts from feed',
+                  value: settings.hideViewedPosts,
+                  onChanged: (val) =>
+                      _update(ref, settings.copyWith(hideViewedPosts: val)),
                 ),
-                FilledButton.tonalIcon(
-                  onPressed: () => _showChangelog(context),
-                  icon: const Icon(Icons.new_releases_rounded),
-                  label: const Text('What changed'),
+                const _SettingsDivider(),
+                Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: _TagListEditor(
+                    title: strings.smartBlacklist,
+                    icon: Icons.block_rounded,
+                    accentColor: const Color(0xFFEF4444),
+                    tags: settings.smartBlacklistRules,
+                    helper: isRu
+                        ? 'Примеры: tag, tag_a tag_b, provider:e621, rating:explicit, type:video, score:<10, artist:name'
+                        : 'Examples: tag, tag_a tag_b, provider:e621, rating:explicit, type:video, score:<10, artist:name',
+                    onChanged: (tags) => _update(
+                      ref,
+                      settings.copyWith(smartBlacklistRules: tags),
+                    ),
+                  ),
                 ),
-                FilledButton.tonalIcon(
-                  onPressed: () => _exportJson(context, ref),
-                  icon: const Icon(Icons.upload_file_rounded),
-                  label: Text(strings.exportJson),
-                ),
-                FilledButton.tonalIcon(
-                  onPressed: () => _importDialog(context, ref),
-                  icon: const Icon(Icons.download_for_offline_rounded),
-                  label: Text(strings.importJson),
-                ),
-                FilledButton.tonalIcon(
-                  onPressed: () => _exportBackupFile(context, ref),
-                  icon: const Icon(Icons.file_upload_rounded),
-                  label: Text(settings.languageCode == 'ru'
-                      ? 'Экспорт бэкапа'
-                      : 'Export backup'),
-                ),
-                FilledButton.tonalIcon(
-                  onPressed: () => _importBackupFile(context, ref),
-                  icon: const Icon(Icons.file_download_rounded),
-                  label: Text(settings.languageCode == 'ru'
-                      ? 'Импорт бэкапа'
-                      : 'Import backup'),
+                const _SettingsDivider(),
+                Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: _TagListEditor(
+                    title: strings.whitelistedTags,
+                    icon: Icons.verified_rounded,
+                    accentColor: const Color(0xFF10B981),
+                    tags: settings.whitelistedTags,
+                    helper: isRu
+                        ? 'Теги, которые никогда не будут скрываться черным списком'
+                        : 'Tags that will bypass blacklist rules',
+                    onChanged: (tags) => _update(
+                      ref,
+                      settings.copyWith(whitelistedTags: tags),
+                    ),
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            const Text('Version $appDisplayVersion ($appBuildNumber)'),
+
+            // 5. Storage Section
+            _SettingsCardGroup(
+              sectionKey: _storageKey,
+              title: strings.storage,
+              icon: Icons.storage_rounded,
+              accentColor: const Color(0xFF06B6D4),
+              children: [
+                _SettingsStepperTile(
+                  icon: Icons.photo_library_rounded,
+                  iconColor: const Color(0xFF06B6D4),
+                  title: strings.cacheMaxItems,
+                  subtitle: isRu
+                      ? 'Максимальное количество файлов в дисковом кэше'
+                      : 'Max items stored in image/video cache',
+                  value: settings.cacheMaxItems,
+                  min: 100,
+                  max: 10000,
+                  step: 100,
+                  onChanged: (val) =>
+                      _update(ref, settings.copyWith(cacheMaxItems: val)),
+                ),
+                const _SettingsDivider(),
+                _SettingsStepperTile(
+                  icon: Icons.history_rounded,
+                  iconColor: const Color(0xFF3B82F6),
+                  title: isRu ? 'Лимит истории поиска' : 'Search history limit',
+                  subtitle: isRu
+                      ? 'Хранение недавних поисковых запросов'
+                      : 'Max search query entries stored',
+                  value: settings.searchHistoryLimit,
+                  min: 50,
+                  max: 2000,
+                  step: 50,
+                  onChanged: (val) =>
+                      _update(ref, settings.copyWith(searchHistoryLimit: val)),
+                ),
+                const _SettingsDivider(),
+                _SettingsStepperTile(
+                  icon: Icons.tag_rounded,
+                  iconColor: const Color(0xFF8B5CF6),
+                  title: isRu ? 'Лимит кэша тегов (диск)' : 'Tag cache limit (disk)',
+                  subtitle: isRu
+                      ? 'Количество кэшируемых подсказок тегов на диске'
+                      : 'Max tag autocomplete entries persisted on disk',
+                  value: settings.tagCacheLimit,
+                  min: 500,
+                  max: 20000,
+                  step: 500,
+                  onChanged: (val) =>
+                      _update(ref, settings.copyWith(tagCacheLimit: val)),
+                ),
+                const _SettingsDivider(),
+                Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: _ActionGrid(
+                    children: [
+                      _ActionButton(
+                        icon: Icons.cleaning_services_rounded,
+                        label: strings.clearCache,
+                        onPressed: () => ref
+                            .read(settingsControllerProvider.notifier)
+                            .clearCache(),
+                      ),
+                      _ActionButton(
+                        icon: Icons.pie_chart_rounded,
+                        label: isRu ? 'Менеджер кэша' : 'Cache Manager',
+                        isPrimary: true,
+                        onPressed: () => context.go('/settings/cache'),
+                      ),
+                      _ActionButton(
+                        icon: Icons.label_off_rounded,
+                        label: isRu ? 'Очистить кэш тегов' : 'Clear tag cache',
+                        onPressed: () async {
+                          await ref
+                              .read(settingsControllerProvider.notifier)
+                              .clearTagCache();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  isRu
+                                      ? 'Кэш подсказок тегов очищен'
+                                      : 'Tag suggestions cache cleared',
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                      _ActionButton(
+                        icon: Icons.history_toggle_off_rounded,
+                        label: isRu
+                            ? 'Очистить историю поиска'
+                            : 'Clear search history',
+                        onPressed: () async {
+                          await ref
+                              .read(settingsControllerProvider.notifier)
+                              .clearSearchHistory();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  isRu
+                                      ? 'История поиска очищена'
+                                      : 'Search history cleared',
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                      _ActionButton(
+                        icon: Icons.visibility_off_rounded,
+                        label: strings.clearViewed,
+                        onPressed: () => ref
+                            .read(settingsControllerProvider.notifier)
+                            .clearViewedHistory(),
+                      ),
+                      _ActionButton(
+                        icon: Icons.restore_rounded,
+                        label: isRu ? 'Скрытые посты' : 'Hidden posts',
+                        onPressed: settings.hiddenPostKeys.isEmpty
+                            ? null
+                            : () => context.go('/settings/hidden'),
+                      ),
+                      _ActionButton(
+                        icon: Icons.delete_sweep_rounded,
+                        label: isRu
+                            ? 'Очистить скрытые (${settings.hiddenPostKeys.length})'
+                            : 'Clear hidden (${settings.hiddenPostKeys.length})',
+                        onPressed: () => ref
+                            .read(settingsControllerProvider.notifier)
+                            .clearHiddenPosts(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            // 6. Providers & Diagnostics Section
+            _SettingsCardGroup(
+              sectionKey: _diagnosticsKey,
+              title: isRu ? 'Провайдеры и диагностика' : 'Providers & Diagnostics',
+              icon: Icons.hub_rounded,
+              accentColor: const Color(0xFF3B82F6),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: _ActionGrid(
+                    children: [
+                      _ActionButton(
+                        icon: Icons.hub_rounded,
+                        label: isRu ? 'Провайдеры' : 'Providers',
+                        isPrimary: true,
+                        onPressed: () => context.go('/providers'),
+                      ),
+                      _ActionButton(
+                        icon: Icons.network_check_rounded,
+                        label: isRu ? 'Диагностика сети' : 'Diagnostics',
+                        isPrimary: true,
+                        onPressed: () => context.go('/providers/check'),
+                      ),
+                      _ActionButton(
+                        icon: Icons.bug_report_rounded,
+                        label: isRu ? 'Копировать отчет' : 'Copy report',
+                        onPressed: () => _copyDiagnostics(context, ref),
+                      ),
+                      _ActionButton(
+                        icon: Icons.receipt_long_rounded,
+                        label: isRu ? 'Копировать логи' : 'Copy logs',
+                        onPressed: () => _copyLogs(context, ref),
+                      ),
+                      _ActionButton(
+                        icon: Icons.delete_sweep_rounded,
+                        label: isRu ? 'Очистить логи' : 'Clear logs',
+                        onPressed: () => ref
+                            .read(settingsControllerProvider.notifier)
+                            .clearDiagnosticLogs(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+
+            // 7. About & Hero Section
+            _HeroBrandBanner(
+              sectionKey: _aboutKey,
+              settings: settings,
+              isRu: isRu,
+              onCheckUpdates: () => _checkUpdates(context, ref),
+              onShowChangelog: () => _showChangelog(context),
+              onExportJson: () => _exportJson(context, ref),
+              onImportJson: () => _importDialog(context, ref),
+              onExportBackup: () => _exportBackupFile(context, ref),
+              onImportBackup: () => _importBackupFile(context, ref),
+            ),
+            const SizedBox(height: 32),
           ],
         ),
-      ],
+      ),
     );
   }
 
@@ -812,45 +1040,528 @@ class _SettingsContent extends ConsumerWidget {
   }
 }
 
-class _SettingsSection extends StatelessWidget {
-  const _SettingsSection({
+// -----------------------------------------------------------------------------
+// Settings 2.0 Modern Components
+// -----------------------------------------------------------------------------
+
+class _CategoryQuickNav extends StatelessWidget {
+  const _CategoryQuickNav({
+    required this.categories,
+    required this.onSelect,
+  });
+
+  final List<({GlobalKey key, String label, IconData icon, Color color})>
+      categories;
+  final ValueChanged<GlobalKey> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SizedBox(
+      height: 44,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: categories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final cat = categories[index];
+          return Material(
+            color: theme.colorScheme.surfaceContainer,
+            borderRadius: BorderRadius.circular(22),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(22),
+              onTap: () => onSelect(cat.key),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(cat.icon, size: 16, color: cat.color),
+                    const SizedBox(width: 8),
+                    Text(
+                      cat.label,
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _SettingsCardGroup extends StatelessWidget {
+  const _SettingsCardGroup({
+    required this.sectionKey,
     required this.title,
     required this.icon,
+    required this.accentColor,
     required this.children,
   });
 
+  final Key sectionKey;
   final String title;
   final IconData icon;
+  final Color accentColor;
   final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          border:
-              Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Icon(icon, size: 20),
-                  const SizedBox(width: 8),
-                  Text(title, style: Theme.of(context).textTheme.titleMedium),
-                ],
-              ),
-              const SizedBox(height: 12),
-              ...children,
-            ],
-          ),
+    final theme = Theme.of(context);
+    return Container(
+      key: sectionKey,
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
         ),
       ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: accentColor.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(icon, size: 18, color: accentColor),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1, thickness: 1, indent: 0, endIndent: 0),
+          ...children,
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingsDivider extends StatelessWidget {
+  const _SettingsDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      height: 1,
+      thickness: 0.7,
+      indent: 68,
+      endIndent: 16,
+      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.25),
+    );
+  }
+}
+
+class _SettingsTile extends StatelessWidget {
+  const _SettingsTile({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 20, color: iconColor),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle!,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (trailing != null) ...[
+              const SizedBox(width: 12),
+              trailing!,
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsSwitchTile extends StatelessWidget {
+  const _SettingsSwitchTile({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.value,
+    required this.onChanged,
+    this.subtitle,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String? subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SettingsTile(
+      icon: icon,
+      iconColor: iconColor,
+      title: title,
+      subtitle: subtitle,
+      onTap: () => onChanged(!value),
+      trailing: Switch.adaptive(
+        value: value,
+        onChanged: onChanged,
+      ),
+    );
+  }
+}
+
+class _SettingsStepperTile extends StatelessWidget {
+  const _SettingsStepperTile({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.value,
+    required this.min,
+    required this.max,
+    required this.onChanged,
+    this.subtitle,
+    this.step = 1,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String? subtitle;
+  final int value;
+  final int min;
+  final int max;
+  final int step;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 20, color: iconColor),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle!,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton.filledTonal(
+                visualDensity: VisualDensity.compact,
+                onPressed: value <= min ? null : () => onChanged(value - step),
+                icon: const Icon(Icons.remove_rounded, size: 18),
+              ),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.secondaryContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$value',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSecondaryContainer,
+                  ),
+                ),
+              ),
+              IconButton.filledTonal(
+                visualDensity: VisualDensity.compact,
+                onPressed: value >= max ? null : () => onChanged(value + step),
+                icon: const Icon(Icons.add_rounded, size: 18),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingsFolderStructureTile extends StatelessWidget {
+  const _SettingsFolderStructureTile({
+    required this.currentTemplate,
+    required this.isRu,
+    required this.onChanged,
+  });
+
+  final String currentTemplate;
+  final bool isRu;
+  final ValueChanged<String> onChanged;
+
+  static const _presets = [
+    '{Artist}/{ID}',
+    '{Artist}',
+    '{Provider}/{Artist}',
+    '{Service}/{ID}',
+    '{Date}/{Artist}',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return _SettingsTile(
+      icon: Icons.folder_copy_rounded,
+      iconColor: const Color(0xFF0EA5E9),
+      title: isRu ? 'Папки скачивания' : 'Download folder structure',
+      subtitle: isRu
+          ? 'Шаблон организации сохраняемых файлов'
+          : 'Path template for organized downloads',
+      trailing: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              currentTemplate,
+              style: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.unfold_more_rounded,
+              size: 16,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ],
+        ),
+      ),
+      onTap: () => _showPicker(context),
+    );
+  }
+
+  Future<void> _showPicker(BuildContext context) async {
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  isRu ? 'Структура папок скачивания' : 'Download path template',
+                  style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  isRu
+                      ? 'Переменные: {Artist}, {Provider}, {Service}, {ID}, {Date}'
+                      : 'Tags: {Artist}, {Provider}, {Service}, {ID}, {Date}',
+                  style: Theme.of(ctx).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 14),
+                for (final preset in _presets)
+                  ListTile(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    leading: const Icon(Icons.folder_outlined),
+                    title: Text(preset, style: const TextStyle(fontFamily: 'monospace')),
+                    trailing: currentTemplate == preset
+                        ? const Icon(Icons.check_rounded, color: Colors.green)
+                        : null,
+                    onTap: () => Navigator.pop(ctx, preset),
+                  ),
+                ListTile(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  leading: const Icon(Icons.edit_note_rounded),
+                  title: Text(
+                    isRu ? 'Пользовательский шаблон...' : 'Custom template...',
+                  ),
+                  onTap: () => Navigator.pop(ctx, '__custom__'),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (picked == '__custom__' && context.mounted) {
+      final ctrl = TextEditingController(text: currentTemplate);
+      final custom = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text(isRu ? 'Свой шаблон папок' : 'Custom path template'),
+          content: TextField(
+            controller: ctrl,
+            decoration: InputDecoration(
+              labelText: isRu ? 'Шаблон' : 'Template',
+              helperText: '{Artist}, {Provider}, {Service}, {ID}, {Date}',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(isRu ? 'Отмена' : 'Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
+              child: Text(isRu ? 'Сохранить' : 'Save'),
+            ),
+          ],
+        ),
+      );
+      if (custom != null && custom.isNotEmpty) {
+        onChanged(custom);
+      }
+    } else if (picked != null && picked != '__custom__') {
+      onChanged(picked);
+    }
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.isPrimary = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+  final bool isPrimary;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isPrimary) {
+      return FilledButton.tonalIcon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 18),
+        label: Text(label),
+      );
+    }
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 18),
+      label: Text(label),
     );
   }
 }
@@ -868,7 +1579,7 @@ class _ActionGrid extends StatelessWidget {
       children: [
         for (final child in children)
           ConstrainedBox(
-            constraints: const BoxConstraints(minWidth: 180),
+            constraints: const BoxConstraints(minWidth: 170),
             child: child,
           ),
       ],
@@ -880,6 +1591,7 @@ class _TagListEditor extends StatefulWidget {
   const _TagListEditor({
     required this.title,
     required this.icon,
+    required this.accentColor,
     required this.tags,
     required this.onChanged,
     this.helper,
@@ -887,6 +1599,7 @@ class _TagListEditor extends StatefulWidget {
 
   final String title;
   final IconData icon;
+  final Color accentColor;
   final List<String> tags;
   final ValueChanged<List<String>> onChanged;
   final String? helper;
@@ -906,68 +1619,82 @@ class _TagListEditorState extends State<_TagListEditor> {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                Icon(widget.icon, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  widget.title,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ],
-            ),
-            if (widget.helper != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                widget.helper!,
-                style: Theme.of(context).textTheme.bodySmall,
+            Icon(widget.icon, size: 20, color: widget.accentColor),
+            const SizedBox(width: 8),
+            Text(
+              widget.title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
               ),
-            ],
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final tag in widget.tags)
-                  InputChip(
-                    label: Text(tag),
-                    onDeleted: () => widget.onChanged(
-                      widget.tags.where((item) => item != tag).toList(),
-                    ),
-                  ),
-                SizedBox(
-                  width: 240,
-                  child: TextField(
-                    controller: _controller,
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      hintText: 'Add tags',
-                      prefixIcon: Icon(Icons.tag_rounded),
-                    ),
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => _submit(),
-                  ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: widget.accentColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '${widget.tags.length}',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: widget.accentColor,
                 ),
-                IconButton.filledTonal(
-                  tooltip: 'Add tags',
-                  onPressed: _submit,
-                  icon: const Icon(Icons.add_rounded),
-                ),
-              ],
+              ),
             ),
           ],
         ),
-      ),
+        if (widget.helper != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            widget.helper!,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final tag in widget.tags)
+              InputChip(
+                label: Text(tag),
+                visualDensity: VisualDensity.compact,
+                onDeleted: () => widget.onChanged(
+                  widget.tags.where((item) => item != tag).toList(),
+                ),
+              ),
+            SizedBox(
+              width: 240,
+              child: TextField(
+                controller: _controller,
+                decoration: const InputDecoration(
+                  isDense: true,
+                  hintText: 'Add tag...',
+                  prefixIcon: Icon(Icons.add_rounded, size: 18),
+                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                ),
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _submit(),
+              ),
+            ),
+            IconButton.filledTonal(
+              visualDensity: VisualDensity.compact,
+              tooltip: 'Add',
+              onPressed: _submit,
+              icon: const Icon(Icons.check_rounded, size: 18),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -1008,11 +1735,23 @@ class _ColorSwatches extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Accent color', style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 8),
+        Row(
+          children: [
+            const Icon(Icons.palette_outlined, size: 20, color: Color(0xFF8B5CF6)),
+            const SizedBox(width: 8),
+            Text(
+              'Акцентный цвет интерфейса',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
         Wrap(
           spacing: 10,
           runSpacing: 10,
@@ -1024,16 +1763,26 @@ class _ColorSwatches extends StatelessWidget {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(999),
                   onTap: () => onChanged(entry.$1),
-                  child: DecoratedBox(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
                     decoration: BoxDecoration(
                       color: Color(entry.$1),
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: selected == entry.$1
-                            ? Theme.of(context).colorScheme.onSurface
-                            : Theme.of(context).colorScheme.outlineVariant,
-                        width: selected == entry.$1 ? 3 : 1,
+                            ? theme.colorScheme.onSurface
+                            : theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                        width: selected == entry.$1 ? 3 : 1.5,
                       ),
+                      boxShadow: selected == entry.$1
+                          ? [
+                              BoxShadow(
+                                color: Color(entry.$1).withValues(alpha: 0.4),
+                                blurRadius: 8,
+                                spreadRadius: 1,
+                              ),
+                            ]
+                          : null,
                     ),
                     child: SizedBox(
                       width: 38,
@@ -1061,23 +1810,35 @@ class _TabVisibilityEditor extends StatelessWidget {
   final List<String> hiddenTabs;
   final ValueChanged<List<String>> onChanged;
 
-  static const tabs = <String, String>{
-    'feed': 'Feed',
-    'search': 'Search',
-    'favorites': 'Favorites',
-    'viewed': 'Viewed',
-    'collections': 'Collections',
-    'artists': 'Artists',
+  static const tabs = <String, (String, IconData)>{
+    'feed': ('Feed', Icons.dynamic_feed_rounded),
+    'search': ('Search', Icons.search_rounded),
+    'favorites': ('Favorites', Icons.favorite_rounded),
+    'viewed': ('Viewed', Icons.history_rounded),
+    'collections': ('Collections', Icons.collections_bookmark_rounded),
+    'artists': ('Artists', Icons.person_rounded),
   };
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final hidden = hiddenTabs.toSet();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Visible tabs', style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 8),
+        Row(
+          children: [
+            const Icon(Icons.tab_rounded, size: 20, color: Color(0xFF8B5CF6)),
+            const SizedBox(width: 8),
+            Text(
+              'Отображение вкладок навигации',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -1085,7 +1846,8 @@ class _TabVisibilityEditor extends StatelessWidget {
             for (final entry in tabs.entries)
               FilterChip(
                 selected: !hidden.contains(entry.key),
-                label: Text(entry.value),
+                avatar: Icon(entry.value.$2, size: 16),
+                label: Text(entry.value.$1),
                 onSelected: (visible) {
                   final next = {...hidden};
                   if (visible) {
@@ -1103,38 +1865,182 @@ class _TabVisibilityEditor extends StatelessWidget {
   }
 }
 
-class _StepperTile extends StatelessWidget {
-  const _StepperTile({
-    required this.title,
-    required this.value,
-    required this.min,
-    required this.max,
-    required this.onChanged,
-    this.step = 1,
+class _HeroBrandBanner extends StatelessWidget {
+  const _HeroBrandBanner({
+    required this.sectionKey,
+    required this.settings,
+    required this.isRu,
+    required this.onCheckUpdates,
+    required this.onShowChangelog,
+    required this.onExportJson,
+    required this.onImportJson,
+    required this.onExportBackup,
+    required this.onImportBackup,
   });
 
-  final String title;
-  final int value;
-  final int min;
-  final int max;
-  final int step;
-  final ValueChanged<int> onChanged;
+  final Key sectionKey;
+  final AppSettings settings;
+  final bool isRu;
+  final VoidCallback onCheckUpdates;
+  final VoidCallback onShowChangelog;
+  final VoidCallback onExportJson;
+  final VoidCallback onImportJson;
+  final VoidCallback onExportBackup;
+  final VoidCallback onImportBackup;
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      title: Text(title),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
+    final theme = Theme.of(context);
+    return Container(
+      key: sectionKey,
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
+        ),
+        gradient: LinearGradient(
+          colors: [
+            theme.colorScheme.surfaceContainerLow,
+            theme.colorScheme.surfaceContainer,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Column(
         children: [
-          IconButton(
-            onPressed: value <= min ? null : () => onChanged(value - step),
-            icon: const Icon(Icons.remove_rounded),
+          // Logo & Version Badge
+          Container(
+            width: 68,
+            height: 68,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFE84D8A), Color(0xFF8B5CF6)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFE84D8A).withValues(alpha: 0.35),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.brightness_3_rounded,
+              color: Colors.white,
+              size: 38,
+            ),
           ),
-          SizedBox(width: 52, child: Center(child: Text('$value'))),
-          IconButton(
-            onPressed: value >= max ? null : () => onChanged(value + step),
-            icon: const Icon(Icons.add_rounded),
+          const SizedBox(height: 14),
+          Text(
+            'Lunaris',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.secondaryContainer,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              'v$appDisplayVersion (build $appBuildNumber)',
+              style: theme.textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSecondaryContainer,
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            isRu
+                ? 'Быстрый и красивый Booru & Anime клиент'
+                : 'Modern, fast & customizable booru client',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+
+          // Action Buttons
+          Wrap(
+            spacing: 12,
+            runSpacing: 10,
+            alignment: WrapAlignment.center,
+            children: [
+              FilledButton.icon(
+                onPressed: onCheckUpdates,
+                icon: const Icon(Icons.system_update_alt_rounded, size: 18),
+                label: Text(
+                  isRu ? 'Проверить обновления' : 'Check for updates',
+                ),
+              ),
+              FilledButton.tonalIcon(
+                onPressed: onShowChangelog,
+                icon: const Icon(Icons.new_releases_rounded, size: 18),
+                label: Text(isRu ? 'Что нового' : 'Changelog'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final url = Uri.parse(
+                    'https://gitea.rardogsynapse.online/RarDog/Lunaris',
+                  );
+                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                },
+                icon: const Icon(Icons.code_rounded, size: 18),
+                label: const Text('Gitea'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(),
+          const SizedBox(height: 10),
+
+          // Backup & JSON controls
+          Text(
+            isRu ? 'Резервное копирование и экспорт' : 'Backup & JSON Export',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            alignment: WrapAlignment.center,
+            children: [
+              OutlinedButton.icon(
+                onPressed: onExportBackup,
+                icon: const Icon(Icons.file_upload_rounded, size: 18),
+                label: Text(isRu ? 'Экспорт бэкапа' : 'Export backup'),
+              ),
+              OutlinedButton.icon(
+                onPressed: onImportBackup,
+                icon: const Icon(Icons.file_download_rounded, size: 18),
+                label: Text(isRu ? 'Импорт бэкапа' : 'Import backup'),
+              ),
+              OutlinedButton.icon(
+                onPressed: onExportJson,
+                icon: const Icon(Icons.upload_file_rounded, size: 18),
+                label: const Text('JSON Export'),
+              ),
+              OutlinedButton.icon(
+                onPressed: onImportJson,
+                icon: const Icon(Icons.download_for_offline_rounded, size: 18),
+                label: const Text('JSON Import'),
+              ),
+            ],
           ),
         ],
       ),
