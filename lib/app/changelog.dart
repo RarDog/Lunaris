@@ -1,5 +1,16 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.2.0',
+    title: 'Offline Mode Overhaul & Post Details Screen Redesign',
+    bullets: [
+      '100% Genuine Offline Playback: local images and videos play directly from disk storage via media_kit and cached files without initiating network requests.',
+      'Offline Storage & Sync Hub: live storage size indicator (💾 X.X MB/GB on device), 1-tap "Download all missing" batch sync button, real-time downloading task progress bar, and sorting (by date, size, artist).',
+      'Action Dock 2.0: redesigned post action bar with primary dock buttons (Like, Download with status/progress, Collection, Share) and clean "More" modal bottom sheet for secondary actions.',
+      'Modern Post Info Card: author row with palette icon and clickable search, booru provider badge with relative timestamp, spec capsules (resolution, file format, safety rating badge, score, offline size).',
+      'Unified Neighbor Strip & Tags Card: post neighbor thumbnail strip now available on both mobile and desktop, alongside modern rounded tag blocks and chat-bubble comments.',
+    ],
+  ),
+  LunarisChange(
     version: '2.1.0',
     title: '4-Tab Major Redesign: Search, Favorites, History & Collections',
     bullets: [

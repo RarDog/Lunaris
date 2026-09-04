@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
@@ -17,6 +18,7 @@ final Map<String, VideoPlaybackSnapshot> _playbackMemory =
 class PostMediaViewer extends StatefulWidget {
   const PostMediaViewer({
     required this.post,
+    this.localFilePath,
     this.fullscreen = false,
     this.initialPosition = Duration.zero,
     this.autoplay = false,
@@ -33,6 +35,7 @@ class PostMediaViewer extends StatefulWidget {
   });
 
   final Post post;
+  final String? localFilePath;
   final bool fullscreen;
   final Duration initialPosition;
   final bool autoplay;
@@ -208,23 +211,40 @@ class _PostMediaViewerState extends State<PostMediaViewer>
     }
 
     final url = _imageUrls.isEmpty ? '' : _imageUrls[_imageIndex];
+    final isLocal = url.startsWith('/') || url.startsWith('file://');
     final headers = _headersFor(widget.post);
-    final image = CachedNetworkImage(
-      key: ValueKey(url),
-      imageUrl: url,
-      httpHeaders: headers,
-      fit: BoxFit.contain,
-      placeholder: (context, url) =>
-          const Center(child: CircularProgressIndicator()),
-      errorWidget: (context, url, error) {
-        return _DioImageFallback(
-          imageUrl: url,
+    final Widget image;
+    if (isLocal) {
+      final cleanPath =
+          url.startsWith('file://') ? url.replaceFirst('file://', '') : url;
+      image = Image.file(
+        File(cleanPath),
+        fit: BoxFit.contain,
+        errorBuilder: (context, error, stackTrace) => _DioImageFallback(
+          imageUrl: _imageUrls.length > 1 ? _imageUrls[1] : '',
           headers: headers,
           fit: BoxFit.contain,
           onFailed: _advanceImageFallback,
-        );
-      },
-    );
+        ),
+      );
+    } else {
+      image = CachedNetworkImage(
+        key: ValueKey(url),
+        imageUrl: url,
+        httpHeaders: headers,
+        fit: BoxFit.contain,
+        placeholder: (context, url) =>
+            const Center(child: CircularProgressIndicator()),
+        errorWidget: (context, url, error) {
+          return _DioImageFallback(
+            imageUrl: url,
+            headers: headers,
+            fit: BoxFit.contain,
+            onFailed: _advanceImageFallback,
+          );
+        },
+      );
+    }
     final child = Stack(
       alignment: Alignment.center,
       children: [
@@ -325,10 +345,13 @@ class _PostMediaViewerState extends State<PostMediaViewer>
     try {
       setState(() => _videoError = null);
       await player.stop();
+      final currentSource = _videoUrls[_videoIndex];
+      final isLocal =
+          currentSource.startsWith('/') || currentSource.startsWith('file://');
       await player.open(
         Media(
-          _videoUrls[_videoIndex],
-          httpHeaders: _headersFor(widget.post),
+          currentSource,
+          httpHeaders: isLocal ? null : _headersFor(widget.post),
         ),
         play: false,
       );
@@ -349,43 +372,35 @@ class _PostMediaViewerState extends State<PostMediaViewer>
     }
     // If format error occurred on initial load (often due to async referer headers), retry once automatically
     if (!_retriedFormatError &&
-        (message.toLowerCase().contains('format') ||
-            message.toLowerCase().contains('recognize'))) {
+        (message.contains('Failed to recognize file format') ||
+            message.contains('Demuxer error') ||
+            message.contains('Could not open') ||
+            message.contains('Stream format not recognized') ||
+            message.contains('format unrecognized'))) {
       _retriedFormatError = true;
-      await Future<void>.delayed(const Duration(milliseconds: 350));
-      if (!mounted) return;
-      _videoIndex = 0;
-      await _openVideo(play: play);
-      return;
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      if (mounted && _player != null) {
+        _videoIndex = 0;
+        await _openVideo(play: play);
+        return;
+      }
     }
-    if (!mounted) return;
-    setState(() => _videoError = message);
-    _showControls();
+    if (mounted) {
+      setState(() => _videoError = message);
+    }
   }
 
   Future<void> _retryVideo() async {
-    final player = _player;
-    if (player == null) return;
-    setState(() {
-      _videoError = null;
-      _videoIndex = 0;
-      _retriedFormatError = false;
-      _controlsVisible = true;
-    });
-    await player.stop();
+    _videoIndex = 0;
+    _retriedFormatError = false;
     await _openVideo(play: true);
-    _showControls();
   }
 
   void _disposeVideo() {
     _hideTimer?.cancel();
-    _hideTimer = null;
     _errorSubscription?.cancel();
-    _errorSubscription = null;
     _positionSubscription?.cancel();
-    _positionSubscription = null;
     _playingSubscription?.cancel();
-    _playingSubscription = null;
     final snapshot = _snapshot();
     _playbackMemory[widget.post.cacheKey] = snapshot;
     widget.onPlaybackSnapshot?.call(snapshot);
@@ -395,11 +410,21 @@ class _PostMediaViewerState extends State<PostMediaViewer>
   }
 
   List<String> _buildImageUrls(Post post) {
-    return MediaUrlSelector.details(post, mode: widget.qualityMode);
+    final list = MediaUrlSelector.details(post, mode: widget.qualityMode);
+    final local = widget.localFilePath;
+    if (local != null && local.isNotEmpty && File(local).existsSync()) {
+      return [local, ...list];
+    }
+    return list;
   }
 
   List<String> _buildVideoUrls(Post post) {
-    return MediaUrlSelector.video(post);
+    final list = MediaUrlSelector.video(post);
+    final local = widget.localFilePath;
+    if (local != null && local.isNotEmpty && File(local).existsSync()) {
+      return [local, ...list];
+    }
+    return list;
   }
 
   bool _isVideo(Post post) {

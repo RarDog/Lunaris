@@ -13,6 +13,7 @@ import '../../../shared/widgets/post_masonry_grid.dart';
 import 'favorites_controller.dart';
 
 enum FavoriteMediaType { all, video, image }
+enum OfflineSortOption { dateAddedDesc, sizeDesc, artist }
 
 class FavoritesScreen extends ConsumerStatefulWidget {
   const FavoritesScreen({super.key});
@@ -25,6 +26,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   int _tabIndex = 0;
   String? _selectedArtist;
   FavoriteMediaType _mediaFilter = FavoriteMediaType.all;
+  OfflineSortOption _offlineSort = OfflineSortOption.dateAddedDesc;
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -81,6 +83,17 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
         .where((post) => downloaded.containsKey(post.cacheKey))
         .toList();
     final artistGroups = favoriteArtistAlbums(allPosts);
+    final diskSizeBytes = _tabIndex == 1
+        ? (ref.watch(offlineDiskSizeProvider(downloaded.values)).value ?? 0)
+        : 0;
+    final tasks = _tabIndex == 1
+        ? (ref.watch(downloadTasksProvider).value ?? const <DownloadTask>[])
+        : const <DownloadTask>[];
+    final activeTasks = tasks
+        .where((t) =>
+            t.status == DownloadTaskStatus.running ||
+            t.status == DownloadTaskStatus.queued)
+        .toList();
 
     return AdaptiveScaffold(
       title: isRu ? 'Избранное' : 'Favorites',
@@ -287,10 +300,13 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
               Expanded(
                 child: switch (_tabIndex) {
                   1 => _buildOfflineView(
-                      offlinePosts,
-                      settings,
-                      downloaded.keys.toSet(),
-                      isRu,
+                      offlinePosts: offlinePosts,
+                      allPosts: allPosts,
+                      downloaded: downloaded,
+                      diskSizeBytes: diskSizeBytes,
+                      activeTasks: activeTasks,
+                      settings: settings,
+                      isRu: isRu,
                     ),
                   2 => _buildArtistsView(
                       allPosts,
@@ -353,63 +369,332 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     return _postsGrid(filtered, settings, downloadedKeys);
   }
 
-  Widget _buildOfflineView(
-    List<Post> posts,
-    AppSettings settings,
-    Set<String> downloadedKeys,
-    bool isRu,
-  ) {
-    if (posts.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+  Widget _buildOfflineView({
+    required List<Post> offlinePosts,
+    required List<Post> allPosts,
+    required Map<String, DownloadedMedia> downloaded,
+    required int diskSizeBytes,
+    required List<DownloadTask> activeTasks,
+    required AppSettings settings,
+    required bool isRu,
+  }) {
+    final pendingPosts =
+        allPosts.where((p) => !downloaded.containsKey(p.cacheKey)).toList();
+
+    final sorted = List<Post>.from(offlinePosts);
+    if (_offlineSort == OfflineSortOption.sizeDesc) {
+      sorted.sort((a, b) {
+        final mA = downloaded[a.cacheKey];
+        final mB = downloaded[b.cacheKey];
+        final sA = mA != null ? DownloadedMediaService.getFileSizeSync(mA) : 0;
+        final sB = mB != null ? DownloadedMediaService.getFileSizeSync(mB) : 0;
+        return sB.compareTo(sA);
+      });
+    } else if (_offlineSort == OfflineSortOption.artist) {
+      sorted.sort((a, b) {
+        final artA = (a.tagGroups['artist'] ?? const []).firstOrNull ?? '';
+        final artB = (b.tagGroups['artist'] ?? const []).firstOrNull ?? '';
+        return artA.toLowerCase().compareTo(artB.toLowerCase());
+      });
+    } else {
+      sorted.sort((a, b) {
+        final dA = downloaded[a.cacheKey]?.downloadedAt ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        final dB = downloaded[b.cacheKey]?.downloadedAt ??
+            DateTime.fromMillisecondsSinceEpoch(0);
+        return dB.compareTo(dA);
+      });
+    }
+
+    final filtered = _applyFilters(sorted);
+
+    return Column(
+      children: [
+        _buildOfflineSyncHeader(
+          downloadedCount: offlinePosts.length,
+          totalCount: allPosts.length,
+          pendingCount: pendingPosts.length,
+          diskSizeBytes: diskSizeBytes,
+          activeTasks: activeTasks,
+          pendingPosts: pendingPosts,
+          isRu: isRu,
+        ),
+        Expanded(
+          child: offlinePosts.isEmpty
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(18),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .secondaryContainer
+                                .withValues(alpha: 0.35),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.cloud_off_rounded,
+                            size: 48,
+                            color: Theme.of(context).colorScheme.secondary,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          isRu ? 'Нет офлайн постов' : 'No offline posts',
+                          style:
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          isRu
+                              ? 'Нажмите «Скачать всё», чтобы загрузить избранные посты на устройство'
+                              : 'Tap "Download all" above to save favorites for offline viewing',
+                          textAlign: TextAlign.center,
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : filtered.isEmpty
+                  ? Center(
+                      child: Text(isRu
+                          ? 'Ничего не найдено по фильтрам'
+                          : 'No matching offline posts'),
+                    )
+                  : _postsGrid(filtered, settings, downloaded.keys.toSet()),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOfflineSyncHeader({
+    required int downloadedCount,
+    required int totalCount,
+    required int pendingCount,
+    required int diskSizeBytes,
+    required List<DownloadTask> activeTasks,
+    required List<Post> pendingPosts,
+    required bool isRu,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .secondaryContainer
-                      .withValues(alpha: 0.35),
-                  shape: BoxShape.circle,
+                  color: scheme.primaryContainer.withValues(alpha: 0.7),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
-                  Icons.cloud_off_rounded,
-                  size: 48,
-                  color: Theme.of(context).colorScheme.secondary,
+                  Icons.offline_pin_rounded,
+                  color: scheme.onPrimaryContainer,
+                  size: 22,
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                isRu ? 'Нет офлайн постов' : 'No offline posts',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$downloadedCount ${isRu ? 'из' : 'of'} $totalCount ${isRu ? 'офлайн' : 'saved'}',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                isRu
-                    ? 'Загружайте понравившиеся работы для просмотра без подключения к сети'
-                    : 'Download posts to view them anytime without an internet connection',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.sd_storage_rounded,
+                          size: 14,
+                          color: scheme.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${DownloadedMediaService.formatBytes(diskSizeBytes)} ${isRu ? 'на устройстве' : 'on disk'}',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                        ),
+                      ],
                     ),
+                  ],
+                ),
               ),
+              if (pendingCount > 0)
+                FilledButton.tonalIcon(
+                  onPressed: () async {
+                    final dm = ref.read(downloadManagerServiceProvider);
+                    for (final p in pendingPosts) {
+                      await dm.start(p);
+                    }
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            isRu
+                                ? 'В очередь загрузки добавлено: $pendingCount'
+                                : 'Queued $pendingCount downloads',
+                          ),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                  },
+                  icon: const Icon(Icons.download_rounded, size: 16),
+                  label: Text(
+                    isRu
+                        ? 'Скачать всё ($pendingCount)'
+                        : 'Download ($pendingCount)',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: scheme.secondaryContainer.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.check_circle_rounded,
+                        size: 16,
+                        color: scheme.primary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isRu ? 'Всё готово' : 'Synced',
+                        style:
+                            Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: scheme.onSecondaryContainer,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           ),
-        ),
-      );
-    }
-    final filtered = _applyFilters(posts);
-    if (filtered.isEmpty) {
-      return Center(
-        child: Text(isRu ? 'Ничего не найдено' : 'No matching offline posts'),
-      );
-    }
-    return _postsGrid(filtered, settings, downloadedKeys);
+          if (activeTasks.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: const LinearProgressIndicator(minHeight: 3),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${isRu ? 'Загрузка...' : 'Downloading...'} (${activeTasks.length})',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: scheme.primary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                      ),
+                ),
+                Flexible(
+                  child: Text(
+                    activeTasks.first.fileName,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                          fontSize: 11,
+                        ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 10),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                Text(
+                  '${isRu ? 'Сортировка' : 'Sort'}:',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                ),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: Text(isRu ? 'По дате' : 'Date'),
+                  selected: _offlineSort == OfflineSortOption.dateAddedDesc,
+                  onSelected: (_) => setState(
+                    () => _offlineSort = OfflineSortOption.dateAddedDesc,
+                  ),
+                  visualDensity: VisualDensity.compact,
+                ),
+                const SizedBox(width: 6),
+                ChoiceChip(
+                  label: Text(isRu ? 'По размеру' : 'Size'),
+                  selected: _offlineSort == OfflineSortOption.sizeDesc,
+                  onSelected: (_) => setState(
+                    () => _offlineSort = OfflineSortOption.sizeDesc,
+                  ),
+                  visualDensity: VisualDensity.compact,
+                ),
+                const SizedBox(width: 6),
+                ChoiceChip(
+                  label: Text(isRu ? 'По автору' : 'Artist'),
+                  selected: _offlineSort == OfflineSortOption.artist,
+                  onSelected: (_) => setState(
+                    () => _offlineSort = OfflineSortOption.artist,
+                  ),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildArtistsView(

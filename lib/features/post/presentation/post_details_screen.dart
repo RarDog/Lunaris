@@ -94,6 +94,21 @@ class PostDetailsScreen extends ConsumerWidget {
               : null;
           final qualityMode =
               MediaQualityMode.fromName(settings.mediaQualityMode);
+          final localMedia = ref
+              .watch(downloadedMediaByKeyProvider(post.cacheKey))
+              .value;
+          final fileSizeBytes = localMedia != null
+              ? DownloadedMediaService.getFileSizeSync(localMedia)
+              : null;
+          final isDownloading = ref.watch(downloadTasksProvider).value?.any(
+                    (t) =>
+                        (t.post?.cacheKey == post.cacheKey ||
+                            t.id == post.cacheKey) &&
+                        (t.status == DownloadTaskStatus.running ||
+                            t.status == DownloadTaskStatus.queued),
+                  ) ??
+              false;
+
           if (Responsive.isMobile(context)) {
             if (currentIndex >= 0 && feedPosts.length > 1) {
               return _MobilePostPager(
@@ -111,6 +126,7 @@ class PostDetailsScreen extends ConsumerWidget {
                   strings,
                   mediaGestureLocked,
                   onMediaGestureLockChanged,
+                  feedPosts,
                 ),
               );
             }
@@ -124,6 +140,7 @@ class PostDetailsScreen extends ConsumerWidget {
               strings,
               false,
               null,
+              feedPosts,
             );
           }
           return Shortcuts(
@@ -207,6 +224,7 @@ class PostDetailsScreen extends ConsumerWidget {
                               child: PostMediaViewer(
                                 key: ValueKey(post.cacheKey),
                                 post: post,
+                                localFilePath: localMedia?.savedPath,
                                 qualityMode: qualityMode,
                                 mediaHeaders: ref
                                         .watch(postMediaHeadersProvider(post))
@@ -251,11 +269,8 @@ class PostDetailsScreen extends ConsumerWidget {
                     PostActionBar(
                       isFavorite: favoriteKeys.contains(post.cacheKey),
                       labels: _postActionLabels(strings),
-                      downloaded: ref
-                              .watch(
-                                  downloadedMediaByKeyProvider(post.cacheKey))
-                              .value !=
-                          null,
+                      downloaded: localMedia != null,
+                      isDownloading: isDownloading,
                       onFavorite: () =>
                           _toggleFavorite(ref, post, favoriteKeys),
                       onCollection: () => _addToCollection(context, ref, post),
@@ -273,26 +288,51 @@ class PostDetailsScreen extends ConsumerWidget {
                       onShare: () => _sharePost(context, ref, post),
                     ),
                     const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Chip(label: Text(post.providerName)),
-                        RatingBadge(rating: post.rating),
-                        Chip(label: Text('${post.width} x ${post.height}')),
-                        if (post.source != null && post.source!.isNotEmpty)
-                          ActionChip(
-                            label: Text(strings.source),
-                            onPressed: () => launchUrl(Uri.parse(post.source!)),
-                          ),
-                      ],
+                    _PostInfoCard(
+                      post: post,
+                      strings: strings,
+                      localMedia: localMedia,
+                      fileSizeBytes: fileSizeBytes,
                     ),
                     const SizedBox(height: 16),
-                    Text(strings.tags,
-                        style: Theme.of(context).textTheme.titleLarge),
-                    const SizedBox(height: 8),
-                    PostTagsPanel(post: post),
+                    Container(
+                      decoration: BoxDecoration(
+                        color:
+                            Theme.of(context).colorScheme.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .outlineVariant
+                              .withValues(alpha: 0.35),
+                        ),
+                      ),
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.tag_rounded,
+                                size: 20,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '${strings.tags} (${post.tags.length})',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          PostTagsPanel(post: post),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     _CommentsSection(post: post),
                   ],
@@ -314,9 +354,24 @@ class PostDetailsScreen extends ConsumerWidget {
     MediaQualityMode qualityMode,
     AppStrings strings,
     bool mediaGestureLocked,
-    ValueChanged<bool>? onMediaGestureLockChanged,
-  ) {
+    ValueChanged<bool>? onMediaGestureLockChanged, [
+    List<Post>? feedPosts,
+  ]) {
     final isVideo = MediaUrlSelector.isVideo(post);
+    final localMedia =
+        ref.watch(downloadedMediaByKeyProvider(post.cacheKey)).value;
+    final fileSizeBytes = localMedia != null
+        ? DownloadedMediaService.getFileSizeSync(localMedia)
+        : null;
+    final isDownloading = ref.watch(downloadTasksProvider).value?.any(
+              (t) =>
+                  (t.post?.cacheKey == post.cacheKey ||
+                      t.id == post.cacheKey) &&
+                  (t.status == DownloadTaskStatus.running ||
+                      t.status == DownloadTaskStatus.queued),
+            ) ??
+        false;
+
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onVerticalDragEnd: (details) {
@@ -340,6 +395,7 @@ class PostDetailsScreen extends ConsumerWidget {
               child: PostMediaViewer(
                 key: ValueKey(post.cacheKey),
                 post: post,
+                localFilePath: localMedia?.savedPath,
                 qualityMode: qualityMode,
                 mediaHeaders:
                     ref.watch(postMediaHeadersProvider(post)).value ?? const {},
@@ -365,9 +421,8 @@ class PostDetailsScreen extends ConsumerWidget {
           PostActionBar(
             isFavorite: favoriteKeys.contains(post.cacheKey),
             labels: _postActionLabels(strings),
-            downloaded:
-                ref.watch(downloadedMediaByKeyProvider(post.cacheKey)).value !=
-                    null,
+            downloaded: localMedia != null,
+            isDownloading: isDownloading,
             onFavorite: () => _toggleFavorite(ref, post, favoriteKeys),
             onCollection: () => _addToCollection(context, ref, post),
             onOpen: () => launchUrl(Uri.parse(post.fileUrl)),
@@ -382,33 +437,62 @@ class PostDetailsScreen extends ConsumerWidget {
             onShare: () => _sharePost(context, ref, post),
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              Chip(label: Text(post.providerName)),
-              RatingBadge(rating: post.rating),
-              Chip(label: Text('${post.width} x ${post.height}')),
-              if (post.source != null && post.source!.isNotEmpty)
-                ActionChip(
-                  label: Text(strings.source),
-                  onPressed: () => launchUrl(Uri.parse(post.source!)),
-                ),
-            ],
+          _PostInfoCard(
+            post: post,
+            strings: strings,
+            localMedia: localMedia,
+            fileSizeBytes: fileSizeBytes,
           ),
-          const SizedBox(height: 8),
-          ExpansionTile(
-            tilePadding: EdgeInsets.zero,
-            initiallyExpanded: false,
-            title: Text(strings.tags,
-                style: Theme.of(context).textTheme.titleMedium),
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: PostTagsPanel(post: post),
+          if (feedPosts != null && feedPosts.length > 1) ...[
+            const SizedBox(height: 12),
+            _NeighborStrip(
+              posts: feedPosts,
+              currentIndex: feedPosts.indexWhere(
+                (item) =>
+                    item.providerId == post.providerId && item.id == post.id,
               ),
-            ],
+              onOpen: (p) => _openPost(context, p),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: Theme.of(context)
+                    .colorScheme
+                    .outlineVariant
+                    .withValues(alpha: 0.35),
+              ),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: ExpansionTile(
+              tilePadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+              childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+              initiallyExpanded: false,
+              shape: const Border(),
+              collapsedShape: const Border(),
+              leading: Icon(
+                Icons.tag_rounded,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              title: Text(
+                '${strings.tags} (${post.tags.length})',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: PostTagsPanel(post: post),
+                ),
+              ],
+            ),
           ),
+          const SizedBox(height: 12),
           _CommentsSection(post: post),
         ],
       ),
@@ -939,53 +1023,355 @@ class _CommentsSectionState extends ConsumerState<_CommentsSection> {
             ),
           )
         : null;
-    return ExpansionTile(
-      tilePadding: EdgeInsets.zero,
-      initiallyExpanded: false,
-      onExpansionChanged: (value) => setState(() => _expanded = value),
-      title: Text(strings.comments,
-          style: Theme.of(context).textTheme.titleMedium),
-      children: [
-        (comments ?? const AsyncValue<List<PostComment>>.data([])).when(
-          loading: () => const Padding(
-            padding: EdgeInsets.all(12),
-            child: CircularProgressIndicator(),
-          ),
-          error: (_, __) => Align(
-            alignment: Alignment.centerLeft,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Text(strings.commentsUnavailable),
-            ),
-          ),
-          data: (items) {
-            if (items.isEmpty) {
-              return Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Text(strings.noComments),
-                ),
-              );
-            }
-            return Column(
-              children: [
-                for (final comment in items)
-                  ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      comment.authorName.isEmpty
-                          ? strings.anonymous
-                          : comment.authorName,
-                    ),
-                    subtitle: Text(comment.body),
-                  ),
-              ],
-            );
-          },
+    final scheme = Theme.of(context).colorScheme;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.35),
         ),
-      ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+        childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+        initiallyExpanded: false,
+        shape: const Border(),
+        collapsedShape: const Border(),
+        leading: Icon(
+          Icons.chat_bubble_outline_rounded,
+          color: scheme.primary,
+        ),
+        onExpansionChanged: (value) => setState(() => _expanded = value),
+        title: Text(
+          strings.comments,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        children: [
+          (comments ?? const AsyncValue<List<PostComment>>.data([])).when(
+            loading: () => const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (_, __) => Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(
+                strings.commentsUnavailable,
+                style: TextStyle(color: scheme.outline),
+              ),
+            ),
+            data: (items) {
+              if (items.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    strings.noComments,
+                    style: TextStyle(color: scheme.onSurfaceVariant),
+                  ),
+                );
+              }
+              return Column(
+                children: [
+                  for (final comment in items)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: scheme.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CircleAvatar(
+                            radius: 14,
+                            backgroundColor: scheme.primaryContainer,
+                            child: Text(
+                              (comment.authorName.isNotEmpty
+                                      ? comment.authorName[0]
+                                      : '?')
+                                  .toUpperCase(),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: scheme.onPrimaryContainer,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  comment.authorName.isEmpty
+                                      ? strings.anonymous
+                                      : comment.authorName,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  comment.body,
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PostInfoCard extends StatelessWidget {
+  const _PostInfoCard({
+    required this.post,
+    required this.strings,
+    this.localMedia,
+    this.fileSizeBytes,
+  });
+
+  final Post post;
+  final AppStrings strings;
+  final DownloadedMedia? localMedia;
+  final int? fileSizeBytes;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final artists = post.tagGroups['artist'] ??
+        post.tags
+            .where((t) => t.startsWith('artist:'))
+            .map((t) => t.replaceFirst('artist:', ''))
+            .toList();
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Artist / Provider Row
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [scheme.primaryContainer, scheme.tertiaryContainer],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Icon(
+                    artists.isNotEmpty
+                        ? Icons.palette_rounded
+                        : Icons.hub_rounded,
+                    size: 18,
+                    color: scheme.onPrimaryContainer,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (artists.isNotEmpty)
+                      InkWell(
+                        onTap: () {
+                          context.push(
+                            '/search?q=${Uri.encodeComponent('artist:${artists.first}')}',
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(6),
+                        child: Text(
+                          artists.join(', '),
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: scheme.primary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      )
+                    else
+                      Text(
+                        strings.ru ? 'Автор не указан' : 'Unknown Artist',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Text(
+                          post.providerName,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          ' • ',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.outline,
+                          ),
+                        ),
+                        Text(
+                          _formatDate(post.createdAt),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              if (localMedia != null)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: scheme.primaryContainer.withValues(alpha: 0.7),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.offline_pin_rounded,
+                        size: 14,
+                        color: scheme.onPrimaryContainer,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        fileSizeBytes != null && fileSizeBytes! > 0
+                            ? DownloadedMediaService.formatBytes(fileSizeBytes!)
+                            : (strings.ru ? 'Офлайн' : 'Offline'),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: scheme.onPrimaryContainer,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Metadata Spec Pills
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _SpecBadge(
+                icon: Icons.aspect_ratio_rounded,
+                label: '${post.width} × ${post.height}',
+              ),
+              if (post.fileType.isNotEmpty)
+                _SpecBadge(
+                  icon: Icons.insert_drive_file_outlined,
+                  label: post.fileType.toUpperCase(),
+                ),
+              RatingBadge(rating: post.rating),
+              if (post.score != 0)
+                _SpecBadge(
+                  icon: Icons.star_rounded,
+                  label: '${post.score}',
+                  iconColor: Colors.amber,
+                ),
+              if (post.source != null && post.source!.isNotEmpty)
+                InkWell(
+                  onTap: () => launchUrl(Uri.parse(post.source!)),
+                  borderRadius: BorderRadius.circular(10),
+                  child: _SpecBadge(
+                    icon: Icons.open_in_new_rounded,
+                    label: strings.source,
+                    color: scheme.surfaceContainerHigh,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+}
+
+class _SpecBadge extends StatelessWidget {
+  const _SpecBadge({
+    required this.icon,
+    required this.label,
+    this.iconColor,
+    this.color,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color? iconColor;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: color ?? scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.25),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: iconColor ?? scheme.onSurfaceVariant),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: scheme.onSurfaceVariant,
+                ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -194,6 +194,11 @@ final downloadedMediaByKeysProvider =
       : const {};
 });
 
+final offlineDiskSizeProvider =
+    FutureProvider.family<int, Iterable<DownloadedMedia>>((ref, items) {
+  return DownloadedMediaService.totalDiskSizeBytes(items);
+});
+
 final downloadedMediaByKeyProvider =
     FutureProvider.family<DownloadedMedia?, String>((ref, cacheKey) async {
   final result =

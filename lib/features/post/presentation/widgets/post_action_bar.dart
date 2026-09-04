@@ -12,6 +12,7 @@ class PostActionBar extends StatelessWidget {
     this.onDeleteLocalFile,
     this.onShare,
     this.downloaded = false,
+    this.isDownloading = false,
     this.labels,
     this.onSimilar,
     this.onHide,
@@ -30,76 +31,268 @@ class PostActionBar extends StatelessWidget {
   final VoidCallback? onSimilar;
   final VoidCallback? onHide;
   final bool downloaded;
+  final bool isDownloading;
   final PostActionLabels? labels;
+
+  void _showMoreActions(BuildContext context, PostActionLabels text) {
+    final scheme = Theme.of(context).colorScheme;
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Copy Link
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.copy_rounded, size: 20),
+                ),
+                title: Text(text.copyLink),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  onCopy();
+                },
+              ),
+              // Open Original in Browser
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: scheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.open_in_new_rounded, size: 20),
+                ),
+                title: Text(text.openOriginal),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  onOpen();
+                },
+              ),
+              // Open Source Page
+              if (onOpenSource != null)
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.article_rounded, size: 20),
+                  ),
+                  title: Text(text.openSource),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    onOpenSource!();
+                  },
+                ),
+              // Find Similar
+              if (onSimilar != null)
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.auto_awesome_rounded,
+                        size: 20, color: scheme.primary),
+                  ),
+                  title: Text(text.similar),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    onSimilar!();
+                  },
+                ),
+              const Divider(height: 16),
+              // Delete Local File (if downloaded)
+              if (downloaded && onDeleteLocalFile != null)
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: scheme.errorContainer.withValues(alpha: 0.4),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.delete_outline_rounded,
+                        size: 20, color: scheme.error),
+                  ),
+                  title: Text(
+                    text.deleteLocalFile,
+                    style: TextStyle(color: scheme.error),
+                  ),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    onDeleteLocalFile!();
+                  },
+                ),
+              // Hide Post
+              if (onHide != null)
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.visibility_off_rounded, size: 20),
+                  ),
+                  title: Text(text.hidePost),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    onHide!();
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final text = labels ?? const PostActionLabels();
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        FilledButton.icon(
-          onPressed: onFavorite,
-          icon: Icon(
-            isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-          ),
-          label: Text(isFavorite ? text.unfavorite : text.favorite),
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.3),
         ),
-        FilledButton.tonalIcon(
-          onPressed: onCollection,
-          icon: const Icon(Icons.add_rounded),
-          label: Text(text.collection),
-        ),
-        if (onSimilar != null)
-          FilledButton.tonalIcon(
-            onPressed: onSimilar,
-            icon: const Icon(Icons.auto_awesome_rounded),
-            label: Text(text.similar),
-          ),
-        IconButton.filledTonal(
-          tooltip: text.openOriginal,
-          onPressed: onOpen,
-          icon: const Icon(Icons.open_in_new_rounded),
-        ),
-        if (onOpenSource != null)
-          IconButton.filledTonal(
-            tooltip: text.openSource,
-            onPressed: onOpenSource,
-            icon: const Icon(Icons.article_rounded),
-          ),
-        IconButton.filledTonal(
-          tooltip: text.copyLink,
-          onPressed: onCopy,
-          icon: const Icon(Icons.copy_rounded),
-        ),
-        if (onDownload != null)
-          IconButton.filledTonal(
-            tooltip: text.download,
-            onPressed: onDownload,
-            icon: Icon(
-              downloaded ? Icons.download_done_rounded : Icons.download_rounded,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          // Favorite / Like Button
+          Expanded(
+            flex: 3,
+            child: FilledButton.tonalIcon(
+              style: FilledButton.styleFrom(
+                backgroundColor: isFavorite
+                    ? Colors.redAccent.withValues(alpha: 0.18)
+                    : scheme.secondaryContainer.withValues(alpha: 0.5),
+                foregroundColor:
+                    isFavorite ? Colors.redAccent : scheme.onSecondaryContainer,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              onPressed: onFavorite,
+              icon: Icon(
+                isFavorite
+                    ? Icons.favorite_rounded
+                    : Icons.favorite_border_rounded,
+                size: 20,
+                color: isFavorite ? Colors.redAccent : null,
+              ),
+              label: Text(
+                isFavorite ? text.unfavorite : text.favorite,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
-        if (downloaded && onDeleteLocalFile != null)
-          IconButton.filledTonal(
-            tooltip: text.deleteLocalFile,
-            onPressed: onDeleteLocalFile,
-            icon: const Icon(Icons.delete_sweep_rounded),
+          const SizedBox(width: 8),
+
+          // Download Button with Status
+          if (onDownload != null) ...[
+            _ActionButton(
+              tooltip: downloaded ? text.downloaded : text.download,
+              icon: isDownloading
+                  ? SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: scheme.primary,
+                      ),
+                    )
+                  : Icon(
+                      downloaded
+                          ? Icons.offline_pin_rounded
+                          : Icons.download_rounded,
+                      color: downloaded ? Colors.green : null,
+                      size: 22,
+                    ),
+              onTap: onDownload!,
+            ),
+            const SizedBox(width: 6),
+          ],
+
+          // Add to Collection
+          _ActionButton(
+            tooltip: text.collection,
+            icon: const Icon(Icons.bookmark_add_rounded, size: 22),
+            onTap: onCollection,
           ),
-        if (onHide != null)
-          IconButton.filledTonal(
-            tooltip: text.hidePost,
-            onPressed: onHide,
-            icon: const Icon(Icons.visibility_off_rounded),
+          const SizedBox(width: 6),
+
+          // Share
+          if (onShare != null) ...[
+            _ActionButton(
+              tooltip: text.share,
+              icon: const Icon(Icons.share_rounded, size: 22),
+              onTap: onShare!,
+            ),
+            const SizedBox(width: 6),
+          ],
+
+          // More Options Bottom Sheet
+          _ActionButton(
+            tooltip: text.more,
+            icon: const Icon(Icons.more_horiz_rounded, size: 22),
+            onTap: () => _showMoreActions(context, text),
           ),
-        if (onShare != null)
-          IconButton.filledTonal(
-            tooltip: text.share,
-            onPressed: onShare,
-            icon: const Icon(Icons.share_rounded),
-          ),
-      ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String tooltip;
+  final Widget icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return IconButton(
+      tooltip: tooltip,
+      onPressed: onTap,
+      icon: icon,
+      style: IconButton.styleFrom(
+        backgroundColor: scheme.secondaryContainer.withValues(alpha: 0.35),
+        foregroundColor: scheme.onSecondaryContainer,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+        ),
+        minimumSize: const Size(44, 44),
+      ),
     );
   }
 }
@@ -107,16 +300,18 @@ class PostActionBar extends StatelessWidget {
 class PostActionLabels {
   const PostActionLabels({
     this.favorite = 'Favorite',
-    this.unfavorite = 'Unfavorite',
+    this.unfavorite = 'Saved',
     this.collection = 'Collection',
     this.similar = 'Similar',
     this.openOriginal = 'Open original',
     this.openSource = 'Open source/page',
     this.copyLink = 'Copy link',
     this.download = 'Download',
+    this.downloaded = 'Downloaded',
     this.deleteLocalFile = 'Delete local file',
     this.hidePost = 'Hide post locally',
     this.share = 'Share',
+    this.more = 'More',
   });
 
   final String favorite;
@@ -127,7 +322,9 @@ class PostActionLabels {
   final String openSource;
   final String copyLink;
   final String download;
+  final String downloaded;
   final String deleteLocalFile;
   final String hidePost;
   final String share;
+  final String more;
 }
