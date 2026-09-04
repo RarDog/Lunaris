@@ -47,8 +47,44 @@ class _RecentSearchesState extends State<RecentSearches> {
       );
     }
 
+    // Deduplicate items by normalized query
+    final seen = <String>{};
+    final uniqueItems = <SearchHistory>[];
+    for (final item in widget.items) {
+      final key = item.query.trim().toLowerCase();
+      if (key.isEmpty) continue;
+      if (seen.add(key)) {
+        uniqueItems.add(item);
+      }
+    }
+
+    if (uniqueItems.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        alignment: Alignment.center,
+        child: Column(
+          children: [
+            Icon(
+              Icons.history_toggle_off_rounded,
+              size: 40,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'История поиска пуста',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     final visibleItems =
-        _expanded ? widget.items : widget.items.take(20).toList();
+        _expanded ? uniqueItems : uniqueItems.take(20).toList();
+    final screenW = MediaQuery.sizeOf(context).width;
+    final maxQueryWidth = (screenW - 200).clamp(180.0, 480.0);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,7 +102,7 @@ class _RecentSearchesState extends State<RecentSearches> {
                   onTap: () => widget.onTap(item.query),
                   child: Container(
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        const EdgeInsets.only(left: 10, right: 6, top: 6, bottom: 6),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
@@ -79,18 +115,22 @@ class _RecentSearchesState extends State<RecentSearches> {
                       children: [
                         Icon(
                           Icons.history_rounded,
-                          size: 14,
+                          size: 15,
                           color: theme.colorScheme.primary,
                         ),
                         const SizedBox(width: 6),
                         ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 140),
-                          child: Text(
-                            item.query,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w500,
+                          constraints: BoxConstraints(maxWidth: maxQueryWidth),
+                          child: Tooltip(
+                            message: item.query,
+                            waitDuration: const Duration(milliseconds: 600),
+                            child: Text(
+                              item.query,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
@@ -100,14 +140,14 @@ class _RecentSearchesState extends State<RecentSearches> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.secondaryContainer,
+                              color: theme.colorScheme.primary.withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               '${item.resultCount}',
                               style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onSecondaryContainer,
-                                fontSize: 10,
+                                color: theme.colorScheme.primary,
+                                fontSize: 11,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -115,14 +155,21 @@ class _RecentSearchesState extends State<RecentSearches> {
                         ],
                         if (widget.onDelete != null) ...[
                           const SizedBox(width: 4),
-                          GestureDetector(
-                            onTap: () => widget.onDelete!(item.id),
-                            child: Padding(
-                              padding: const EdgeInsets.all(2),
-                              child: Icon(
-                                Icons.close_rounded,
-                                size: 14,
-                                color: theme.colorScheme.onSurfaceVariant,
+                          Material(
+                            color: Colors.transparent,
+                            shape: const CircleBorder(),
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              customBorder: const CircleBorder(),
+                              onTap: () => widget.onDelete!(item.id),
+                              child: Padding(
+                                padding: const EdgeInsets.all(4),
+                                child: Icon(
+                                  Icons.close_rounded,
+                                  size: 15,
+                                  color: theme.colorScheme.onSurfaceVariant
+                                      .withValues(alpha: 0.75),
+                                ),
                               ),
                             ),
                           ),
@@ -134,7 +181,7 @@ class _RecentSearchesState extends State<RecentSearches> {
               ),
           ],
         ),
-        if (widget.items.length > 20) ...[
+        if (uniqueItems.length > 20) ...[
           const SizedBox(height: 10),
           Center(
             child: TextButton.icon(
@@ -148,7 +195,7 @@ class _RecentSearchesState extends State<RecentSearches> {
               label: Text(
                 _expanded
                     ? 'Свернуть'
-                    : 'Показать все (${widget.items.length})',
+                    : 'Показать все (${uniqueItems.length})',
               ),
             ),
           ),

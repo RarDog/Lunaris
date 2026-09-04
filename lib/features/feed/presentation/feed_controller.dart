@@ -123,14 +123,18 @@ class FeedController extends AsyncNotifier<FeedState> {
     final settingsRes = await ref.read(settingsServiceProvider).getSettings();
     final settings =
         settingsRes is Success<AppSettings> ? settingsRes.data : AppSettings.defaults;
-    await ref
-        .read(searchServiceProvider)
-        .saveSearch(query, 0, maxHistory: settings.searchHistoryLimit);
-    await refresh();
-    final count = state.value?.posts.length ?? 0;
-    await ref
-        .read(searchServiceProvider)
-        .saveSearch(query, count, maxHistory: settings.searchHistoryLimit);
+    try {
+      await refresh();
+      final count = state.value?.posts.length ?? 0;
+      await ref
+          .read(searchServiceProvider)
+          .saveSearch(query, count, maxHistory: settings.searchHistoryLimit);
+    } catch (_) {
+      await ref
+          .read(searchServiceProvider)
+          .saveSearch(query, 0, maxHistory: settings.searchHistoryLimit);
+      rethrow;
+    }
   }
 
   Future<void> updateTagSuggestions(String query) async {

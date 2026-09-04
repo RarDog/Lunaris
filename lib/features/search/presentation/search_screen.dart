@@ -175,10 +175,21 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   icon: Icons.history_rounded,
                   accentColor: const Color(0xFF6366F1),
                   title: isRu ? 'Недавние запросы' : 'Recent searches',
-                  badgeCount: data.recent.length,
+                  badgeCount: data.recent
+                      .map((e) => e.query.trim().toLowerCase())
+                      .where((q) => q.isNotEmpty)
+                      .toSet()
+                      .length,
                   trailing: data.recent.isEmpty
                       ? null
                       : TextButton(
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                           onPressed: () => ref
                               .read(searchControllerProvider.notifier)
                               .clearHistory(),
@@ -390,9 +401,10 @@ class _SearchSectionCard extends StatelessWidget {
                 ),
                 child: Icon(icon, size: 18, color: accentColor),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Flexible(
                       child: Text(
@@ -401,6 +413,7 @@ class _SearchSectionCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w700,
+                          fontSize: 15,
                         ),
                       ),
                     ),
@@ -408,7 +421,7 @@ class _SearchSectionCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 2),
+                            horizontal: 7, vertical: 2),
                         decoration: BoxDecoration(
                           color: accentColor.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(10),
