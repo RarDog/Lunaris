@@ -1,6 +1,8 @@
 import 'package:dio/dio.dart';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
+
 import '../../app/app_version.dart';
 import '../../core/errors/failure.dart';
 import '../../core/utils/result.dart';
@@ -15,8 +17,38 @@ class UpdateService {
   static const releasesUrl =
       'https://gitea.rardogsynapse.online/api/v1/repos/RarDog/Lunaris/releases';
 
+  static const _deviceChannel = MethodChannel('rulegel/device');
+
   final Dio _dio;
   final SettingsService _settingsService;
+
+  // Cached primary ABI (e.g. "arm64-v8a").
+  String? _cachedPrimaryAbi;
+
+  /// Returns the primary ABI of the running device.
+  /// On non-Android platforms returns an empty string.
+  Future<String> getPrimaryAbi() async {
+    if (_cachedPrimaryAbi != null) return _cachedPrimaryAbi!;
+    if (!Platform.isAndroid) return '';
+    try {
+      final abi = await _deviceChannel.invokeMethod<String>('getPrimaryAbi');
+      _cachedPrimaryAbi = abi ?? 'armeabi-v7a';
+    } catch (_) {
+      _cachedPrimaryAbi = 'armeabi-v7a';
+    }
+    return _cachedPrimaryAbi!;
+  }
+
+  /// Returns all supported ABIs of the running device.
+  Future<List<String>> getSupportedAbis() async {
+    if (!Platform.isAndroid) return const [];
+    try {
+      final abis = await _deviceChannel.invokeMethod<List<Object?>>('getSupportedAbis');
+      return abis?.whereType<String>().toList() ?? const [];
+    } catch (_) {
+      return const [];
+    }
+  }
 
   Future<Result<AppUpdateInfo?>> checkForUpdates({bool force = false}) async {
     final settingsResult = await _settingsService.getSettings();
@@ -97,21 +129,40 @@ class UpdateService {
   AppUpdateInfo _releaseFromJson(Map<String, dynamic> json) {
     final tag = (json['tag_name'] ?? '').toString();
     final assets = (json['assets'] as List?) ?? const [];
+
     String? apkUrl;
+    String? apkArm64Url;
+    String? apkArmv7Url;
+    String? apkX86_64Url;
     String? installerUrl;
     String? portableUrl;
     String? linuxTarGzUrl;
+
     for (final item in assets.whereType<Map>()) {
       final name = (item['name'] ?? '').toString().toLowerCase();
       final url = (item['browser_download_url'] ?? '').toString();
       if (url.isEmpty) continue;
-      if (name.endsWith('.apk')) apkUrl = url;
+
+      if (name.endsWith('.apk')) {
+        // Detect per-ABI APKs by name pattern produced by --split-per-abi.
+        if (name.contains('arm64-v8a') || name.contains('arm64_v8a')) {
+          apkArm64Url = url;
+        } else if (name.contains('armeabi-v7a') || name.contains('armeabi_v7a')) {
+          apkArmv7Url = url;
+        } else if (name.contains('x86_64')) {
+          apkX86_64Url = url;
+        } else {
+          // Universal / fat APK
+          apkUrl = url;
+        }
+      }
       if (name.endsWith('.exe')) installerUrl = url;
       if (name.endsWith('.zip')) portableUrl = url;
       if (name.endsWith('.tar.gz') || name.endsWith('.tgz')) {
         linuxTarGzUrl = url;
       }
     }
+
     return AppUpdateInfo(
       version: _versionFromTag(tag),
       tagName: tag,
@@ -120,15 +171,21 @@ class UpdateService {
       htmlUrl: (json['html_url'] ?? '').toString(),
       publishedAt: DateTime.tryParse((json['published_at'] ?? '').toString()),
       apkUrl: apkUrl,
+      apkArm64Url: apkArm64Url,
+      apkArmv7Url: apkArmv7Url,
+      apkX86_64Url: apkX86_64Url,
       windowsInstallerUrl: installerUrl,
       portableZipUrl: portableUrl,
       linuxTarGzUrl: linuxTarGzUrl,
     );
   }
 
-  String? assetUrlForCurrentPlatform(AppUpdateInfo info) {
+  /// Returns the download URL for the current platform/ABI.
+  /// Pass [abi] (e.g. from [getPrimaryAbi]) on Android for per-ABI selection.
+  Future<String?> assetUrlForCurrentPlatform(AppUpdateInfo info) async {
     if (Platform.isAndroid) {
-      return info.apkUrl;
+      final abi = await getPrimaryAbi();
+      return info.apkUrlForAbi(abi);
     }
     if (Platform.isLinux) {
       return info.linuxTarGzUrl ?? info.portableZipUrl;

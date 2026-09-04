@@ -54,6 +54,8 @@ class MainActivity : FlutterActivity() {
                             setPreferredRefreshRate(hz.toFloat())
                             result.success(null)
                         }
+                        "getSupportedAbis" -> result.success(Build.SUPPORTED_ABIS.toList())
+                        "getPrimaryAbi" -> result.success(Build.SUPPORTED_ABIS.firstOrNull() ?: "armeabi-v7a")
                         else -> result.notImplemented()
                     }
                 } catch (error: Throwable) {

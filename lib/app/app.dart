@@ -149,7 +149,7 @@ class _AppOverlayState extends ConsumerState<_AppOverlay> {
 
   Future<void> _downloadUpdate(AppUpdateInfo info) async {
     final updateService = ref.read(updateServiceProvider);
-    final assetUrl = updateService.assetUrlForCurrentPlatform(info);
+    final assetUrl = await updateService.assetUrlForCurrentPlatform(info);
     if (assetUrl == null) {
       final url = Uri.tryParse(info.htmlUrl);
       if (url != null) {

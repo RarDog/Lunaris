@@ -1,5 +1,15 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.3.8',
+    title: 'ABI-Aware Auto-Update — правильный APK для вашего процессора',
+    bullets: [
+      'Определение архитектуры Android: приложение читает Build.SUPPORTED_ABIS (arm64-v8a, armeabi-v7a, x86_64) через нативный канал.',
+      'Точный APK из Gitea: при обновлении скачивается per-ABI APK (app-arm64-v8a-release.apk и т.д.), а не один общий файл.',
+      'Fallback: нет per-ABI APK → универсальный APK → страница релиза в браузере.',
+      'Кеш ABI: архитектура определяется один раз за сеанс.',
+    ],
+  ),
+  LunarisChange(
     version: '2.3.7',
     title: 'Lazy Media Dimensions for Pawchive & Unknown-Size Providers',
     bullets: [
