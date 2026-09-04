@@ -219,6 +219,14 @@ class _PostTagsPanelState extends ConsumerState<PostTagsPanel> {
     );
   }
 
+  static const _ignoredTagGroupKeys = {
+    'cloud_links',
+    'description',
+    'content',
+    'links',
+    'external_links',
+  };
+
   Map<String, List<String>> _groups(Post post) {
     if (post.tagGroups.isNotEmpty) {
       final ordered = <String, List<String>>{};
@@ -230,17 +238,40 @@ class _PostTagsPanelState extends ConsumerState<PostTagsPanel> {
         'meta',
         'general',
       ]) {
-        final tags = post.tagGroups[key];
-        if (tags != null && tags.isNotEmpty) ordered[key] = tags;
+        final tags = _filterValidTags(post.tagGroups[key]);
+        if (tags.isNotEmpty) ordered[key] = tags;
       }
       for (final entry in post.tagGroups.entries) {
-        if (entry.value.isNotEmpty) {
-          ordered.putIfAbsent(entry.key, () => entry.value);
+        if (_ignoredTagGroupKeys.contains(entry.key.toLowerCase())) continue;
+        final tags = _filterValidTags(entry.value);
+        if (tags.isNotEmpty) {
+          ordered.putIfAbsent(entry.key, () => tags);
         }
       }
       return ordered;
     }
-    return post.tags.isEmpty ? const {} : {'general': post.tags};
+    final filtered = _filterValidTags(post.tags);
+    return filtered.isEmpty ? const {} : {'general': filtered};
+  }
+
+  List<String> _filterValidTags(List<String>? rawTags) {
+    if (rawTags == null || rawTags.isEmpty) return const [];
+    return rawTags.where((tag) {
+      final t = tag.trim();
+      if (t.isEmpty) return false;
+      if (t.startsWith('{') && t.endsWith('}')) return false;
+      if (t.contains('"url"') || t.contains('"service"')) return false;
+      if (t.startsWith('http://') || t.startsWith('https://')) return false;
+      if (t.contains('mega.nz') ||
+          t.contains('drive.google.com') ||
+          t.contains('dropbox.com') ||
+          t.contains('pixeldrain.com') ||
+          t.contains('catbox.moe') ||
+          t.contains('mediafire.com')) {
+        return false;
+      }
+      return true;
+    }).toList(growable: false);
   }
 
   String _label(String key) {

@@ -292,19 +292,49 @@ class CloudLinkExtractor {
     return null;
   }
 
-  /// Extracts clean text (stripping HTML tags) suitable for author commentary display.
+  /// Extracts clean, readable text (stripping HTML tags and formatting links) suitable for author commentary and announcements.
   static String cleanCommentary(String? rawHtml) {
     if (rawHtml == null || rawHtml.trim().isEmpty) return '';
-    var text = rawHtml
+    var text = rawHtml;
+
+    // Format anchor tags: <a href="URL">TEXT</a>
+    text = text.replaceAllMapped(
+      RegExp(r"""<a\s+[^>]*href=["']([^"']+)["'][^>]*>(.*?)</a>""",
+          caseSensitive: false, dotAll: true),
+      (match) {
+        final href = match.group(1)?.trim() ?? '';
+        final label = match.group(2)?.replaceAll(RegExp(r'<[^>]*>'), '').trim() ?? '';
+        if (label.isEmpty || label == href || href.contains(label)) {
+          return href;
+        }
+        return '$label ($href)';
+      },
+    );
+
+    // Convert line breaks and paragraph endings
+    text = text
         .replaceAll(RegExp(r'<br\s*\/?>', caseSensitive: false), '\n')
-        .replaceAll(RegExp(r'<\/p>', caseSensitive: false), '\n\n')
-        .replaceAll(RegExp(r'<[^>]*>'), '')
+        .replaceAll(RegExp(r'<\/p\s*>', caseSensitive: false), '\n\n')
+        .replaceAll(RegExp(r'<\/div\s*>', caseSensitive: false), '\n')
+        .replaceAll(RegExp(r'<li\s*>', caseSensitive: false), '• ')
+        .replaceAll(RegExp(r'<\/li\s*>', caseSensitive: false), '\n');
+
+    // Strip remaining HTML tags
+    text = text.replaceAll(RegExp(r'<[^>]*>'), '');
+
+    // Decode HTML entities
+    text = text
         .replaceAll('&nbsp;', ' ')
         .replaceAll('&amp;', '&')
         .replaceAll('&lt;', '<')
         .replaceAll('&gt;', '>')
         .replaceAll('&quot;', '"')
-        .replaceAll('&#39;', "'");
+        .replaceAll('&#39;', "'")
+        .replaceAll('&apos;', "'");
+
+    // Normalize multiple consecutive blank lines
+    text = text.replaceAll(RegExp(r'\n{3,}'), '\n\n');
+
     return text.trim();
   }
 }

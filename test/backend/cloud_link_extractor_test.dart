@@ -85,6 +85,17 @@ void main() {
       expect(clean, 'Hello world!\nCheck out the new video.\n\n& enjoy!');
     });
 
+    test('cleans HTML commentary and announcements correctly without style artifacts', () {
+      const html =
+          '<p style=""><strong>Thank you!</strong> </p><p style="">Here\'s the link to the archive</p><p style=""><a href="https://www.patreon.com/posts/full-fugtrup-14581297" rel="noopener noreferrer nofollow">https://www.patreon.com/posts/full-fugtrup-14581297</a></p><p style="">and the link to my <strong>discord server</strong>, if you\'d like to join it <a href="https://discord.com/invite/xR2AbkX" rel="noopener noreferrer nofollow">https://discord.com/invite/xR2AbkX</a></p>';
+      final clean = CloudLinkExtractor.cleanCommentary(html);
+      expect(clean.contains('<p'), isFalse);
+      expect(clean.contains('style='), isFalse);
+      expect(clean.contains('<strong>'), isFalse);
+      expect(clean.contains('Thank you!'), isTrue);
+      expect(clean.contains('https://discord.com/invite/xR2AbkX'), isTrue);
+    });
+
     test('encodes and decodes CloudMediaLink to and from JSON', () {
       const link = CloudMediaLink(
         url: 'https://mega.nz/file/123#abc',

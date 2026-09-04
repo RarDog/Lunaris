@@ -339,7 +339,7 @@ class PostDetailsScreen extends ConsumerWidget {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                '${strings.tags} (${post.tags.length})',
+                                '${strings.tags} (${post.cleanTags.length})',
                                 style: Theme.of(context)
                                     .textTheme
                                     .titleMedium
@@ -515,7 +515,7 @@ class PostDetailsScreen extends ConsumerWidget {
                 color: Theme.of(context).colorScheme.primary,
               ),
               title: Text(
-                '${strings.tags} (${post.tags.length})',
+                '${strings.tags} (${post.cleanTags.length})',
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/app.dart';
 import '../../../app/responsive.dart';
@@ -230,6 +231,9 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
                 separatorBuilder: (_, __) => const Divider(height: 24),
                 itemBuilder: (context, index) {
                   final a = _announcements[index];
+                  final cleanContent = CloudLinkExtractor.cleanCommentary(a.content);
+                  final detectedLinks = CloudLinkExtractor.extractLinks(content: a.content);
+
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -244,9 +248,35 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
                         ),
                       const SizedBox(height: 6),
                       SelectableText(
-                        a.content,
-                        style: theme.textTheme.bodyMedium,
+                        cleanContent.isNotEmpty ? cleanContent : a.content,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          height: 1.45,
+                        ),
                       ),
+                      if (detectedLinks.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          children: detectedLinks.map((link) {
+                            return ActionChip(
+                              avatar: Icon(
+                                link.iconData,
+                                size: 16,
+                                color: link.brandColor,
+                              ),
+                              label: Text(
+                                link.title.isNotEmpty ? link.title : link.serviceName,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              onPressed: () => launchUrl(
+                                Uri.parse(link.url),
+                                mode: LaunchMode.externalApplication,
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
                     ],
                   );
                 },

@@ -35,6 +35,7 @@ void main() {
               strings: const AppStrings('ru'),
               commentary: 'Special Patreon bonus animation for all patrons.',
               onPlayStream: (stream) => playedStream = stream,
+              initiallyExpanded: true,
             ),
           ),
         ),
@@ -42,9 +43,8 @@ void main() {
     );
 
     // Verify header and counts
-    expect(find.text('Облачные диски и зеркала'), findsOneWidget);
-    expect(find.text('2 внешних источников'), findsOneWidget);
-    expect(find.text('Плеер доступен'), findsOneWidget);
+    expect(find.text('Облачные диски и зеркала (2)'), findsOneWidget);
+    expect(find.text('Плеер'), findsOneWidget);
 
     // Verify password banner
     expect(find.textContaining('archive_pass_42'), findsOneWidget);

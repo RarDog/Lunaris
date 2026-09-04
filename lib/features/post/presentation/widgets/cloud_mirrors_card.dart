@@ -13,6 +13,7 @@ class CloudMirrorsCard extends StatelessWidget {
     this.commentary,
     this.onPlayStream,
     this.onDownloadStream,
+    this.initiallyExpanded = false,
   });
 
   final List<CloudMediaLink> links;
@@ -20,6 +21,7 @@ class CloudMirrorsCard extends StatelessWidget {
   final String? commentary;
   final ValueChanged<String>? onPlayStream;
   final ValueChanged<String>? onDownloadStream;
+  final bool initiallyExpanded;
 
   @override
   Widget build(BuildContext context) {
@@ -36,84 +38,68 @@ class CloudMirrorsCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: theme.colorScheme.primary.withValues(alpha: 0.2),
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
         ),
       ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
+      clipBehavior: Clip.antiAlias,
+      child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+        childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+        initiallyExpanded: initiallyExpanded,
+        shape: const Border(),
+        collapsedShape: const Border(),
+        leading: Icon(
+          Icons.cloud_sync_rounded,
+          color: theme.colorScheme.primary,
+        ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                strings.ru
+                    ? 'Облачные диски и зеркала (${links.length})'
+                    : 'Cloud Mirrors & Drives (${links.length})',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
                 ),
-                child: Icon(
-                  Icons.cloud_sync_rounded,
-                  size: 20,
-                  color: theme.colorScheme.primary,
-                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+            if (links.any((l) => l.isStreamable)) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.green.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
+                    const Icon(Icons.play_circle_fill_rounded,
+                        size: 13, color: Colors.green),
+                    const SizedBox(width: 4),
                     Text(
-                      strings.ru
-                          ? 'Облачные диски и зеркала'
-                          : 'Cloud Mirrors & Drives',
-                      style: theme.textTheme.titleMedium?.copyWith(
+                      strings.ru ? 'Плеер' : 'Stream',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: Colors.green,
                         fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      strings.ru
-                          ? '${links.length} внешних источников'
-                          : '${links.length} external sources',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                        fontSize: 10,
                       ),
                     ),
                   ],
                 ),
               ),
-              if (links.any((l) => l.isStreamable))
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.play_circle_fill_rounded,
-                          size: 14, color: Colors.green),
-                      const SizedBox(width: 4),
-                      Text(
-                        strings.ru ? 'Плеер доступен' : 'Streamable',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: Colors.green,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
             ],
-          ),
-
+          ],
+        ),
+        children: [
           // Archive Password Banner
           if (detectedPassword.isNotEmpty) ...[
-            const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
@@ -166,22 +152,22 @@ class CloudMirrorsCard extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(height: 10),
           ],
 
           // Links list
           if (links.isNotEmpty) ...[
-            const SizedBox(height: 14),
             ...links.map((link) => _buildLinkTile(context, link, strings)),
           ],
 
           // Commentary / Description
           if (commentary != null && commentary!.trim().isNotEmpty) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
             Divider(
               color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
               height: 1,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Row(
               children: [
                 Icon(

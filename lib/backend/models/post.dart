@@ -60,6 +60,26 @@ class Post {
     return null;
   }
 
+  List<String> get cleanTags {
+    return tags.where((tag) {
+      final t = tag.trim();
+      if (t.isEmpty) return false;
+      if (t == 'cloud_mirror') return false;
+      if (t.startsWith('{') && t.endsWith('}')) return false;
+      if (t.contains('"url"') || t.contains('"service"')) return false;
+      if (t.startsWith('http://') || t.startsWith('https://')) return false;
+      if (t.contains('mega.nz') ||
+          t.contains('drive.google.com') ||
+          t.contains('dropbox.com') ||
+          t.contains('pixeldrain.com') ||
+          t.contains('catbox.moe') ||
+          t.contains('mediafire.com')) {
+        return false;
+      }
+      return true;
+    }).toList(growable: false);
+  }
+
   Post copyWith({
     String? id,
     String? providerId,

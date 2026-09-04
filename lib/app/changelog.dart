@@ -1,5 +1,14 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.3.1',
+    title: 'Cloud Mirrors & Author Announcements Fixes',
+    bullets: [
+      'Collapsible Cloud Mirrors: the cloud drives section is now folded by default into a sleek header card matching the Tags and Comments cards, expandable on tap.',
+      'Tag Panel Sanitation: filtered out cloud drive links, JSON metadata, and URLs from appearing in the post tags panel and tag counters.',
+      'Author Announcements HTML Cleaning: stripped all raw <p style="">, <strong>, and formatting artifacts from artist announcements, rendering clean readable text and clickable service link chips.',
+    ],
+  ),
+  LunarisChange(
     version: '2.3.0',
     title: 'Artist Cloud Drives & External Video Mirrors',
     bullets: [

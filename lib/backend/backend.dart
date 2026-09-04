@@ -34,5 +34,6 @@ export 'services/settings_service.dart';
 export 'services/update_service.dart';
 export 'services/viewed_history_service.dart';
 export 'services/backup_service.dart';
+export 'services/cloud_link_extractor.dart';
 export 'utils/smart_blacklist.dart';
 export 'utils/media_quality.dart';
