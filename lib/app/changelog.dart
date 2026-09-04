@@ -1,5 +1,16 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.0.15',
+    title: 'Settings 2.0 Layout Fixes & Pinned Quick Navigation',
+    bullets: [
+      'Fixed vertical text wrapping on mobile: separated title and full-width SegmentedButtons for Theme, Language, and Media Quality so text never collapses.',
+      'Pinned Category Quick Navigation: bar now stays at the top of the screen and reliably scrolls to all 7 sections.',
+      'SingleChildScrollView Migration: ensures all section keys remain mounted and scrollable on demand.',
+      'Full-width Folder Structure Tile: added clean monospace path card with dedicated change button.',
+      'Header text overflow protections: wrapped title texts in Expanded across all settings cards.',
+    ],
+  ),
+  LunarisChange(
     version: '2.0.14',
     title: 'Settings 2.0: Modern Grouped Design & Quick Ergonomics',
     bullets: [

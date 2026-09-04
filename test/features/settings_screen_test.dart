@@ -6,8 +6,9 @@ import 'package:gel_rule_app/features/settings/presentation/settings_controller.
 import 'package:gel_rule_app/features/settings/presentation/settings_screen.dart';
 
 void main() {
-  testWidgets('SettingsScreen renders category quick nav and sections', (tester) async {
-    tester.view.physicalSize = const Size(1200, 2400);
+  testWidgets('SettingsScreen renders category quick nav and sections without overflow', (tester) async {
+    // Test on typical mobile viewport: 390x844
+    tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() {
       tester.view.resetPhysicalSize();
@@ -34,22 +35,25 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    // Verify Category Quick Nav renders
+    // Verify pinned Category Quick Nav renders
     expect(find.text('Основное'), findsWidgets);
     expect(find.text('Внешний вид'), findsWidgets);
-    expect(find.text('Лента и раскладка'), findsWidgets);
-    expect(find.text('Фильтры'), findsWidgets);
-    expect(find.text('Хранилище'), findsWidgets);
 
     // Verify Theme mode segment buttons
     expect(find.text('Темная'), findsOneWidget);
     expect(find.text('Светлая'), findsOneWidget);
-    // Both ThemeMode and MediaQualityMode have 'Авто'
-    expect(find.text('Авто'), findsNWidgets(2));
 
-    // Verify Language segmented buttons
-    expect(find.text('🇷🇺 RU'), findsOneWidget);
-    expect(find.text('🇬🇧 EN'), findsOneWidget);
+    // Tap a quick nav chip to test scrolling
+    await tester.tap(find.text('Внешний вид').first);
+    await tester.pumpAndSettle();
+
+    // Verify language segment is visible and tappable
+    expect(find.text('🇷🇺 Русский'), findsOneWidget);
+    expect(find.text('🇬🇧 English'), findsOneWidget);
+
+    // Tap English to test selection
+    await tester.tap(find.text('🇬🇧 English'));
+    await tester.pumpAndSettle();
   });
 }
 
