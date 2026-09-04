@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -281,29 +282,290 @@ class _MobileShell extends StatelessWidget {
           ? location == '/'
           : location.startsWith(item.location),
     );
+    final bottomInset = 76.0 + MediaQuery.paddingOf(context).bottom;
+
     return Scaffold(
-      body: child,
+      extendBody: true,
+      body: MediaQuery(
+        data: MediaQuery.of(context).copyWith(
+          padding: MediaQuery.of(context).padding.copyWith(
+                bottom: bottomInset,
+              ),
+        ),
+        child: child,
+      ),
       floatingActionButton: location == '/settings'
           ? null
-          : FloatingActionButton.small(
-              heroTag: 'mobile-settings',
-              tooltip: ru
-                  ? '\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438'
-                  : 'Settings',
-              onPressed: () => context.go('/settings'),
-              child: const Icon(Icons.settings_rounded),
+          : Padding(
+              padding: const EdgeInsets.only(bottom: 64),
+              child: FloatingActionButton.small(
+                heroTag: 'mobile-settings',
+                tooltip: ru ? 'Настройки' : 'Settings',
+                onPressed: () => context.go('/settings'),
+                child: const Icon(Icons.settings_rounded),
+              ),
             ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: _LiquidGlassBottomBar(
         selectedIndex: selected < 0 ? 0 : selected,
         onDestinationSelected: (index) => context.go(items[index].location),
-        destinations: [
-          for (final item in items)
-            NavigationDestination(
-              icon: Icon(item.icon),
-              label: item.mobileLabelFor(ru),
-            ),
-        ],
+        items: items,
+        ru: ru,
+      ),
+    );
+  }
+}
+
+class _LiquidGlassBottomBar extends StatefulWidget {
+  const _LiquidGlassBottomBar({
+    required this.selectedIndex,
+    required this.onDestinationSelected,
+    required this.items,
+    required this.ru,
+  });
+
+  final int selectedIndex;
+  final ValueChanged<int> onDestinationSelected;
+  final List<_Destination> items;
+  final bool ru;
+
+  @override
+  State<_LiquidGlassBottomBar> createState() => _LiquidGlassBottomBarState();
+}
+
+class _LiquidGlassBottomBarState extends State<_LiquidGlassBottomBar> {
+  int? _pressedIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final scheme = theme.colorScheme;
+    final count = widget.items.length;
+    if (count == 0) return const SizedBox.shrink();
+
+    return SafeArea(
+      top: false,
+      left: false,
+      right: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final barWidth = constraints.maxWidth;
+            final itemWidth = barWidth / count;
+            final pillWidth = (itemWidth - 6).clamp(36.0, 64.0);
+            final pillLeft =
+                widget.selectedIndex * itemWidth + (itemWidth - pillWidth) / 2;
+
+            return Container(
+              height: 64,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.38 : 0.09),
+                    blurRadius: 22,
+                    offset: const Offset(0, 8),
+                    spreadRadius: -2,
+                  ),
+                  if (isDark)
+                    BoxShadow(
+                      color: scheme.primary.withValues(alpha: 0.07),
+                      blurRadius: 18,
+                      offset: const Offset(0, 2),
+                    ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(28),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(28),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: isDark
+                            ? [
+                                scheme.surfaceContainerHigh
+                                    .withValues(alpha: 0.70),
+                                scheme.surface.withValues(alpha: 0.82),
+                              ]
+                            : [
+                                Colors.white.withValues(alpha: 0.84),
+                                Colors.white.withValues(alpha: 0.68),
+                              ],
+                      ),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.16)
+                            : Colors.white.withValues(alpha: 0.75),
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Stack(
+                      alignment: Alignment.centerLeft,
+                      children: [
+                        // Animated sliding liquid pill indicator
+                        AnimatedPositioned(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOutBack,
+                          left: pillLeft,
+                          top: 7,
+                          child: Container(
+                            width: pillWidth,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: scheme.primaryContainer.withValues(
+                                alpha: isDark ? 0.75 : 0.88,
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: scheme.primary.withValues(
+                                  alpha: isDark ? 0.35 : 0.22,
+                                ),
+                                width: 1,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: scheme.primary.withValues(
+                                    alpha: isDark ? 0.22 : 0.12,
+                                  ),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // Navigation item buttons
+                        Row(
+                          children: [
+                            for (var i = 0; i < count; i++)
+                              Expanded(
+                                child: _LiquidNavItem(
+                                  destination: widget.items[i],
+                                  label: widget.items[i]
+                                      .mobileLabelFor(widget.ru),
+                                  isSelected: widget.selectedIndex == i,
+                                  isPressed: _pressedIndex == i,
+                                  onTapDown: () =>
+                                      setState(() => _pressedIndex = i),
+                                  onTapUp: () =>
+                                      setState(() => _pressedIndex = null),
+                                  onTapCancel: () =>
+                                      setState(() => _pressedIndex = null),
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    widget.onDestinationSelected(i);
+                                  },
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _LiquidNavItem extends StatelessWidget {
+  const _LiquidNavItem({
+    required this.destination,
+    required this.label,
+    required this.isSelected,
+    required this.isPressed,
+    required this.onTapDown,
+    required this.onTapUp,
+    required this.onTapCancel,
+    required this.onTap,
+  });
+
+  final _Destination destination;
+  final String label;
+  final bool isSelected;
+  final bool isPressed;
+  final VoidCallback onTapDown;
+  final VoidCallback onTapUp;
+  final VoidCallback onTapCancel;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    final targetScale = isPressed ? 0.86 : (isSelected ? 1.05 : 1.0);
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => onTapDown(),
+      onTapUp: (_) => onTapUp(),
+      onTapCancel: onTapCancel,
+      onTap: onTap,
+      child: Center(
+        child: AnimatedScale(
+          scale: targetScale,
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                height: 32,
+                child: Center(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    transitionBuilder: (child, anim) => ScaleTransition(
+                      scale: anim,
+                      child: child,
+                    ),
+                    child: Icon(
+                      destination.icon,
+                      key: ValueKey('${destination.id}_$isSelected'),
+                      size: isSelected ? 22 : 20,
+                      color: isSelected
+                          ? scheme.onPrimaryContainer
+                          : (isDark
+                              ? scheme.onSurfaceVariant
+                                  .withValues(alpha: 0.78)
+                              : scheme.onSurfaceVariant
+                                  .withValues(alpha: 0.85)),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 2),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight:
+                      isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected
+                      ? (isDark ? scheme.primary : scheme.onSurface)
+                      : scheme.onSurfaceVariant.withValues(alpha: 0.75),
+                  letterSpacing: -0.2,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                child: Text(label),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
