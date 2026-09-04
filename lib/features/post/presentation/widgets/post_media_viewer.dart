@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:screen_brightness/screen_brightness.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/motion.dart';
@@ -578,6 +579,8 @@ class _PostMediaViewerState extends State<PostMediaViewer>
         .push<VideoPlaybackSnapshot>(
       PageRouteBuilder(
         opaque: true,
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
         pageBuilder: (_, __, ___) => _FullscreenVideoPage(
           player: player,
           controller: controller,
@@ -595,10 +598,6 @@ class _PostMediaViewerState extends State<PostMediaViewer>
           onChanged: (snapshot) {
             unawaited(_applyPlaybackSnapshot(snapshot));
           },
-        ),
-        transitionsBuilder: (_, animation, __, child) => FadeTransition(
-          opacity: animation,
-          child: child,
         ),
       ),
     );
@@ -820,6 +819,9 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
   @override
   void dispose() {
     _hideTimer?.cancel();
+    try {
+      ScreenBrightness.instance.resetApplicationScreenBrightness();
+    } catch (_) {}
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     SystemChrome.setPreferredOrientations(DeviceOrientation.values);
     super.dispose();
@@ -1052,11 +1054,23 @@ class _VideoSurfaceState extends State<_VideoSurface> {
   double _currentVolume = 100;
   Timer? _volumeTimer;
 
+  bool _showBrightnessIndicator = false;
+  double _currentBrightness = 0.5;
+  Timer? _brightnessTimer;
+
   @override
   void initState() {
     super.initState();
     _currentVolume = widget.initialVolume;
     widget.player.setVolume(_currentVolume);
+    _initBrightness();
+  }
+
+  Future<void> _initBrightness() async {
+    try {
+      final b = await ScreenBrightness.instance.application;
+      if (mounted) setState(() => _currentBrightness = b);
+    } catch (_) {}
   }
 
   @override
@@ -1073,6 +1087,7 @@ class _VideoSurfaceState extends State<_VideoSurface> {
     _seekLeftTimer?.cancel();
     _seekRightTimer?.cancel();
     _volumeTimer?.cancel();
+    _brightnessTimer?.cancel();
     super.dispose();
   }
 
@@ -1144,6 +1159,20 @@ class _VideoSurfaceState extends State<_VideoSurface> {
     });
   }
 
+  void _adjustBrightness(double deltaY) async {
+    if (_isLocked) return;
+    final newB = (_currentBrightness - deltaY * 0.004).clamp(0.02, 1.0);
+    _currentBrightness = newB;
+    try {
+      await ScreenBrightness.instance.setApplicationScreenBrightness(newB);
+    } catch (_) {}
+    setState(() => _showBrightnessIndicator = true);
+    _brightnessTimer?.cancel();
+    _brightnessTimer = Timer(const Duration(milliseconds: 1100), () {
+      if (mounted) setState(() => _showBrightnessIndicator = false);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final player = widget.player;
@@ -1182,7 +1211,9 @@ class _VideoSurfaceState extends State<_VideoSurface> {
                 onVerticalDragUpdate: (details) {
                   final x = details.localPosition.dx;
                   final width = MediaQuery.sizeOf(context).width;
-                  if (x > width * 0.4) {
+                  if (x < width * 0.45) {
+                    _adjustBrightness(details.primaryDelta ?? 0.0);
+                  } else if (x > width * 0.55) {
                     _adjustVolume(details.primaryDelta ?? 0.0);
                   }
                 },
@@ -1202,6 +1233,8 @@ class _VideoSurfaceState extends State<_VideoSurface> {
             _DoubleTapSeekRipple(isLeft: false, visible: _showRightSeek),
             if (_showVolumeIndicator)
               _VolumeGestureBadge(volume: _currentVolume),
+            if (_showBrightnessIndicator)
+              _BrightnessGestureBadge(brightness: _currentBrightness),
             if (_isSpeedBoosted)
               const _SpeedBoostOverlayBadge(),
             if (widget.errorMessage != null)
@@ -1781,6 +1814,68 @@ class _VolumeGestureBadge extends StatelessWidget {
   }
 }
 
+class _BrightnessGestureBadge extends StatelessWidget {
+  const _BrightnessGestureBadge({required this.brightness});
+
+  final double brightness;
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (brightness * 100).round().clamp(0, 100);
+    final icon = pct < 33
+        ? Icons.brightness_low_rounded
+        : pct < 66
+            ? Icons.brightness_medium_rounded
+            : Icons.brightness_high_rounded;
+
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.8),
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+          boxShadow: const [
+            BoxShadow(color: Colors.black54, blurRadius: 24),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: Colors.white,
+              size: 26,
+            ),
+            const SizedBox(width: 12),
+            SizedBox(
+              width: 96,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: brightness.clamp(0.0, 1.0),
+                  minHeight: 6,
+                  backgroundColor: Colors.white24,
+                  valueColor: const AlwaysStoppedAnimation(Colors.white),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              '$pct%',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _DoubleTapSeekRipple extends StatelessWidget {
   const _DoubleTapSeekRipple({
     required this.isLeft,
@@ -1840,7 +1935,7 @@ class _DoubleTapSeekRipple extends StatelessWidget {
   }
 }
 
-class _VideoControls extends StatelessWidget {
+class _VideoControls extends StatefulWidget {
   const _VideoControls({
     required this.player,
     required this.muted,
@@ -1876,10 +1971,17 @@ class _VideoControls extends StatelessWidget {
   final VoidCallback? onInteract;
 
   @override
+  State<_VideoControls> createState() => _VideoControlsState();
+}
+
+class _VideoControlsState extends State<_VideoControls> {
+  double? _scrubValue;
+
+  @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    if (isLocked) {
+    if (widget.isLocked) {
       return Align(
         alignment: Alignment.topLeft,
         child: SafeArea(
@@ -1891,7 +1993,7 @@ class _VideoControls extends StatelessWidget {
               size: 44,
               iconSize: 24,
               emphasized: true,
-              onPressed: onToggleLock,
+              onPressed: widget.onToggleLock,
             ),
           ),
         ),
@@ -1899,8 +2001,8 @@ class _VideoControls extends StatelessWidget {
     }
 
     return StreamBuilder<double>(
-      stream: player.stream.rate,
-      initialData: player.state.rate,
+      stream: widget.player.stream.rate,
+      initialData: widget.player.state.rate,
       builder: (context, rateSnapshot) {
         final currentRate = rateSnapshot.data ?? 1.0;
 
@@ -1922,56 +2024,56 @@ class _VideoControls extends StatelessWidget {
                   ),
                 ),
                 child: SafeArea(
-                  top: fullscreen,
+                  top: widget.fullscreen,
                   bottom: false,
-                  left: fullscreen,
-                  right: fullscreen,
+                  left: widget.fullscreen,
+                  right: widget.fullscreen,
                   child: Row(
                     children: [
-                      if (fullscreen) ...[
+                      if (widget.fullscreen) ...[
                         _RoundControlButton(
                           tooltip: 'Закрыть',
                           icon: Icons.arrow_back_rounded,
-                          onPressed: onFullscreen,
+                          onPressed: widget.onFullscreen,
                         ),
                         const SizedBox(width: 8),
                       ],
                       _RoundControlButton(
                         tooltip: 'Заблокировать экран',
                         icon: Icons.lock_outline_rounded,
-                        onPressed: onToggleLock,
+                        onPressed: widget.onToggleLock,
                       ),
                       const Spacer(),
                       _SpeedBadgeButton(
                         currentRate: currentRate,
-                        onSelected: (newRate) => player.setRate(newRate),
+                        onSelected: (newRate) => widget.player.setRate(newRate),
                       ),
                       const SizedBox(width: 8),
                       _RoundControlButton(
-                        tooltip: loopVideo ? 'Выключить повтор' : 'Повтор видео',
-                        selected: loopVideo,
-                        icon: loopVideo
+                        tooltip: widget.loopVideo ? 'Выключить повтор' : 'Повтор видео',
+                        selected: widget.loopVideo,
+                        icon: widget.loopVideo
                             ? Icons.repeat_one_on_rounded
                             : Icons.repeat_one_rounded,
-                        onPressed: onToggleLoop,
+                        onPressed: widget.onToggleLoop,
                       ),
                       const SizedBox(width: 8),
                       _RoundControlButton(
-                        tooltip: coverVideo ? 'Вписать' : 'Заполнить',
-                        selected: coverVideo,
-                        icon: coverVideo
+                        tooltip: widget.coverVideo ? 'Вписать' : 'Заполнить',
+                        selected: widget.coverVideo,
+                        icon: widget.coverVideo
                             ? Icons.fit_screen_rounded
                             : Icons.crop_free_rounded,
-                        onPressed: onToggleFit,
+                        onPressed: widget.onToggleFit,
                       ),
                       const SizedBox(width: 8),
                       _RoundControlButton(
-                        tooltip: muted ? 'Включить звук' : 'Выключить звук',
-                        selected: !muted,
-                        icon: muted
+                        tooltip: widget.muted ? 'Включить звук' : 'Выключить звук',
+                        selected: !widget.muted,
+                        icon: widget.muted
                             ? Icons.volume_off_rounded
                             : Icons.volume_up_rounded,
-                        onPressed: onToggleMute,
+                        onPressed: widget.onToggleMute,
                       ),
                     ],
                   ),
@@ -1982,8 +2084,8 @@ class _VideoControls extends StatelessWidget {
             // Center play/pause with quick 10s buttons
             Center(
               child: StreamBuilder<bool>(
-                stream: player.stream.playing,
-                initialData: player.state.playing,
+                stream: widget.player.stream.playing,
+                initialData: widget.player.state.playing,
                 builder: (context, playingSnapshot) {
                   final playing = playingSnapshot.data ?? false;
                   return Row(
@@ -1995,8 +2097,8 @@ class _VideoControls extends StatelessWidget {
                         size: 46,
                         iconSize: 26,
                         onPressed: () {
-                          onSeekBy(const Duration(seconds: -10));
-                          onInteract?.call();
+                          widget.onSeekBy(const Duration(seconds: -10));
+                          widget.onInteract?.call();
                         },
                       ),
                       const SizedBox(width: 32),
@@ -2010,22 +2112,22 @@ class _VideoControls extends StatelessWidget {
                         emphasized: true,
                         onPressed: () async {
                           try {
-                            if (player.state.playing) {
-                              await player.pause();
+                            if (widget.player.state.playing) {
+                              await widget.player.pause();
                             } else {
-                              if (player.state.completed) {
-                                await player.seek(Duration.zero);
+                              if (widget.player.state.completed) {
+                                await widget.player.seek(Duration.zero);
                               }
-                              await player.play();
+                              await widget.player.play();
                             }
                           } catch (_) {
-                            if (player.state.playing) {
-                              await player.pause();
+                            if (widget.player.state.playing) {
+                              await widget.player.pause();
                             } else {
-                              await player.play();
+                              await widget.player.play();
                             }
                           }
-                          onInteract?.call();
+                          widget.onInteract?.call();
                         },
                       ),
                       const SizedBox(width: 32),
@@ -2035,8 +2137,8 @@ class _VideoControls extends StatelessWidget {
                         size: 46,
                         iconSize: 26,
                         onPressed: () {
-                          onSeekBy(const Duration(seconds: 10));
-                          onInteract?.call();
+                          widget.onSeekBy(const Duration(seconds: 10));
+                          widget.onInteract?.call();
                         },
                       ),
                     ],
@@ -2055,7 +2157,7 @@ class _VideoControls extends StatelessWidget {
                   14,
                   8,
                   14,
-                  fullscreen ? 10 : 4,
+                  widget.fullscreen ? 10 : 4,
                 ),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
@@ -2066,23 +2168,23 @@ class _VideoControls extends StatelessWidget {
                 ),
                 child: SafeArea(
                   top: false,
-                  bottom: fullscreen,
-                  left: fullscreen,
-                  right: fullscreen,
+                  bottom: widget.fullscreen,
+                  left: widget.fullscreen,
+                  right: widget.fullscreen,
                   child: StreamBuilder<Duration>(
-                    stream: player.stream.duration,
-                    initialData: player.state.duration,
+                    stream: widget.player.stream.duration,
+                    initialData: widget.player.state.duration,
                     builder: (context, durationSnapshot) {
                       final duration = durationSnapshot.data ?? Duration.zero;
                       return StreamBuilder<Duration>(
-                        stream: player.stream.position,
-                        initialData: player.state.position,
+                        stream: widget.player.stream.position,
+                        initialData: widget.player.state.position,
                         builder: (context, positionSnapshot) {
                           final position =
                               positionSnapshot.data ?? Duration.zero;
                           return StreamBuilder<Duration>(
-                            stream: player.stream.buffer,
-                            initialData: player.state.buffer,
+                            stream: widget.player.stream.buffer,
+                            initialData: widget.player.state.buffer,
                             builder: (context, bufferSnapshot) {
                               final buffer =
                                   bufferSnapshot.data ?? Duration.zero;
@@ -2095,99 +2197,153 @@ class _VideoControls extends StatelessWidget {
                               final bufferMs = buffer.inMilliseconds
                                   .clamp(0, maxMs.toInt())
                                   .toDouble();
+                              final displayMs =
+                                  (_scrubValue ?? valueMs).clamp(0.0, maxMs);
 
-                              return Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
+                              return Column(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Text(
-                                    _format(position),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 0.3,
+                                  if (_scrubValue != null)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      margin: const EdgeInsets.only(bottom: 6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black87,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: scheme.primary,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        '${_format(Duration(milliseconds: displayMs.round()))} / ${_format(duration)}',
+                                        style: TextStyle(
+                                          color: scheme.primary,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Expanded(
-                                    child: Stack(
-                                      alignment: Alignment.center,
-                                      children: [
-                                        // Buffer progress track
-                                        if (maxMs > 0 && bufferMs > 0)
-                                          Positioned(
-                                            left: 14,
-                                            right: 14,
-                                            child: ClipRRect(
-                                              borderRadius:
-                                                  BorderRadius.circular(2),
-                                              child: LinearProgressIndicator(
-                                                value: (bufferMs / maxMs)
-                                                    .clamp(0.0, 1.0),
-                                                minHeight: 3.5,
-                                                backgroundColor:
-                                                    Colors.transparent,
-                                                valueColor:
-                                                    AlwaysStoppedAnimation(
-                                                  Colors.white
-                                                      .withValues(alpha: 0.28),
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        _format(Duration(
+                                            milliseconds: displayMs.round())),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Stack(
+                                          alignment: Alignment.center,
+                                          children: [
+                                            // Buffer progress track
+                                            if (maxMs > 0 && bufferMs > 0)
+                                              Positioned(
+                                                left: 14,
+                                                right: 14,
+                                                child: ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(2),
+                                                  child:
+                                                      LinearProgressIndicator(
+                                                    value: (bufferMs / maxMs)
+                                                        .clamp(0.0, 1.0),
+                                                    minHeight: 3.5,
+                                                    backgroundColor:
+                                                        Colors.transparent,
+                                                    valueColor:
+                                                        AlwaysStoppedAnimation(
+                                                      Colors.white.withValues(
+                                                          alpha: 0.28),
+                                                    ),
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                          ),
-                                        SliderTheme(
-                                          data: SliderTheme.of(context).copyWith(
-                                            activeTrackColor: scheme.primary,
-                                            inactiveTrackColor: Colors.white
-                                                .withValues(alpha: 0.2),
-                                            trackHeight: 3.5,
-                                            thumbColor: scheme.primary,
-                                            overlayColor: scheme.primary
-                                                .withValues(alpha: 0.22),
-                                            thumbShape:
-                                                const RoundSliderThumbShape(
-                                              enabledThumbRadius: 6,
-                                            ),
-                                            overlayShape:
-                                                const RoundSliderOverlayShape(
-                                              overlayRadius: 14,
-                                            ),
-                                          ),
-                                          child: Slider(
-                                            value: valueMs,
-                                            max: maxMs,
-                                            onChanged: duration == Duration.zero
-                                                ? null
-                                                : (value) => player.seek(
-                                                      Duration(
-                                                        milliseconds:
-                                                            value.round(),
-                                                      ),
+                                            SliderTheme(
+                                              data: SliderTheme.of(context)
+                                                  .copyWith(
+                                                activeTrackColor:
+                                                    scheme.primary,
+                                                inactiveTrackColor: Colors.white
+                                                    .withValues(alpha: 0.2),
+                                                trackHeight: 3.5,
+                                                thumbColor: scheme.primary,
+                                                overlayColor: scheme.primary
+                                                    .withValues(alpha: 0.22),
+                                                thumbShape:
+                                                    const RoundSliderThumbShape(
+                                                  enabledThumbRadius: 6,
+                                                ),
+                                                overlayShape:
+                                                    const RoundSliderOverlayShape(
+                                                  overlayRadius: 14,
+                                                ),
+                                              ),
+                                              child: Slider(
+                                                value: displayMs,
+                                                max: maxMs,
+                                                onChangeStart: (value) {
+                                                  setState(() =>
+                                                      _scrubValue = value);
+                                                  widget.onInteract?.call();
+                                                },
+                                                onChanged: duration ==
+                                                        Duration.zero
+                                                    ? null
+                                                    : (value) {
+                                                        setState(() =>
+                                                            _scrubValue =
+                                                                value);
+                                                        widget.onInteract
+                                                            ?.call();
+                                                      },
+                                                onChangeEnd: (value) {
+                                                  widget.player.seek(
+                                                    Duration(
+                                                      milliseconds:
+                                                          value.round(),
                                                     ),
-                                          ),
+                                                  );
+                                                  setState(
+                                                      () => _scrubValue = null);
+                                                  widget.onInteract?.call();
+                                                },
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    _format(duration),
-                                    style: TextStyle(
-                                      color: Colors.white.withValues(alpha: 0.72),
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                      letterSpacing: 0.3,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  _RoundControlButton(
-                                    tooltip: fullscreen
-                                        ? 'Выйти из полноэкранного режима'
-                                        : 'Полноэкранный режим',
-                                    icon: fullscreen
-                                        ? Icons.fullscreen_exit_rounded
-                                        : Icons.fullscreen_rounded,
-                                    onPressed: onFullscreen,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        _format(duration),
+                                        style: TextStyle(
+                                          color: Colors.white
+                                              .withValues(alpha: 0.72),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      _RoundControlButton(
+                                        tooltip: widget.fullscreen
+                                            ? 'Выйти из полноэкранного режима'
+                                            : 'Полноэкранный режим',
+                                        icon: widget.fullscreen
+                                            ? Icons.fullscreen_exit_rounded
+                                            : Icons.fullscreen_rounded,
+                                        onPressed: widget.onFullscreen,
+                                      ),
+                                    ],
                                   ),
                                 ],
                               );
