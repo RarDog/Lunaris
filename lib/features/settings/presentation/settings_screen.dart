@@ -15,6 +15,7 @@ import '../../../backend/backend.dart';
 import '../../../core/utils/result.dart';
 import '../../../shared/widgets/adaptive_scaffold.dart';
 import '../../../shared/widgets/error_view.dart';
+import '../../artists/presentation/widgets/pawchive_accounts_sheet.dart';
 import 'settings_controller.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -54,6 +55,7 @@ class _SettingsContentState extends ConsumerState<_SettingsContent> {
   final _feedKey = GlobalKey();
   final _filtersKey = GlobalKey();
   final _storageKey = GlobalKey();
+  final _accountsKey = GlobalKey();
   final _diagnosticsKey = GlobalKey();
   final _aboutKey = GlobalKey();
 
@@ -125,6 +127,12 @@ class _SettingsContentState extends ConsumerState<_SettingsContent> {
         label: strings.storage,
         icon: Icons.storage_rounded,
         color: const Color(0xFF06B6D4),
+      ),
+      (
+        key: _accountsKey,
+        label: isRu ? 'Аккаунты' : 'Accounts',
+        icon: Icons.cloud_sync_rounded,
+        color: const Color(0xFF0EA5E9),
       ),
       (
         key: _diagnosticsKey,
@@ -746,6 +754,42 @@ class _SettingsContentState extends ConsumerState<_SettingsContent> {
                                     .clearHiddenPosts(),
                               ),
                             ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Accounts & Sync Section
+                    _SettingsCardGroup(
+                      sectionKey: _accountsKey,
+                      title: isRu ? 'Аккаунты и синхронизация' : 'Accounts & Sync',
+                      icon: Icons.cloud_sync_rounded,
+                      accentColor: const Color(0xFF0EA5E9),
+                      children: [
+                        ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          leading: const CircleAvatar(
+                            backgroundColor: Color(0xFF0EA5E9),
+                            foregroundColor: Colors.white,
+                            child: Icon(Icons.cloud_sync_rounded),
+                          ),
+                          title: Text(
+                            isRu ? 'Аккаунты Pawchive' : 'Pawchive Accounts',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            settings.parsedPawchiveAccounts.isEmpty
+                                ? (isRu
+                                    ? 'Вход для синхронизации избранных авторов'
+                                    : 'Sign in to sync favorite creators')
+                                : '${settings.parsedPawchiveAccounts.length} ${isRu ? "аккаунт(ов)" : "account(s)"}'
+                                    '${settings.activePawchiveAccount != null ? " • @${settings.activePawchiveAccount!.username}" : ""}',
+                          ),
+                          trailing: FilledButton.tonal(
+                            onPressed: () => PawchiveAccountsSheet.show(context),
+                            child: Text(settings.parsedPawchiveAccounts.isEmpty
+                                ? (isRu ? 'Войти' : 'Login')
+                                : (isRu ? 'Управление' : 'Manage')),
                           ),
                         ),
                       ],

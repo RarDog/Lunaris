@@ -1,5 +1,16 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.3.6',
+    title: 'Pawchive Accounts Integration & Favorites Synchronization',
+    bullets: [
+      'Pawchive Account Support: users can now log into Pawchive with their username and password or paste a direct session cookie.',
+      'Multi-Account Synchronization: add and manage multiple Pawchive accounts; synchronize favorite artists from all connected accounts into a consolidated local favorites list with 1 tap.',
+      'Real-Time Remote Favorites Sync: favoriting or unfavoriting any Pawchive artist in the app automatically pushes the change to the active Pawchive account in real time.',
+      'Artist Posts Direct Favorite: added a star toggle directly in the artist posts screen top bar to add or remove creators from favorites without leaving their gallery.',
+      'Dedicated UI & Quick Access: manage connected accounts, view sync stats, and trigger synchronization from the Artists screen, Favorites modal, and Settings screen.',
+    ],
+  ),
+  LunarisChange(
     version: '2.3.5',
     title: 'Fullscreen Video Auto-Rotation & Orientation Controls',
     bullets: [

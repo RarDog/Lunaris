@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,7 @@ import '../../../shared/widgets/empty_view.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../settings/presentation/settings_controller.dart';
 import 'artist_posts_screen.dart';
+import 'widgets/pawchive_accounts_sheet.dart';
 
 final artistProviderConfigsProvider =
     FutureProvider<List<ContentProviderConfig>>((ref) async {
@@ -49,7 +51,7 @@ class _ArtistsScreenState extends ConsumerState<ArtistsScreen> {
     ArtistProfile artist,
   ) async {
     final current = List<String>.from(settings.favoriteArtists);
-    final item = _FavoriteArtistItem(
+    final item = FavoriteArtistItem(
       id: artist.id,
       service: artist.service,
       providerId: artist.providerId,
@@ -60,13 +62,14 @@ class _ArtistsScreenState extends ConsumerState<ArtistsScreen> {
     final index = current.indexWhere((e) {
       try {
         final parsed =
-            _FavoriteArtistItem.fromJson(jsonDecode(e) as Map<String, dynamic>);
+            FavoriteArtistItem.fromJson(jsonDecode(e) as Map<String, dynamic>);
         return parsed.key == key;
       } catch (_) {
         return false;
       }
     });
-    if (index >= 0) {
+    final isAdding = index < 0;
+    if (!isAdding) {
       current.removeAt(index);
     } else {
       current.insert(0, jsonEncode(item.toJson()));
@@ -74,6 +77,19 @@ class _ArtistsScreenState extends ConsumerState<ArtistsScreen> {
     await ref.read(settingsControllerProvider.notifier).saveSettings(
           settings.copyWith(favoriteArtists: current),
         );
+
+    // Sync with active Pawchive account if artist belongs to Pawchive
+    if (artist.providerId == 'pawchive') {
+      final activeAcc = settings.activePawchiveAccount;
+      if (activeAcc != null) {
+        unawaited(ref.read(pawchiveSyncServiceProvider).toggleRemoteFavorite(
+              account: activeAcc,
+              service: artist.service,
+              artistId: artist.id,
+              isFavorite: isAdding,
+            ));
+      }
+    }
   }
 
   @override
@@ -99,19 +115,29 @@ class _ArtistsScreenState extends ConsumerState<ArtistsScreen> {
     final favoriteItems = settings.favoriteArtists
         .map((e) {
           try {
-            return _FavoriteArtistItem.fromJson(
+            return FavoriteArtistItem.fromJson(
                 jsonDecode(e) as Map<String, dynamic>);
           } catch (_) {
             return null;
           }
         })
-        .whereType<_FavoriteArtistItem>()
+        .whereType<FavoriteArtistItem>()
         .toList();
     final favoriteKeys = favoriteItems.map((e) => e.key).toSet();
 
     return AdaptiveScaffold(
       title: 'Artists',
       actions: [
+        IconButton(
+          tooltip: 'Синхронизация Pawchive',
+          icon: Badge(
+            isLabelVisible: settings.parsedPawchiveAccounts.isNotEmpty,
+            backgroundColor: Colors.green,
+            smallSize: 8,
+            child: const Icon(Icons.cloud_sync_rounded),
+          ),
+          onPressed: () => PawchiveAccountsSheet.show(context),
+        ),
         IconButton(
           tooltip: 'Любимые авторы',
           icon: Badge(
@@ -318,7 +344,7 @@ class _ArtistsScreenState extends ConsumerState<ArtistsScreen> {
   void _showFavoriteArtistsModal(
     BuildContext context,
     AppSettings settings,
-    List<_FavoriteArtistItem> favorites,
+    List<FavoriteArtistItem> favorites,
   ) {
     showModalBottomSheet<void>(
       context: context,
@@ -341,7 +367,7 @@ class _ArtistsScreenState extends ConsumerState<ArtistsScreen> {
             final updated = List<String>.from(settings.favoriteArtists)
               ..removeWhere((e) {
                 try {
-                  return _FavoriteArtistItem.fromJson(
+                  return FavoriteArtistItem.fromJson(
                               jsonDecode(e) as Map<String, dynamic>)
                           .key ==
                       fav.key;
@@ -352,6 +378,18 @@ class _ArtistsScreenState extends ConsumerState<ArtistsScreen> {
             await ref
                 .read(settingsControllerProvider.notifier)
                 .saveSettings(settings.copyWith(favoriteArtists: updated));
+
+            if (fav.providerId == 'pawchive') {
+              final activeAcc = settings.activePawchiveAccount;
+              if (activeAcc != null) {
+                unawaited(ref.read(pawchiveSyncServiceProvider).toggleRemoteFavorite(
+                      account: activeAcc,
+                      service: fav.service,
+                      artistId: fav.id,
+                      isFavorite: false,
+                    ));
+              }
+            }
             setState(() {});
           },
         );
@@ -570,49 +608,6 @@ class _ArtistCard extends StatelessWidget {
   }
 }
 
-class _FavoriteArtistItem {
-  const _FavoriteArtistItem({
-    required this.id,
-    required this.service,
-    required this.providerId,
-    required this.name,
-    this.avatarUrl,
-  });
-
-  const _FavoriteArtistItem.empty()
-      : id = '',
-        service = '',
-        providerId = '',
-        name = '',
-        avatarUrl = null;
-
-  final String id;
-  final String service;
-  final String providerId;
-  final String name;
-  final String? avatarUrl;
-
-  bool get isEmpty => id.isEmpty;
-  String get key => '$providerId:$service:$id';
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'service': service,
-        'providerId': providerId,
-        'name': name,
-        'avatarUrl': avatarUrl,
-      };
-
-  factory _FavoriteArtistItem.fromJson(Map<String, dynamic> json) =>
-      _FavoriteArtistItem(
-        id: (json['id'] ?? '').toString(),
-        service: (json['service'] ?? '').toString(),
-        providerId: (json['providerId'] ?? '').toString(),
-        name: (json['name'] ?? '').toString(),
-        avatarUrl: json['avatarUrl'] as String?,
-      );
-}
-
 class _FavoriteArtistsModal extends StatefulWidget {
   const _FavoriteArtistsModal({
     required this.favorites,
@@ -622,11 +617,11 @@ class _FavoriteArtistsModal extends StatefulWidget {
     required this.onRemoveFavorite,
   });
 
-  final List<_FavoriteArtistItem> favorites;
+  final List<FavoriteArtistItem> favorites;
   final String? initialSelectedKey;
-  final ValueChanged<_FavoriteArtistItem> onSelect;
-  final ValueChanged<_FavoriteArtistItem> onOpenArtist;
-  final ValueChanged<_FavoriteArtistItem> onRemoveFavorite;
+  final ValueChanged<FavoriteArtistItem> onSelect;
+  final ValueChanged<FavoriteArtistItem> onOpenArtist;
+  final ValueChanged<FavoriteArtistItem> onRemoveFavorite;
 
   @override
   State<_FavoriteArtistsModal> createState() => _FavoriteArtistsModalState();
@@ -648,7 +643,7 @@ class _FavoriteArtistsModalState extends State<_FavoriteArtistsModal> {
       (e) => e.key == _selectedKey,
       orElse: () => widget.favorites.isNotEmpty
           ? widget.favorites.first
-          : const _FavoriteArtistItem.empty(),
+          : const FavoriteArtistItem.empty(),
     );
 
     return DraggableScrollableSheet(
@@ -716,6 +711,77 @@ class _FavoriteArtistsModalState extends State<_FavoriteArtistsModal> {
                 ),
               ),
               const Divider(height: 1),
+              Consumer(
+                builder: (context, ref, _) {
+                  final settings =
+                      ref.watch(appSettingsProvider).value ?? AppSettings.defaults;
+                  final activeAcc = settings.activePawchiveAccount;
+                  final accounts = settings.parsedPawchiveAccounts;
+
+                  return Container(
+                    margin: const EdgeInsets.fromLTRB(16, 8, 16, 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: scheme.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: activeAcc != null
+                            ? scheme.primary.withValues(alpha: 0.35)
+                            : scheme.outlineVariant.withValues(alpha: 0.25),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.cloud_sync_rounded,
+                          size: 20,
+                          color: activeAcc != null
+                              ? scheme.primary
+                              : scheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                activeAcc != null
+                                    ? 'Pawchive: @${activeAcc.username}'
+                                    : 'Pawchive не подключён',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              Text(
+                                activeAcc != null
+                                    ? '${activeAcc.syncedArtistsCount} авторов в облаке'
+                                    : 'Синхронизируйте избранное с сервером',
+                                style: TextStyle(
+                                  color: scheme.onSurfaceVariant,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        FilledButton.tonal(
+                          style: FilledButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          onPressed: () => PawchiveAccountsSheet.show(context),
+                          child: Text(accounts.isEmpty ? 'Войти' : 'Аккаунты'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
               if (widget.favorites.isEmpty)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 36, 24, 40),
@@ -792,11 +858,11 @@ class _FavoriteArtistsSection extends ConsumerWidget {
     required this.onRemoveFavorite,
   });
 
-  final List<_FavoriteArtistItem> favorites;
+  final List<FavoriteArtistItem> favorites;
   final String? selectedKey;
-  final ValueChanged<_FavoriteArtistItem> onSelect;
-  final ValueChanged<_FavoriteArtistItem> onOpenArtist;
-  final ValueChanged<_FavoriteArtistItem> onRemoveFavorite;
+  final ValueChanged<FavoriteArtistItem> onSelect;
+  final ValueChanged<FavoriteArtistItem> onOpenArtist;
+  final ValueChanged<FavoriteArtistItem> onRemoveFavorite;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -986,7 +1052,7 @@ class _FavoriteArtistsSection extends ConsumerWidget {
 class _FavoriteArtistMediaStrip extends ConsumerWidget {
   const _FavoriteArtistMediaStrip({required this.artist});
 
-  final _FavoriteArtistItem artist;
+  final FavoriteArtistItem artist;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

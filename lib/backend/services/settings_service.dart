@@ -7,6 +7,7 @@ import '../../core/database/database_service.dart';
 import '../../core/errors/failure.dart';
 import '../../core/utils/result.dart';
 import '../models/content_provider_config.dart';
+import '../models/pawchive_account.dart';
 import '../models/provider_diagnostics.dart';
 import '../repositories/provider_repository.dart';
 
@@ -49,6 +50,7 @@ class AppSettings {
     required this.lastFeedTopPeriod,
     required this.lastFeedScrollOffset,
     this.favoriteArtists = const [],
+    this.pawchiveAccounts = const [],
     this.skippedUpdateVersion,
     this.lastUpdateCheckAt,
     this.defaultRatingFilter,
@@ -63,6 +65,7 @@ class AppSettings {
   });
 
   final List<String> favoriteArtists;
+  final List<String> pawchiveAccounts;
   final List<String> enabledProviderIds;
   final bool nsfwEnabled;
   final int cacheTtlHours;
@@ -118,6 +121,7 @@ class AppSettings {
     cacheMaxItems: 2000,
     providerPriority: {'gelbooru': 0, 'rule34': 1, 'realbooru': 2},
     favoriteArtists: [],
+    pawchiveAccounts: [],
     themeMode: 'dark',
     languageCode: 'ru',
     appSeedColor: 0xFFE84D8A,
@@ -200,6 +204,7 @@ class AppSettings {
     String? lastFeedRating,
     bool clearLastFeedRating = false,
     List<String>? favoriteArtists,
+    List<String>? pawchiveAccounts,
     bool? amoledMode,
     bool? useDynamicColor,
     String? gridMode,
@@ -210,6 +215,7 @@ class AppSettings {
   }) {
     return AppSettings(
       favoriteArtists: favoriteArtists ?? this.favoriteArtists,
+      pawchiveAccounts: pawchiveAccounts ?? this.pawchiveAccounts,
       enabledProviderIds: enabledProviderIds ?? this.enabledProviderIds,
       nsfwEnabled: nsfwEnabled ?? this.nsfwEnabled,
       cacheTtlHours: cacheTtlHours ?? this.cacheTtlHours,
@@ -269,6 +275,7 @@ class AppSettings {
 
   Map<String, dynamic> toJson() => {
         'favoriteArtists': favoriteArtists,
+        'pawchiveAccounts': pawchiveAccounts,
         'enabledProviderIds': enabledProviderIds,
         'nsfwEnabled': nsfwEnabled,
         'cacheTtlHours': cacheTtlHours,
@@ -411,6 +418,9 @@ class AppSettings {
         favoriteArtists: List<String>.from(
           (json['favoriteArtists'] as List?) ?? defaults.favoriteArtists,
         ),
+        pawchiveAccounts: List<String>.from(
+          (json['pawchiveAccounts'] as List?) ?? defaults.pawchiveAccounts,
+        ),
         skippedUpdateVersion: json['skippedUpdateVersion'] as String?,
         lastUpdateCheckAt: json['lastUpdateCheckAt'] as String?,
         defaultRatingFilter: json['defaultRatingFilter'] as String?,
@@ -428,6 +438,25 @@ class AppSettings {
         tagCacheLimit: (json['tagCacheLimit'] as num?)?.toInt() ??
             defaults.tagCacheLimit,
       );
+
+  List<PawchiveAccount> get parsedPawchiveAccounts {
+    final list = <PawchiveAccount>[];
+    for (final raw in pawchiveAccounts) {
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is Map<String, dynamic>) {
+          list.add(PawchiveAccount.fromJson(decoded));
+        }
+      } catch (_) {}
+    }
+    return list;
+  }
+
+  PawchiveAccount? get activePawchiveAccount {
+    final accounts = parsedPawchiveAccounts;
+    if (accounts.isEmpty) return null;
+    return accounts.firstWhere((a) => a.isActive, orElse: () => accounts.first);
+  }
 }
 
 class SettingsService {

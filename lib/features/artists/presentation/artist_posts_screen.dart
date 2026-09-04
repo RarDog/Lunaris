@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +14,7 @@ import '../../../shared/widgets/empty_view.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/post_masonry_grid.dart';
 import '../../favorites/presentation/favorites_controller.dart';
+import '../../settings/presentation/settings_controller.dart';
 
 final artistPostsProvider =
     FutureProvider.family<List<Post>, ArtistWorkQuery>((ref, query) async {
@@ -401,6 +404,54 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
     );
   }
 
+  Future<void> _toggleArtistFavorite(
+    AppSettings settings,
+    bool isCurrentlyFav,
+  ) async {
+    final current = List<String>.from(settings.favoriteArtists);
+    final artistKey =
+        '${widget.providerId}:${widget.service}:${widget.artistId}';
+    if (isCurrentlyFav) {
+      current.removeWhere((e) {
+        try {
+          return FavoriteArtistItem.fromJson(
+                      jsonDecode(e) as Map<String, dynamic>)
+                  .key ==
+              artistKey;
+        } catch (_) {
+          return false;
+        }
+      });
+    } else {
+      final avatarUrl = widget.providerId == 'pawchive'
+          ? 'https://pawchive.pw/icons/${widget.service}/${widget.artistId}'
+          : null;
+      final item = FavoriteArtistItem(
+        id: widget.artistId,
+        service: widget.service,
+        providerId: widget.providerId,
+        name: widget.artistName,
+        avatarUrl: avatarUrl,
+      );
+      current.insert(0, jsonEncode(item.toJson()));
+    }
+    await ref.read(settingsControllerProvider.notifier).saveSettings(
+          settings.copyWith(favoriteArtists: current),
+        );
+
+    if (widget.providerId == 'pawchive') {
+      final activeAcc = settings.activePawchiveAccount;
+      if (activeAcc != null) {
+        unawaited(ref.read(pawchiveSyncServiceProvider).toggleRemoteFavorite(
+              account: activeAcc,
+              service: widget.service,
+              artistId: widget.artistId,
+              isFavorite: !isCurrentlyFav,
+            ));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings =
@@ -408,12 +459,33 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
     final favoriteKeys = ref.watch(favoriteKeysProvider).value ?? <String>{};
     final viewedKeys = ref.watch(viewedKeysProvider).value ?? <String>{};
 
+    final artistKey =
+        '${widget.providerId}:${widget.service}:${widget.artistId}';
+    final isArtistFavorite = settings.favoriteArtists.any((e) {
+      try {
+        return FavoriteArtistItem.fromJson(
+                    jsonDecode(e) as Map<String, dynamic>)
+                .key ==
+            artistKey;
+      } catch (_) {
+        return false;
+      }
+    });
+
     final displayedPosts =
         _posts.where(_matchesTypeFilter).toList(growable: false);
 
     return AdaptiveScaffold(
       title: widget.artistName,
       actions: [
+        IconButton(
+          tooltip: isArtistFavorite ? 'В избранном' : 'В избранное',
+          icon: Icon(
+            isArtistFavorite ? Icons.star_rounded : Icons.star_outline_rounded,
+            color: isArtistFavorite ? Colors.amber : null,
+          ),
+          onPressed: () => _toggleArtistFavorite(settings, isArtistFavorite),
+        ),
         if (_announcements.isNotEmpty)
           IconButton(
             tooltip: 'Анонсы автора',
