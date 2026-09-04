@@ -1,5 +1,16 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.3.4',
+    title: 'OverlayPortal Architecture & Search UI Unblocking',
+    bullets: [
+      'OverlayPortal Migration: replaced manual root OverlayEntry and translucent backdrop with Flutter native OverlayPortal and TapRegion. Completely eliminates ghost overlay leaks and touch interception.',
+      'Unblocked Toolbar & Search Bar GUI: buttons (Refresh / Обновить, Clear Filters / Сбросить, random post, filter chips) and search chip crosses now respond immediately to taps without being swallowed by overlay backdrops.',
+      'Instant Chip Removal: deleting a tag chip (via its X cross icon) now updates the search immediately in real time, synchronizing the feed without restoring deleted tags on rebuild.',
+      'Search Clear Synchronization: tapping the search bar clear button (X) resets the query and clears active filters immediately.',
+      'Non-Blocking Outside Tap: tapping outside the suggestion dropdown smoothly dismisses suggestions while allowing the touch event to pass through directly to the underlying button or post.',
+    ],
+  ),
+  LunarisChange(
     version: '2.3.3',
     title: 'Tag Suggestions Overlay Fix & Rule34 API Alignment',
     bullets: [

@@ -98,6 +98,14 @@ class _FeedToolbarState extends State<FeedToolbar> {
                     _query = value;
                     widget.onSuggestionTap(value);
                   },
+                  onTagRemoved: (value) {
+                    _query = value;
+                    widget.onSearch(value);
+                  },
+                  onCleared: () {
+                    _query = '';
+                    widget.onClearFilters();
+                  },
                 ),
               ),
               const SizedBox(width: 8),
@@ -220,6 +228,14 @@ class _FeedToolbarState extends State<FeedToolbar> {
                   onSuggestionApplied: (value) {
                     _query = value;
                     widget.onSuggestionTap(value);
+                  },
+                  onTagRemoved: (value) {
+                    _query = value;
+                    widget.onSearch(value);
+                  },
+                  onCleared: () {
+                    _query = '';
+                    widget.onClearFilters();
                   },
                 ),
               ),

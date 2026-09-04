@@ -339,6 +339,123 @@ void main() {
     expect(find.text('AND'), findsOneWidget);
     expect(find.text('dog'), findsOneWidget);
   });
+
+  testWidgets('deleting chip triggers onTagRemoved', (tester) async {
+    String? removedQuery;
+    await tester.pumpWidget(_Harness(
+      child: TagInputSearchBar(
+        initialValue: 'cat dog',
+        onSubmitted: (_) {},
+        onTagRemoved: (query) => removedQuery = query,
+      ),
+    ));
+
+    expect(find.text('cat'), findsOneWidget);
+    expect(find.text('dog'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.close_rounded).first);
+    await tester.pump();
+
+    expect(removedQuery, 'dog');
+    expect(find.text('cat'), findsNothing);
+    expect(find.text('dog'), findsOneWidget);
+  });
+
+  testWidgets('clear button triggers onCleared and onSubmitted with empty string',
+      (tester) async {
+    bool cleared = false;
+    String? submitted;
+    await tester.pumpWidget(_Harness(
+      child: TagInputSearchBar(
+        initialValue: 'cat dog',
+        onSubmitted: (query) => submitted = query,
+        onCleared: () => cleared = true,
+      ),
+    ));
+
+    await tester.tap(find.byTooltip('Clear'));
+    await tester.pump();
+
+    expect(cleared, isTrue);
+    expect(submitted, '');
+    expect(find.text('cat'), findsNothing);
+    expect(find.text('dog'), findsNothing);
+  });
+
+  testWidgets(
+      'tapping external button while suggestions are visible triggers button and hides suggestions',
+      (tester) async {
+    bool externalButtonPressed = false;
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Expanded(
+                child: TagInputSearchBar(
+                  suggestions: const [
+                    TagSuggestion(
+                      name: 'genshin',
+                      category: TagCategory.copyright,
+                      postCount: 100,
+                      providerId: 'test',
+                    ),
+                  ],
+                  onSubmitted: (_) {},
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: () => externalButtonPressed = true,
+                child: const Text('Обновить'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ));
+
+    await tester.tap(find.byType(TextField));
+    await tester.enterText(find.byType(TextField), 'gen');
+    await tester.pumpAndSettle();
+
+    expect(find.text('genshin'), findsOneWidget);
+
+    // Tap external 'Обновить' button directly while suggestions are up
+    await tester.tap(find.text('Обновить'));
+    await tester.pumpAndSettle();
+
+    expect(externalButtonPressed, isTrue);
+    expect(find.text('genshin'), findsNothing);
+  });
+
+  testWidgets('erasing draft immediately hides suggestions', (tester) async {
+    await tester.pumpWidget(_Harness(
+      child: TagInputSearchBar(
+        suggestions: const [
+          TagSuggestion(
+            name: 'genshin',
+            category: TagCategory.copyright,
+            postCount: 100,
+            providerId: 'test',
+          ),
+        ],
+        onSubmitted: (_) {},
+      ),
+    ));
+
+    await tester.tap(find.byType(TextField));
+    await tester.enterText(find.byType(TextField), 'gen');
+    await tester.pumpAndSettle();
+
+    expect(find.text('genshin'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), '');
+    await tester.pumpAndSettle();
+
+    expect(find.text('genshin'), findsNothing);
+  });
 }
 
 class _Harness extends StatelessWidget {

@@ -105,6 +105,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         onSuggestionApplied: (query) => ref
                             .read(searchControllerProvider.notifier)
                             .updateQuery(query),
+                        onTagRemoved: (query) => ref
+                            .read(searchControllerProvider.notifier)
+                            .updateQuery(query),
+                        onCleared: () => ref
+                            .read(searchControllerProvider.notifier)
+                            .updateQuery(''),
                       ),
                       const SizedBox(height: 12),
                       SingleChildScrollView(
