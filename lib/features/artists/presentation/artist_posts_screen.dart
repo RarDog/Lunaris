@@ -12,6 +12,7 @@ import '../../../core/utils/result.dart';
 import '../../../shared/widgets/adaptive_scaffold.dart';
 import '../../../shared/widgets/empty_view.dart';
 import '../../../shared/widgets/error_view.dart';
+import '../../../shared/widgets/formatted_content_text.dart';
 import '../../../shared/widgets/post_masonry_grid.dart';
 import '../../favorites/presentation/favorites_controller.dart';
 import '../../settings/presentation/settings_controller.dart';
@@ -235,7 +236,8 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
                 itemBuilder: (context, index) {
                   final a = _announcements[index];
                   final cleanContent = CloudLinkExtractor.cleanCommentary(a.content);
-                  final detectedLinks = CloudLinkExtractor.extractLinks(content: a.content);
+                  final detectedCloudLinks = CloudLinkExtractor.extractLinks(content: a.content);
+                  final creatorLinks = CreatorLink.extractLinks(a.content);
 
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -250,18 +252,25 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
                           ),
                         ),
                       const SizedBox(height: 6),
-                      SelectableText(
-                        cleanContent.isNotEmpty ? cleanContent : a.content,
+                      FormattedContentText(
+                        text: cleanContent.isNotEmpty ? cleanContent : a.content,
                         style: theme.textTheme.bodyMedium?.copyWith(
                           height: 1.45,
                         ),
                       ),
-                      if (detectedLinks.isNotEmpty) ...[
+                      if (creatorLinks.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        CreatorLinkChips(
+                          links: creatorLinks,
+                          title: 'Ссылки автора',
+                        ),
+                      ],
+                      if (detectedCloudLinks.isNotEmpty) ...[
                         const SizedBox(height: 10),
                         Wrap(
                           spacing: 8,
                           runSpacing: 6,
-                          children: detectedLinks.map((link) {
+                          children: detectedCloudLinks.map((link) {
                             return ActionChip(
                               avatar: Icon(
                                 link.iconData,

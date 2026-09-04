@@ -4,6 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/app_strings.dart';
 import '../../../../backend/models/cloud_media_link.dart';
+import '../../../../backend/models/creator_link.dart';
+import '../../../../shared/widgets/formatted_content_text.dart';
 
 class CloudMirrorsCard extends StatelessWidget {
   const CloudMirrorsCard({
@@ -186,12 +188,25 @@ class CloudMirrorsCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
-            SelectableText(
-              commentary!.trim(),
+            FormattedContentText(
+              text: commentary!.trim(),
               style: theme.textTheme.bodySmall?.copyWith(
                 height: 1.45,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
+            ),
+            Builder(
+              builder: (context) {
+                final creatorLinks = CreatorLink.extractLinks(commentary);
+                if (creatorLinks.isEmpty) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: CreatorLinkChips(
+                    links: creatorLinks,
+                    title: strings.ru ? 'Ссылки автора' : 'Author Links',
+                  ),
+                );
+              },
             ),
           ],
         ],

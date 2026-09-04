@@ -8,6 +8,7 @@ export 'models/artist_tag.dart';
 export 'models/artist_link.dart';
 export 'models/artist_announcement.dart';
 export 'models/cloud_media_link.dart';
+export 'models/creator_link.dart';
 export 'models/download_task.dart';
 export 'models/downloaded_media.dart';
 export 'models/favorite.dart';
