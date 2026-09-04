@@ -1,5 +1,8 @@
+import 'dart:ui';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -176,82 +179,154 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
               // Search input bar if active
               if (_isSearching)
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                  child: TextField(
-                    controller: _searchController,
-                    autofocus: true,
-                    decoration: InputDecoration(
-                      hintText: isRu
-                          ? 'Поиск по тегам и авторам...'
-                          : 'Search by tags and artists...',
-                      prefixIcon: const Icon(Icons.search_rounded),
-                      suffixIcon: _searchQuery.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear_rounded),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() => _searchQuery = '');
-                              },
-                            )
-                          : null,
-                      isDense: true,
-                      filled: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 10,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        borderSide: BorderSide.none,
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Theme.of(context).colorScheme.surfaceContainerHigh
+                                  .withValues(alpha: 0.55)
+                              : Colors.white.withValues(alpha: 0.80),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white.withValues(alpha: 0.14)
+                                : Colors.white.withValues(alpha: 0.85),
+                            width: 1.1,
+                          ),
+                        ),
+                        child: TextField(
+                          controller: _searchController,
+                          autofocus: true,
+                          decoration: InputDecoration(
+                            hintText: isRu
+                                ? 'Поиск по тегам и авторам...'
+                                : 'Search by tags and artists...',
+                            prefixIcon: const Icon(Icons.search_rounded),
+                            suffixIcon: _searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear_rounded),
+                                    onPressed: () {
+                                      HapticFeedback.lightImpact();
+                                      _searchController.clear();
+                                      setState(() => _searchQuery = '');
+                                    },
+                                  )
+                                : null,
+                            isDense: true,
+                            filled: false,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 10,
+                            ),
+                            border: InputBorder.none,
+                          ),
+                          onChanged: (val) =>
+                              setState(() => _searchQuery = val.trim()),
+                        ),
                       ),
                     ),
-                    onChanged: (val) => setState(() => _searchQuery = val.trim()),
                   ),
                 ),
 
-              // Navigation Tabs
+              // Navigation Tabs with Liquid Glass container
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: SegmentedButton<int>(
-                    showSelectedIcon: false,
-                    segments: [
-                      ButtonSegment(
-                        value: 0,
-                        icon: const Icon(Icons.favorite_rounded, size: 18),
-                        label: Text(
-                          '${isRu ? 'Все' : 'All'} (${allPosts.length})',
-                          style: const TextStyle(fontSize: 12),
-                          overflow: TextOverflow.ellipsis,
+                padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(22),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(
+                          alpha: Theme.of(context).brightness == Brightness.dark
+                              ? 0.20
+                              : 0.04,
                         ),
-                      ),
-                      ButtonSegment(
-                        value: 1,
-                        icon: const Icon(Icons.offline_pin_rounded, size: 18),
-                        label: Text(
-                          '${isRu ? 'Офлайн' : 'Offline'} (${offlinePosts.length})',
-                          style: const TextStyle(fontSize: 12),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      ButtonSegment(
-                        value: 2,
-                        icon: const Icon(Icons.groups_rounded, size: 18),
-                        label: Text(
-                          '${isRu ? 'Авторы' : 'Artists'} (${artistGroups.length})',
-                          style: const TextStyle(fontSize: 12),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
                       ),
                     ],
-                    selected: {_tabIndex},
-                    onSelectionChanged: (value) {
-                      setState(() {
-                        _tabIndex = value.first;
-                        _selectedArtist = null;
-                      });
-                    },
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(22),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(22),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Theme.of(context)
+                                  .colorScheme
+                                  .surfaceContainerHigh
+                                  .withValues(alpha: 0.50)
+                              : Colors.white.withValues(alpha: 0.72),
+                          border: Border.all(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white.withValues(alpha: 0.12)
+                                : Colors.white.withValues(alpha: 0.85),
+                            width: 1.1,
+                          ),
+                        ),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: SegmentedButton<int>(
+                            showSelectedIcon: false,
+                            style: ButtonStyle(
+                              visualDensity: VisualDensity.compact,
+                              shape: WidgetStatePropertyAll(
+                                RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                              ),
+                            ),
+                            segments: [
+                              ButtonSegment(
+                                value: 0,
+                                icon: const Icon(Icons.favorite_rounded, size: 18),
+                                label: Text(
+                                  '${isRu ? 'Все' : 'All'} (${allPosts.length})',
+                                  style: const TextStyle(
+                                      fontSize: 12, fontWeight: FontWeight.w600),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              ButtonSegment(
+                                value: 1,
+                                icon: const Icon(Icons.offline_pin_rounded,
+                                    size: 18),
+                                label: Text(
+                                  '${isRu ? 'Офлайн' : 'Offline'} (${offlinePosts.length})',
+                                  style: const TextStyle(
+                                      fontSize: 12, fontWeight: FontWeight.w600),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              ButtonSegment(
+                                value: 2,
+                                icon: const Icon(Icons.groups_rounded, size: 18),
+                                label: Text(
+                                  '${isRu ? 'Авторы' : 'Artists'} (${artistGroups.length})',
+                                  style: const TextStyle(
+                                      fontSize: 12, fontWeight: FontWeight.w600),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                            selected: {_tabIndex},
+                            onSelectionChanged: (value) {
+                              HapticFeedback.selectionClick();
+                              setState(() {
+                                _tabIndex = value.first;
+                                _selectedArtist = null;
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -265,9 +340,12 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                       FilterChip(
                         label: Text(isRu ? 'Все' : 'All'),
                         selected: _mediaFilter == FavoriteMediaType.all,
-                        onSelected: (_) => setState(
-                          () => _mediaFilter = FavoriteMediaType.all,
-                        ),
+                        onSelected: (_) {
+                          HapticFeedback.selectionClick();
+                          setState(
+                            () => _mediaFilter = FavoriteMediaType.all,
+                          );
+                        },
                         visualDensity: VisualDensity.compact,
                       ),
                       const SizedBox(width: 8),
@@ -275,9 +353,12 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                         avatar: const Icon(Icons.videocam_rounded, size: 16),
                         label: Text(isRu ? 'Видео' : 'Videos'),
                         selected: _mediaFilter == FavoriteMediaType.video,
-                        onSelected: (_) => setState(
-                          () => _mediaFilter = FavoriteMediaType.video,
-                        ),
+                        onSelected: (_) {
+                          HapticFeedback.selectionClick();
+                          setState(
+                            () => _mediaFilter = FavoriteMediaType.video,
+                          );
+                        },
                         visualDensity: VisualDensity.compact,
                       ),
                       const SizedBox(width: 8),
@@ -285,9 +366,12 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                         avatar: const Icon(Icons.image_rounded, size: 16),
                         label: Text(isRu ? 'Фото' : 'Images'),
                         selected: _mediaFilter == FavoriteMediaType.image,
-                        onSelected: (_) => setState(
-                          () => _mediaFilter = FavoriteMediaType.image,
-                        ),
+                        onSelected: (_) {
+                          HapticFeedback.selectionClick();
+                          setState(
+                            () => _mediaFilter = FavoriteMediaType.image,
+                          );
+                        },
                         visualDensity: VisualDensity.compact,
                       ),
                     ],
@@ -490,31 +574,40 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   }) {
     final scheme = Theme.of(context).colorScheme;
 
-    return Container(
+    return _FavoritesLiquidCard(
       margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: scheme.outlineVariant.withValues(alpha: 0.35),
-        ),
-      ),
+      glowColor: scheme.primary,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: scheme.primaryContainer.withValues(alpha: 0.7),
+                  gradient: LinearGradient(
+                    colors: [
+                      scheme.primary,
+                      scheme.primary.withValues(alpha: 0.85),
+                    ],
+                  ),
                   borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: scheme.primary.withValues(alpha: 0.35),
+                      blurRadius: 7,
+                      offset: const Offset(0, 2.5),
+                    ),
+                  ],
                 ),
-                child: Icon(
-                  Icons.offline_pin_rounded,
-                  color: scheme.onPrimaryContainer,
-                  size: 22,
+                child: const Center(
+                  child: Icon(
+                    Icons.offline_pin_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -526,6 +619,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                       '$downloadedCount ${isRu ? 'из' : 'of'} $totalCount ${isRu ? 'офлайн' : 'saved'}',
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.bold,
+                            letterSpacing: -0.2,
                           ),
                     ),
                     const SizedBox(height: 2),
@@ -553,21 +647,22 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
               if (pendingCount > 0)
                 FilledButton.tonalIcon(
                   onPressed: () async {
+                    HapticFeedback.mediumImpact();
                     final dm = ref.read(downloadManagerServiceProvider);
                     for (final p in pendingPosts) {
                       await dm.start(p);
                     }
                     if (!mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            isRu
-                                ? 'В очередь загрузки добавлено: $pendingCount'
-                                : 'Queued $pendingCount downloads',
-                          ),
-                          behavior: SnackBarBehavior.floating,
+                      SnackBar(
+                        content: Text(
+                          isRu
+                              ? 'В очередь загрузки добавлено: $pendingCount'
+                              : 'Queued $pendingCount downloads',
                         ),
-                      );
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
                   },
                   icon: const Icon(Icons.download_rounded, size: 16),
                   label: Text(
@@ -594,7 +689,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: scheme.secondaryContainer.withValues(alpha: 0.5),
+                    color: scheme.primary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -610,8 +705,8 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                         isRu ? 'Всё готово' : 'Synced',
                         style:
                             Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: scheme.onSecondaryContainer,
-                                  fontWeight: FontWeight.w600,
+                                  color: scheme.primary,
+                                  fontWeight: FontWeight.w700,
                                 ),
                       ),
                     ],
@@ -666,27 +761,36 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                 ChoiceChip(
                   label: Text(isRu ? 'По дате' : 'Date'),
                   selected: _offlineSort == OfflineSortOption.dateAddedDesc,
-                  onSelected: (_) => setState(
-                    () => _offlineSort = OfflineSortOption.dateAddedDesc,
-                  ),
+                  onSelected: (_) {
+                    HapticFeedback.selectionClick();
+                    setState(
+                      () => _offlineSort = OfflineSortOption.dateAddedDesc,
+                    );
+                  },
                   visualDensity: VisualDensity.compact,
                 ),
                 const SizedBox(width: 6),
                 ChoiceChip(
                   label: Text(isRu ? 'По размеру' : 'Size'),
                   selected: _offlineSort == OfflineSortOption.sizeDesc,
-                  onSelected: (_) => setState(
-                    () => _offlineSort = OfflineSortOption.sizeDesc,
-                  ),
+                  onSelected: (_) {
+                    HapticFeedback.selectionClick();
+                    setState(
+                      () => _offlineSort = OfflineSortOption.sizeDesc,
+                    );
+                  },
                   visualDensity: VisualDensity.compact,
                 ),
                 const SizedBox(width: 6),
                 ChoiceChip(
                   label: Text(isRu ? 'По автору' : 'Artist'),
                   selected: _offlineSort == OfflineSortOption.artist,
-                  onSelected: (_) => setState(
-                    () => _offlineSort = OfflineSortOption.artist,
-                  ),
+                  onSelected: (_) {
+                    HapticFeedback.selectionClick();
+                    setState(
+                      () => _offlineSort = OfflineSortOption.artist,
+                    );
+                  },
                   visualDensity: VisualDensity.compact,
                 ),
               ],
@@ -712,38 +816,50 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
 
       return Column(
         children: [
-          // Artist Header Banner
-          Container(
+          // Artist Header Banner (Liquid Glass)
+          _FavoritesLiquidCard(
             margin: const EdgeInsets.fromLTRB(16, 4, 16, 8),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Theme.of(context)
-                  .colorScheme
-                  .surfaceContainerLow,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Theme.of(context)
-                    .colorScheme
-                    .outlineVariant
-                    .withValues(alpha: 0.3),
-              ),
-            ),
             child: Row(
               children: [
                 IconButton(
-                  onPressed: () => setState(() => _selectedArtist = null),
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    setState(() => _selectedArtist = null);
+                  },
                   icon: const Icon(Icons.arrow_back_rounded),
                   tooltip: isRu ? 'Все авторы' : 'All artists',
                 ),
                 const SizedBox(width: 8),
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                  child: Text(
-                    selected.isNotEmpty ? selected[0].toUpperCase() : '?',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Theme.of(context).colorScheme.primary,
+                        Theme.of(context).colorScheme.tertiary,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 0.35),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      selected.isNotEmpty ? selected[0].toUpperCase() : '?',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
@@ -756,6 +872,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                         selected,
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
+                              letterSpacing: -0.2,
                             ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -776,6 +893,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                     visualDensity: VisualDensity.compact,
                   ),
                   onPressed: () {
+                    HapticFeedback.selectionClick();
                     context.push('/search?q=${Uri.encodeComponent('artist:$selected')}');
                   },
                   icon: const Icon(Icons.search_rounded, size: 16),
@@ -808,7 +926,9 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      // Extended bottom padding so the last artist cards scroll comfortably above the floating dock
+      padding: EdgeInsets.fromLTRB(
+          16, 8, 16, 140 + MediaQuery.paddingOf(context).bottom),
       itemCount: entries.length,
       separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
@@ -863,6 +983,83 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
   }
 }
 
+class _FavoritesLiquidCard extends StatelessWidget {
+  const _FavoritesLiquidCard({
+    required this.child,
+    this.padding,
+    this.glowColor,
+    this.margin,
+  });
+
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final EdgeInsetsGeometry? margin;
+  final Color? glowColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final accent = glowColor ?? theme.colorScheme.primary;
+
+    return Container(
+      margin: margin,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.30)
+                : accent.withValues(alpha: 0.07),
+            blurRadius: 16,
+            offset: const Offset(0, 5),
+            spreadRadius: -2,
+          ),
+          BoxShadow(
+            color: accent.withValues(alpha: isDark ? 0.05 : 0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Container(
+            padding: padding ?? const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [
+                        theme.colorScheme.surfaceContainerHigh
+                            .withValues(alpha: 0.60),
+                        theme.colorScheme.surfaceContainerLow
+                            .withValues(alpha: 0.38),
+                      ]
+                    : [
+                        Colors.white.withValues(alpha: 0.88),
+                        Colors.white.withValues(alpha: 0.72),
+                      ],
+              ),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.14)
+                    : Colors.white.withValues(alpha: 0.85),
+                width: 1.2,
+              ),
+            ),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ArtistCard extends StatelessWidget {
   const _ArtistCard({
     required this.artistName,
@@ -881,123 +1078,182 @@ class _ArtistCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Card(
-      elevation: 0,
-      color: scheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: scheme.outlineVariant.withValues(alpha: 0.3),
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.28)
+                : scheme.primary.withValues(alpha: 0.06),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+            spreadRadius: -2,
+          ),
+        ],
       ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              // Artist Avatar
-              Container(
-                width: 48,
-                height: 48,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(22),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(22),
+              onTap: () {
+                HapticFeedback.selectionClick();
+                onTap();
+              },
+              child: Container(
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(22),
                   gradient: LinearGradient(
-                    colors: [
-                      scheme.primaryContainer,
-                      scheme.tertiaryContainer,
-                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
+                    colors: isDark
+                        ? [
+                            scheme.surfaceContainerHigh
+                                .withValues(alpha: 0.58),
+                            scheme.surfaceContainerLow
+                                .withValues(alpha: 0.36),
+                          ]
+                        : [
+                            Colors.white.withValues(alpha: 0.88),
+                            Colors.white.withValues(alpha: 0.72),
+                          ],
                   ),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Center(
-                  child: Text(
-                    artistName.isNotEmpty ? artistName[0].toUpperCase() : '?',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: scheme.onPrimaryContainer,
-                    ),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.13)
+                        : Colors.white.withValues(alpha: 0.85),
+                    width: 1.1,
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              // Artist Name & Count
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Text(
-                      artistName,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
+                    // Artist Squircle Avatar
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
+                      width: 48,
+                      height: 48,
                       decoration: BoxDecoration(
-                        color: scheme.secondaryContainer.withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(8),
+                        gradient: LinearGradient(
+                          colors: [
+                            scheme.primary,
+                            scheme.tertiary,
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(15),
+                        boxShadow: [
+                          BoxShadow(
+                            color: scheme.primary.withValues(alpha: 0.35),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2.5),
+                          ),
+                        ],
                       ),
-                      child: Text(
-                        '$postsCount ${isRu ? 'работ' : 'posts'}',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: scheme.onSecondaryContainer,
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Thumbnails preview
-              if (previewUrls.isNotEmpty) ...[
-                const SizedBox(width: 8),
-                Row(
-                  children: [
-                    for (final url in previewUrls)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: SizedBox(
-                            width: 44,
-                            height: 44,
-                            child: CachedNetworkImage(
-                              imageUrl: url,
-                              fit: BoxFit.cover,
-                              placeholder: (_, __) => Container(
-                                color: scheme.surfaceContainerHighest,
-                              ),
-                              errorWidget: (_, __, ___) => Container(
-                                color: scheme.surfaceContainerHighest,
-                                child: const Icon(
-                                  Icons.image_not_supported_rounded,
-                                  size: 16,
-                                ),
-                              ),
-                            ),
+                      child: Center(
+                        child: Text(
+                          artistName.isNotEmpty ? artistName[0].toUpperCase() : '?',
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
                           ),
                         ),
                       ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Artist Name & Count
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            artistName,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: -0.2,
+                                ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 3),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: scheme.primary.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '$postsCount ${isRu ? 'работ' : 'posts'}',
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: scheme.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Thumbnails preview
+                    if (previewUrls.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Row(
+                        children: [
+                          for (final url in previewUrls)
+                            Padding(
+                              padding: const EdgeInsets.only(left: 5),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(
+                                      color: isDark
+                                          ? Colors.white.withValues(alpha: 0.10)
+                                          : scheme.outlineVariant.withValues(alpha: 0.25),
+                                    ),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: CachedNetworkImage(
+                                    imageUrl: url,
+                                    fit: BoxFit.cover,
+                                    placeholder: (_, __) => Container(
+                                      color: scheme.surfaceContainerHighest,
+                                    ),
+                                    errorWidget: (_, __, ___) => Container(
+                                      color: scheme.surfaceContainerHighest,
+                                      child: const Icon(
+                                        Icons.image_not_supported_rounded,
+                                        size: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: scheme.onSurfaceVariant.withValues(alpha: 0.5),
+                    ),
                   ],
                 ),
-              ],
-              const SizedBox(width: 6),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
               ),
-            ],
+            ),
           ),
         ),
       ),

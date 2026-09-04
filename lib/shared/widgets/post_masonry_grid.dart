@@ -28,6 +28,7 @@ class PostMasonryGrid extends StatelessWidget {
     this.loading = false,
     this.controller,
     this.gridMode = 'masonry',
+    this.padding,
     super.key,
   });
 
@@ -51,11 +52,19 @@ class PostMasonryGrid extends StatelessWidget {
   final bool loading;
   final ScrollController? controller;
   final String gridMode;
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
     final mobile = Responsive.isMobile(context);
-    final pad = EdgeInsets.all(mobile ? 8 : 16);
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final pad = padding ??
+        EdgeInsets.fromLTRB(
+          mobile ? 8 : 16,
+          mobile ? 8 : 16,
+          mobile ? 8 : 16,
+          (mobile ? 8 : 16) + (mobile ? (120.0 + bottomInset) : 0.0),
+        );
     final spacing = mobile ? 8.0 : 12.0;
 
     Widget buildCard(Post post) {

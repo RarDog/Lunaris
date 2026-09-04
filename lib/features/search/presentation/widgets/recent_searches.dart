@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../../backend/backend.dart';
 
@@ -95,20 +96,40 @@ class _RecentSearchesState extends State<RecentSearches> {
           children: [
             for (final item in visibleItems)
               Material(
-                color: theme.colorScheme.surfaceContainer,
+                color: Colors.transparent,
                 borderRadius: BorderRadius.circular(16),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(16),
-                  onTap: () => widget.onTap(item.query),
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    widget.onTap(item.query);
+                  },
                   child: Container(
                     padding:
                         const EdgeInsets.only(left: 10, right: 6, top: 6, bottom: 6),
                     decoration: BoxDecoration(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? theme.colorScheme.surfaceContainerHighest
+                              .withValues(alpha: 0.45)
+                          : Colors.white.withValues(alpha: 0.65),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: theme.colorScheme.outlineVariant
-                            .withValues(alpha: 0.35),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white.withValues(alpha: 0.12)
+                            : theme.colorScheme.outlineVariant
+                                .withValues(alpha: 0.35),
+                        width: 1.0,
                       ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(
+                              alpha: Theme.of(context).brightness == Brightness.dark
+                                  ? 0.15
+                                  : 0.04),
+                          blurRadius: 6,
+                          offset: const Offset(0, 1.5),
+                        ),
+                      ],
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -140,7 +161,7 @@ class _RecentSearchesState extends State<RecentSearches> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                              color: theme.colorScheme.primary.withValues(alpha: 0.14),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -161,7 +182,10 @@ class _RecentSearchesState extends State<RecentSearches> {
                             clipBehavior: Clip.antiAlias,
                             child: InkWell(
                               customBorder: const CircleBorder(),
-                              onTap: () => widget.onDelete!(item.id),
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                widget.onDelete!(item.id);
+                              },
                               child: Padding(
                                 padding: const EdgeInsets.all(4),
                                 child: Icon(

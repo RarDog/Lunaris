@@ -1,5 +1,8 @@
+import 'dart:ui';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -156,28 +159,56 @@ class _ViewedScreenState extends ConsumerState<ViewedScreen> {
             );
           }
 
+          final bottomInset = MediaQuery.paddingOf(context).bottom;
+
           return RefreshIndicator(
             onRefresh: () =>
                 ref.read(viewedControllerProvider.notifier).refresh(),
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              padding: EdgeInsets.fromLTRB(16, 8, 16, 140 + bottomInset),
               children: [
                 for (final group in groups) ...[
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(4, 16, 4, 10),
+                    padding: const EdgeInsets.fromLTRB(2, 16, 2, 10),
                     child: Row(
                       children: [
-                        Icon(
-                          Icons.calendar_today_rounded,
-                          size: 16,
-                          color: Theme.of(context).colorScheme.primary,
+                        Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Theme.of(context).colorScheme.primary,
+                                Theme.of(context).colorScheme.primary.withValues(alpha: 0.82),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(9),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withValues(alpha: 0.32),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.calendar_today_rounded,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 10),
                         Text(
                           _localizedGroupLabel(group.label, isRu),
                           style:
                               Theme.of(context).textTheme.titleSmall?.copyWith(
                                     fontWeight: FontWeight.bold,
+                                    letterSpacing: -0.2,
                                   ),
                         ),
                         const SizedBox(width: 8),
@@ -187,10 +218,24 @@ class _ViewedScreenState extends ConsumerState<ViewedScreen> {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .surfaceContainerHighest,
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest
+                                    .withValues(alpha: 0.5)
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .primary
+                                    .withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.white.withValues(alpha: 0.08)
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .primary
+                                      .withValues(alpha: 0.20),
+                            ),
                           ),
                           child: Text(
                             '${group.items.length}',
@@ -198,7 +243,10 @@ class _ViewedScreenState extends ConsumerState<ViewedScreen> {
                                 .textTheme
                                 .labelSmall
                                 ?.copyWith(
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: FontWeight.w700,
+                                  color: Theme.of(context).brightness == Brightness.dark
+                                      ? Theme.of(context).colorScheme.onSurfaceVariant
+                                      : Theme.of(context).colorScheme.primary,
                                 ),
                           ),
                         ),
@@ -299,184 +347,251 @@ class _ViewedPostTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final image = MediaUrlSelector.preview(post).firstOrNull;
     final timeStr =
         '${viewedAt.hour.toString().padLeft(2, '0')}:${viewedAt.minute.toString().padLeft(2, '0')}';
 
-    return Card(
-      elevation: 0,
-      color: scheme.surfaceContainerLow,
-      margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: scheme.outlineVariant.withValues(alpha: 0.3),
-        ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+            spreadRadius: -2,
+          ),
+        ],
       ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onOpen,
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Row(
-            children: [
-              // Squircle Thumbnail
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: SizedBox(
-                  width: 68,
-                  height: 68,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      image == null
-                          ? Container(
-                              color: scheme.surfaceContainerHighest,
-                              child: const Icon(Icons.image_not_supported_rounded),
-                            )
-                          : CachedNetworkImage(
-                              imageUrl: image,
-                              fit: BoxFit.cover,
-                              placeholder: (_, __) => Container(
-                                color: scheme.surfaceContainerHighest,
-                              ),
-                              errorWidget: (_, __, ___) => Container(
-                                color: scheme.surfaceContainerHighest,
-                                child: const Icon(
-                                  Icons.broken_image_rounded,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
-                      if (_isVideo)
-                        Positioned(
-                          right: 4,
-                          bottom: 4,
-                          child: Container(
-                            padding: const EdgeInsets.all(3),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.65),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Icon(
-                              Icons.play_arrow_rounded,
-                              size: 14,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                    ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () {
+                HapticFeedback.selectionClick();
+                onOpen();
+              },
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: isDark
+                        ? [
+                            scheme.surfaceContainerHigh
+                                .withValues(alpha: 0.58),
+                            scheme.surfaceContainerLow
+                                .withValues(alpha: 0.36),
+                          ]
+                        : [
+                            Colors.white.withValues(alpha: 0.88),
+                            Colors.white.withValues(alpha: 0.72),
+                          ],
+                  ),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.13)
+                        : Colors.white.withValues(alpha: 0.85),
+                    width: 1.1,
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              // Post details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color:
-                                  scheme.primaryContainer.withValues(alpha: 0.5),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              post.providerName,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: scheme.onPrimaryContainer,
+                    // Squircle Thumbnail
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(13),
+                      child: Container(
+                        width: 68,
+                        height: 68,
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.10)
+                                : scheme.outlineVariant.withValues(alpha: 0.30),
+                          ),
+                          borderRadius: BorderRadius.circular(13),
+                        ),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            image == null
+                                ? Container(
+                                    color: scheme.surfaceContainerHighest,
+                                    child: const Icon(
+                                        Icons.image_not_supported_rounded),
+                                  )
+                                : CachedNetworkImage(
+                                    imageUrl: image,
+                                    fit: BoxFit.cover,
+                                    placeholder: (_, __) => Container(
+                                      color: scheme.surfaceContainerHighest,
+                                    ),
+                                    errorWidget: (_, __, ___) => Container(
+                                      color: scheme.surfaceContainerHighest,
+                                      child: const Icon(
+                                        Icons.broken_image_rounded,
+                                        size: 20,
+                                      ),
+                                    ),
                                   ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          timeStr,
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelSmall
-                              ?.copyWith(
-                                color: scheme.onSurfaceVariant,
+                            if (_isVideo)
+                              Positioned(
+                                right: 4,
+                                bottom: 4,
+                                child: Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.65),
+                                    borderRadius: BorderRadius.circular(5),
+                                  ),
+                                  child: const Icon(
+                                    Icons.play_arrow_rounded,
+                                    size: 14,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      post.tags.isEmpty ? '#${post.id}' : post.tags.take(4).join(' '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w500,
-                          ),
-                    ),
-                    if (post.score != 0) ...[
-                      const SizedBox(height: 2),
-                      Row(
+                    const SizedBox(width: 12),
+                    // Post details
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.thumb_up_rounded,
-                            size: 12,
-                            color: scheme.outline,
+                          Row(
+                            children: [
+                              Flexible(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 7,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: scheme.primary
+                                        .withValues(alpha: isDark ? 0.20 : 0.12),
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: scheme.primary.withValues(
+                                          alpha: isDark ? 0.30 : 0.20),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    post.providerName,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelSmall
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                          color: scheme.primary,
+                                        ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                timeStr,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(height: 4),
                           Text(
-                            '${post.score}',
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(
-                                  color: scheme.outline,
+                            post.tags.isEmpty ? '#${post.id}' : post.tags.take(4).join(' '),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: -0.1,
                                 ),
                           ),
+                          if (post.score != 0) ...[
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.thumb_up_rounded,
+                                  size: 12,
+                                  color: scheme.outline,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${post.score}',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.copyWith(
+                                        color: scheme.outline,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
-                    ],
+                    ),
+                    // Action buttons
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints:
+                          const BoxConstraints(minWidth: 36, minHeight: 36),
+                      tooltip: isFavorite
+                          ? (isRu ? 'В избранном' : 'In favorites')
+                          : (isRu ? 'В избранное' : 'Add to favorites'),
+                      onPressed: () {
+                        HapticFeedback.selectionClick();
+                        onFavorite();
+                      },
+                      icon: Icon(
+                        isFavorite
+                            ? Icons.favorite_rounded
+                            : Icons.favorite_border_rounded,
+                        color: isFavorite
+                            ? Colors.redAccent
+                            : scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints:
+                          const BoxConstraints(minWidth: 36, minHeight: 36),
+                      tooltip:
+                          isRu ? 'Удалить из истории' : 'Delete from history',
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        onDelete();
+                      },
+                      icon: Icon(
+                        Icons.close_rounded,
+                        size: 20,
+                        color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
+                      ),
+                    ),
                   ],
                 ),
               ),
-              // Action buttons
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                tooltip: isFavorite
-                    ? (isRu ? 'В избранном' : 'In favorites')
-                    : (isRu ? 'В избранное' : 'Add to favorites'),
-                onPressed: onFavorite,
-                icon: Icon(
-                  isFavorite
-                      ? Icons.favorite_rounded
-                      : Icons.favorite_border_rounded,
-                  color: isFavorite ? Colors.redAccent : scheme.onSurfaceVariant,
-                ),
-              ),
-              IconButton(
-                visualDensity: VisualDensity.compact,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                tooltip: isRu ? 'Удалить из истории' : 'Delete from history',
-                onPressed: onDelete,
-                icon: Icon(
-                  Icons.close_rounded,
-                  size: 20,
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.6),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
