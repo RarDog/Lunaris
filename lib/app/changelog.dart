@@ -1,5 +1,14 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.3.5',
+    title: 'Fullscreen Video Auto-Rotation & Orientation Controls',
+    bullets: [
+      'Smart Fullscreen Auto-Rotation: entering fullscreen mode on horizontal/landscape videos automatically snaps the device into landscape orientation for maximum viewing area, while vertical/portrait videos stay in portrait mode.',
+      'Manual Orientation Toggle: added a quick-access rotation button (Icons.screen_lock_portrait / landscape) directly in the fullscreen top bar next to the close button, allowing 1-tap switching between landscape and portrait.',
+      'Clean Orientation Recovery: exiting fullscreen seamlessly restores system navigation bars (Edge-to-Edge) and restores unrestricted device sensor orientations.',
+    ],
+  ),
+  LunarisChange(
     version: '2.3.4',
     title: 'OverlayPortal Architecture & Search UI Unblocking',
     bullets: [

@@ -701,6 +701,7 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
   late bool _muted;
   late bool _loopVideo;
   late bool _halfVolume;
+  late bool _isLandscape;
   Timer? _hideTimer;
 
   @override
@@ -710,13 +711,30 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
     _muted = widget.muted;
     _loopVideo = widget.loopVideo;
     _halfVolume = widget.halfVolume;
+    _isLandscape = widget.aspectRatio > 1.05;
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-      DeviceOrientation.portraitUp,
-    ]);
+    _applyOrientation();
     _scheduleControlsHide();
+  }
+
+  void _applyOrientation() {
+    if (_isLandscape) {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+    } else {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+      ]);
+    }
+  }
+
+  void _toggleOrientation() {
+    setState(() => _isLandscape = !_isLandscape);
+    _applyOrientation();
+    _showControls();
   }
 
   @override
@@ -814,13 +832,28 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
                     top: 12,
                     right: 12,
                     child: SafeArea(
-                      child: IconButton.filledTonal(
-                        tooltip: 'Close fullscreen',
-                        onPressed: () => Navigator.of(
-                          context,
-                          rootNavigator: true,
-                        ).pop(_snapshot()),
-                        icon: const Icon(Icons.close_rounded),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton.filledTonal(
+                            tooltip: _isLandscape
+                                ? 'Портретная ориентация'
+                                : 'Альбомная ориентация',
+                            onPressed: _toggleOrientation,
+                            icon: Icon(_isLandscape
+                                ? Icons.screen_lock_portrait_rounded
+                                : Icons.screen_lock_landscape_rounded),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton.filledTonal(
+                            tooltip: 'Close fullscreen',
+                            onPressed: () => Navigator.of(
+                              context,
+                              rootNavigator: true,
+                            ).pop(_snapshot()),
+                            icon: const Icon(Icons.close_rounded),
+                          ),
+                        ],
                       ),
                     ),
                   ),
