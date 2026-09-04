@@ -297,12 +297,10 @@ class _MobileShell extends StatelessWidget {
       floatingActionButton: location == '/settings'
           ? null
           : Padding(
-              padding: const EdgeInsets.only(bottom: 64),
-              child: FloatingActionButton.small(
-                heroTag: 'mobile-settings',
-                tooltip: ru ? 'Настройки' : 'Settings',
-                onPressed: () => context.go('/settings'),
-                child: const Icon(Icons.settings_rounded),
+              padding: const EdgeInsets.only(bottom: 68, right: 4),
+              child: _LiquidGlassSettingsButton(
+                ru: ru,
+                onTap: () => context.go('/settings'),
               ),
             ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
@@ -564,6 +562,111 @@ class _LiquidNavItem extends StatelessWidget {
                 child: Text(label),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LiquidGlassSettingsButton extends StatefulWidget {
+  const _LiquidGlassSettingsButton({
+    required this.ru,
+    required this.onTap,
+  });
+
+  final bool ru;
+  final VoidCallback onTap;
+
+  @override
+  State<_LiquidGlassSettingsButton> createState() =>
+      _LiquidGlassSettingsButtonState();
+}
+
+class _LiquidGlassSettingsButtonState extends State<_LiquidGlassSettingsButton> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final scheme = theme.colorScheme;
+
+    return Tooltip(
+      message: widget.ru ? 'Настройки' : 'Settings',
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTap: () {
+          HapticFeedback.mediumImpact();
+          widget.onTap();
+        },
+        child: AnimatedScale(
+          scale: _pressed ? 0.88 : 1.0,
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOutCubic,
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.38 : 0.12),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
+                  spreadRadius: -1,
+                ),
+                BoxShadow(
+                  color: scheme.primary.withValues(alpha: isDark ? 0.20 : 0.12),
+                  blurRadius: 12,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: ClipOval(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      center: const Alignment(-0.3, -0.4),
+                      radius: 1.1,
+                      colors: isDark
+                          ? [
+                              scheme.surfaceContainerHigh.withValues(alpha: 0.85),
+                              scheme.surface.withValues(alpha: 0.75),
+                            ]
+                          : [
+                              Colors.white.withValues(alpha: 0.92),
+                              Colors.white.withValues(alpha: 0.70),
+                            ],
+                    ),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.24)
+                          : Colors.white.withValues(alpha: 0.85),
+                      width: 1.4,
+                    ),
+                  ),
+                  child: Center(
+                    child: AnimatedRotation(
+                      turns: _pressed ? 0.125 : 0.0,
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOutBack,
+                      child: Icon(
+                        Icons.settings_rounded,
+                        size: 23,
+                        color: scheme.primary,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       ),

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' hide appBuildNumber;
@@ -150,24 +151,33 @@ class _SettingsContentState extends ConsumerState<_SettingsContent> {
 
     return Column(
       children: [
-        // Pinned Top Category Quick Navigation
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          decoration: BoxDecoration(
-            color: theme.scaffoldBackgroundColor,
-            border: Border(
-              bottom: BorderSide(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
+        // Pinned Top Category Quick Navigation (Frosted Glass)
+        ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: theme.scaffoldBackgroundColor.withValues(
+                  alpha: theme.brightness == Brightness.dark ? 0.76 : 0.82,
+                ),
+                border: Border(
+                  bottom: BorderSide(
+                    color: theme.brightness == Brightness.dark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.black.withValues(alpha: 0.06),
+                  ),
+                ),
               ),
-            ),
-          ),
-          child: Align(
-            alignment: Alignment.center,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 860),
-              child: _CategoryQuickNav(
-                categories: navCategories,
-                onSelect: _scrollTo,
+              child: Align(
+                alignment: Alignment.center,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 860),
+                  child: _CategoryQuickNav(
+                    categories: navCategories,
+                    onSelect: _scrollTo,
+                  ),
+                ),
               ),
             ),
           ),
@@ -1297,6 +1307,49 @@ class _SettingsContentState extends ConsumerState<_SettingsContent> {
 // Settings 2.0 Modern Components
 // -----------------------------------------------------------------------------
 
+class _SettingsIconBadge extends StatelessWidget {
+  const _SettingsIconBadge({
+    required this.icon,
+    required this.color,
+    this.size = 34,
+    this.iconSize = 18,
+  });
+
+  final IconData icon;
+  final Color color;
+  final double size;
+  final double iconSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color,
+            color.withValues(alpha: 0.86),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(size * 0.28),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.35),
+            blurRadius: 7,
+            offset: const Offset(0, 2.5),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Icon(icon, size: iconSize, color: Colors.white),
+      ),
+    );
+  }
+}
+
 class _CategoryQuickNav extends StatelessWidget {
   const _CategoryQuickNav({
     required this.categories,
@@ -1310,8 +1363,10 @@ class _CategoryQuickNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return SizedBox(
-      height: 40,
+      height: 44,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
@@ -1319,32 +1374,84 @@ class _CategoryQuickNav extends StatelessWidget {
         separatorBuilder: (_, __) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final cat = categories[index];
-          return Material(
-            color: theme.colorScheme.surfaceContainer,
-            borderRadius: BorderRadius.circular(20),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(20),
-              onTap: () => onSelect(cat.key),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
-                  ),
+          return Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              boxShadow: [
+                BoxShadow(
+                  color: isDark
+                      ? Colors.black.withValues(alpha: 0.25)
+                      : cat.color.withValues(alpha: 0.12),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2.5),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(cat.icon, size: 16, color: cat.color),
-                    const SizedBox(width: 8),
-                    Text(
-                      cat.label,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(22),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: Material(
+                  color: isDark
+                      ? theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.60)
+                      : Colors.white.withValues(alpha: 0.82),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(22),
+                    onTap: () {
+                      HapticFeedback.selectionClick();
+                      onSelect(cat.key);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.18)
+                              : Colors.white.withValues(alpha: 0.85),
+                          width: 1.1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  cat.color,
+                                  cat.color.withValues(alpha: 0.82),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(7),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: cat.color.withValues(alpha: 0.35),
+                                  blurRadius: 5,
+                                  offset: const Offset(0, 1.5),
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Icon(cat.icon, size: 14, color: Colors.white),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            cat.label,
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -1373,50 +1480,95 @@ class _SettingsCardGroup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       key: sectionKey,
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 18),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.40)
+                : accentColor.withValues(alpha: 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+            spreadRadius: -2,
+          ),
+          BoxShadow(
+            color: accentColor.withValues(alpha: isDark ? 0.08 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
-            child: Row(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isDark
+                    ? [
+                        theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.60),
+                        theme.colorScheme.surfaceContainerLow.withValues(alpha: 0.40),
+                      ]
+                    : [
+                        Colors.white.withValues(alpha: 0.88),
+                        Colors.white.withValues(alpha: 0.72),
+                      ],
+              ),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.15)
+                    : Colors.white.withValues(alpha: 0.85),
+                width: 1.2,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // iOS Liquid Glass Card Header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                  child: Row(
+                    children: [
+                      _SettingsIconBadge(
+                        icon: icon,
+                        color: accentColor,
+                        size: 34,
+                        iconSize: 19,
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    color: accentColor.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Icon(icon, size: 18, color: accentColor),
+                  height: 1,
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : theme.colorScheme.outlineVariant.withValues(alpha: 0.25),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                ),
+                ...children,
               ],
             ),
           ),
-          const Divider(height: 1, thickness: 1, indent: 0, endIndent: 0),
-          ...children,
-        ],
+        ),
       ),
     );
   }
@@ -1427,12 +1579,15 @@ class _SettingsDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Divider(
       height: 1,
       thickness: 0.7,
-      indent: 68,
+      indent: 64,
       endIndent: 16,
-      color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.25),
+      color: isDark
+          ? Colors.white.withValues(alpha: 0.07)
+          : Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.25),
     );
   }
 }
@@ -1463,14 +1618,11 @@ class _SettingsTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: iconColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, size: 20, color: iconColor),
+            _SettingsIconBadge(
+              icon: icon,
+              color: iconColor,
+              size: 34,
+              iconSize: 18,
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -1536,14 +1688,11 @@ class _SettingsSegmentedTile<T> extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, size: 20, color: iconColor),
+              _SettingsIconBadge(
+                icon: icon,
+                color: iconColor,
+                size: 34,
+                iconSize: 18,
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -1653,14 +1802,11 @@ class _SettingsStepperTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, size: 20, color: iconColor),
+          _SettingsIconBadge(
+            icon: icon,
+            color: iconColor,
+            size: 34,
+            iconSize: 18,
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -1753,18 +1899,11 @@ class _SettingsFolderStructureTile extends StatelessWidget {
           children: [
             Row(
               children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0EA5E9).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.folder_copy_rounded,
-                    size: 20,
-                    color: Color(0xFF0EA5E9),
-                  ),
+                const _SettingsIconBadge(
+                  icon: Icons.folder_copy_rounded,
+                  color: Color(0xFF0EA5E9),
+                  size: 34,
+                  iconSize: 18,
                 ),
                 const SizedBox(width: 14),
                 Expanded(
