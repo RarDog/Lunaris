@@ -187,7 +187,12 @@ class _SettingsContentState extends ConsumerState<_SettingsContent> {
         Expanded(
           child: SingleChildScrollView(
             controller: _scrollController,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: EdgeInsets.fromLTRB(
+              16,
+              12,
+              16,
+              120 + MediaQuery.paddingOf(context).bottom,
+            ),
             child: Align(
               alignment: Alignment.topCenter,
               child: ConstrainedBox(
@@ -2547,35 +2552,64 @@ class _HeroBrandBanner extends StatelessWidget {
           Text(
             isRu ? 'Резервное копирование и экспорт' : 'Backup & JSON Export',
             style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.2,
             ),
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            alignment: WrapAlignment.center,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              OutlinedButton.icon(
-                onPressed: onExportBackup,
-                icon: const Icon(Icons.file_upload_rounded, size: 18),
-                label: Text(isRu ? 'Экспорт бэкапа' : 'Export backup'),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: onExportBackup,
+                      icon: const Icon(Icons.file_upload_rounded, size: 18),
+                      label: Text(
+                        isRu ? 'Экспорт бэкапа' : 'Export backup',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: onImportBackup,
+                      icon: const Icon(Icons.file_download_rounded, size: 18),
+                      label: Text(
+                        isRu ? 'Импорт бэкапа' : 'Import backup',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              OutlinedButton.icon(
-                onPressed: onImportBackup,
-                icon: const Icon(Icons.file_download_rounded, size: 18),
-                label: Text(isRu ? 'Импорт бэкапа' : 'Import backup'),
-              ),
-              OutlinedButton.icon(
-                onPressed: onExportJson,
-                icon: const Icon(Icons.upload_file_rounded, size: 18),
-                label: const Text('JSON Export'),
-              ),
-              OutlinedButton.icon(
-                onPressed: onImportJson,
-                icon: const Icon(Icons.download_for_offline_rounded, size: 18),
-                label: const Text('JSON Import'),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.tonalIcon(
+                      onPressed: onExportJson,
+                      icon: const Icon(Icons.data_object_rounded, size: 18),
+                      label: Text(
+                        isRu ? 'JSON Экспорт' : 'JSON Export',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton.tonalIcon(
+                      onPressed: onImportJson,
+                      icon: const Icon(Icons.download_for_offline_rounded, size: 18),
+                      label: Text(
+                        isRu ? 'JSON Импорт' : 'JSON Import',
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

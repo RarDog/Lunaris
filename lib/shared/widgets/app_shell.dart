@@ -297,7 +297,7 @@ class _MobileShell extends StatelessWidget {
       floatingActionButton: location == '/settings'
           ? null
           : Padding(
-              padding: const EdgeInsets.only(bottom: 68, right: 4),
+              padding: const EdgeInsets.only(bottom: 0, right: 2),
               child: _LiquidGlassSettingsButton(
                 ru: ru,
                 onTap: () => context.go('/settings'),
