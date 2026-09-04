@@ -219,34 +219,71 @@ class PostDetailsScreen extends ConsumerWidget {
                         ),
                         Expanded(
                           child: Center(
-                            child: SizedBox(
-                              width: double.infinity,
-                              height: 760,
-                              child: PostMediaViewer(
-                                key: ValueKey(post.cacheKey),
-                                post: post,
-                                localFilePath: localMedia?.savedPath,
-                                qualityMode: qualityMode,
-                                mediaHeaders: ref
-                                        .watch(postMediaHeadersProvider(post))
-                                        .value ??
-                                    const {},
-                                initialPosition: Duration(
-                                  milliseconds: settings.videoPlaybackPositions[
-                                          post.cacheKey] ??
-                                      0,
-                                ),
-                                initialLoop: settings.videoPlayerLoop,
-                                initialMuted: settings.videoPlayerMuted,
-                                initialCoverVideo: settings.videoPlayerCover,
-                                initialHalfVolume:
-                                    settings.videoPlayerHalfVolume,
-                                onPlaybackSnapshot: (snapshot) =>
-                                    _saveVideoSnapshot(ref, post, snapshot),
-                                onPlaybackPreferencesChanged: (snapshot) =>
-                                    _saveVideoPreferences(ref, snapshot),
-                              ),
-                            ),
+                            child: MediaUrlSelector.isVideo(post)
+                                ? ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxHeight: 760,
+                                    ),
+                                    child: AspectRatio(
+                                      aspectRatio:
+                                          (post.width > 0 && post.height > 0)
+                                              ? (post.width / post.height)
+                                                  .clamp(0.45, 2.4)
+                                              : (16 / 9),
+                                      child: PostMediaViewer(
+                                        key: ValueKey(post.cacheKey),
+                                        post: post,
+                                        localFilePath: localMedia?.savedPath,
+                                        qualityMode: qualityMode,
+                                        mediaHeaders: ref
+                                                .watch(postMediaHeadersProvider(post))
+                                                .value ??
+                                            const {},
+                                        initialPosition: Duration(
+                                          milliseconds: settings.videoPlaybackPositions[
+                                                  post.cacheKey] ??
+                                              0,
+                                        ),
+                                        initialLoop: settings.videoPlayerLoop,
+                                        initialMuted: settings.videoPlayerMuted,
+                                        initialCoverVideo: settings.videoPlayerCover,
+                                        initialHalfVolume:
+                                            settings.videoPlayerHalfVolume,
+                                        onPlaybackSnapshot: (snapshot) =>
+                                            _saveVideoSnapshot(ref, post, snapshot),
+                                        onPlaybackPreferencesChanged: (snapshot) =>
+                                            _saveVideoPreferences(ref, snapshot),
+                                      ),
+                                    ),
+                                  )
+                                : SizedBox(
+                                    width: double.infinity,
+                                    height: 760,
+                                    child: PostMediaViewer(
+                                      key: ValueKey(post.cacheKey),
+                                      post: post,
+                                      localFilePath: localMedia?.savedPath,
+                                      qualityMode: qualityMode,
+                                      mediaHeaders: ref
+                                              .watch(postMediaHeadersProvider(post))
+                                              .value ??
+                                          const {},
+                                      initialPosition: Duration(
+                                        milliseconds: settings.videoPlaybackPositions[
+                                                post.cacheKey] ??
+                                            0,
+                                      ),
+                                      initialLoop: settings.videoPlayerLoop,
+                                      initialMuted: settings.videoPlayerMuted,
+                                      initialCoverVideo: settings.videoPlayerCover,
+                                      initialHalfVolume:
+                                          settings.videoPlayerHalfVolume,
+                                      onPlaybackSnapshot: (snapshot) =>
+                                          _saveVideoSnapshot(ref, post, snapshot),
+                                      onPlaybackPreferencesChanged: (snapshot) =>
+                                          _saveVideoPreferences(ref, snapshot),
+                                    ),
+                                  ),
                           ),
                         ),
                         IconButton.filledTonal(
@@ -409,33 +446,72 @@ class PostDetailsScreen extends ConsumerWidget {
                 ? null
                 : () =>
                     _showMobileQuickActions(context, ref, post, favoriteKeys),
-            child: SizedBox(
-              width: double.infinity,
-              height: MediaQuery.sizeOf(context).height * 0.62,
-              child: PostMediaViewer(
-                key: ValueKey(post.cacheKey),
-                post: post,
-                localFilePath: localMedia?.savedPath,
-                qualityMode: qualityMode,
-                mediaHeaders:
-                    ref.watch(postMediaHeadersProvider(post)).value ?? const {},
-                initialPosition: Duration(
-                  milliseconds:
-                      settings.videoPlaybackPositions[post.cacheKey] ?? 0,
-                ),
-                initialLoop: settings.videoPlayerLoop,
-                initialMuted: settings.videoPlayerMuted,
-                initialCoverVideo: settings.videoPlayerCover,
-                initialHalfVolume: settings.videoPlayerHalfVolume,
-                onPlaybackSnapshot: (snapshot) =>
-                    _saveVideoSnapshot(ref, post, snapshot),
-                onPlaybackPreferencesChanged: (snapshot) =>
-                    _saveVideoPreferences(ref, snapshot),
-                onMediaGestureLockChanged: (locked) {
-                  onMediaGestureLockChanged?.call(locked);
-                },
-              ),
-            ),
+            child: isVideo
+                ? Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.sizeOf(context).height * 0.70,
+                      ),
+                      child: AspectRatio(
+                        aspectRatio: (post.width > 0 && post.height > 0)
+                            ? (post.width / post.height).clamp(0.45, 2.4)
+                            : (16 / 9),
+                        child: PostMediaViewer(
+                          key: ValueKey(post.cacheKey),
+                          post: post,
+                          localFilePath: localMedia?.savedPath,
+                          qualityMode: qualityMode,
+                          mediaHeaders:
+                              ref.watch(postMediaHeadersProvider(post)).value ??
+                                  const {},
+                          initialPosition: Duration(
+                            milliseconds:
+                                settings.videoPlaybackPositions[post.cacheKey] ??
+                                    0,
+                          ),
+                          initialLoop: settings.videoPlayerLoop,
+                          initialMuted: settings.videoPlayerMuted,
+                          initialCoverVideo: settings.videoPlayerCover,
+                          initialHalfVolume: settings.videoPlayerHalfVolume,
+                          onPlaybackSnapshot: (snapshot) =>
+                              _saveVideoSnapshot(ref, post, snapshot),
+                          onPlaybackPreferencesChanged: (snapshot) =>
+                              _saveVideoPreferences(ref, snapshot),
+                          onMediaGestureLockChanged: (locked) {
+                            onMediaGestureLockChanged?.call(locked);
+                          },
+                        ),
+                      ),
+                    ),
+                  )
+                : SizedBox(
+                    width: double.infinity,
+                    height: MediaQuery.sizeOf(context).height * 0.62,
+                    child: PostMediaViewer(
+                      key: ValueKey(post.cacheKey),
+                      post: post,
+                      localFilePath: localMedia?.savedPath,
+                      qualityMode: qualityMode,
+                      mediaHeaders:
+                          ref.watch(postMediaHeadersProvider(post)).value ??
+                              const {},
+                      initialPosition: Duration(
+                        milliseconds:
+                            settings.videoPlaybackPositions[post.cacheKey] ?? 0,
+                      ),
+                      initialLoop: settings.videoPlayerLoop,
+                      initialMuted: settings.videoPlayerMuted,
+                      initialCoverVideo: settings.videoPlayerCover,
+                      initialHalfVolume: settings.videoPlayerHalfVolume,
+                      onPlaybackSnapshot: (snapshot) =>
+                          _saveVideoSnapshot(ref, post, snapshot),
+                      onPlaybackPreferencesChanged: (snapshot) =>
+                          _saveVideoPreferences(ref, snapshot),
+                      onMediaGestureLockChanged: (locked) {
+                        onMediaGestureLockChanged?.call(locked);
+                      },
+                    ),
+                  ),
           ),
           const SizedBox(height: 12),
           PostActionBar(

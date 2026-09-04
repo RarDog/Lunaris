@@ -1792,7 +1792,10 @@ class _VideoControls extends StatelessWidget {
                   ),
                 ),
                 child: SafeArea(
+                  top: fullscreen,
                   bottom: false,
+                  left: fullscreen,
+                  right: fullscreen,
                   child: Row(
                     children: [
                       if (fullscreen) ...[
@@ -1910,7 +1913,12 @@ class _VideoControls extends StatelessWidget {
               left: 0,
               right: 0,
               child: Container(
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+                padding: EdgeInsets.fromLTRB(
+                  14,
+                  8,
+                  14,
+                  fullscreen ? 10 : 4,
+                ),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.bottomCenter,
@@ -1920,6 +1928,9 @@ class _VideoControls extends StatelessWidget {
                 ),
                 child: SafeArea(
                   top: false,
+                  bottom: fullscreen,
+                  left: fullscreen,
+                  right: fullscreen,
                   child: StreamBuilder<Duration>(
                     stream: player.stream.duration,
                     initialData: player.state.duration,
@@ -1967,8 +1978,8 @@ class _VideoControls extends StatelessWidget {
                                         // Buffer progress track
                                         if (maxMs > 0 && bufferMs > 0)
                                           Positioned(
-                                            left: 20,
-                                            right: 20,
+                                            left: 14,
+                                            right: 14,
                                             child: ClipRRect(
                                               borderRadius:
                                                   BorderRadius.circular(2),
@@ -1976,10 +1987,12 @@ class _VideoControls extends StatelessWidget {
                                                 value: (bufferMs / maxMs)
                                                     .clamp(0.0, 1.0),
                                                 minHeight: 3.5,
-                                                backgroundColor: Colors.transparent,
+                                                backgroundColor:
+                                                    Colors.transparent,
                                                 valueColor:
                                                     AlwaysStoppedAnimation(
-                                                  Colors.white.withValues(alpha: 0.28),
+                                                  Colors.white
+                                                      .withValues(alpha: 0.28),
                                                 ),
                                               ),
                                             ),
@@ -1996,6 +2009,10 @@ class _VideoControls extends StatelessWidget {
                                             thumbShape:
                                                 const RoundSliderThumbShape(
                                               enabledThumbRadius: 6,
+                                            ),
+                                            overlayShape:
+                                                const RoundSliderOverlayShape(
+                                              overlayRadius: 14,
                                             ),
                                           ),
                                           child: Slider(
