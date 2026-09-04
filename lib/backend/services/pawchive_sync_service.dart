@@ -16,12 +16,32 @@ class PawchiveSyncResult {
     required this.updatedSettings,
     required this.newlyAddedToLocal,
     required this.totalSyncedCount,
+    this.pushedToRemoteCount = 0,
     this.errorMessage,
   });
 
   final AppSettings updatedSettings;
   final int newlyAddedToLocal;
   final int totalSyncedCount;
+  final int pushedToRemoteCount;
+  final String? errorMessage;
+
+  bool get isSuccess => errorMessage == null;
+}
+
+class PawchivePushResult {
+  const PawchivePushResult({
+    required this.pushedCount,
+    required this.totalRemoteCount,
+    required this.totalLocalCandidates,
+    this.updatedSettings,
+    this.errorMessage,
+  });
+
+  final int pushedCount;
+  final int totalRemoteCount;
+  final int totalLocalCandidates;
+  final AppSettings? updatedSettings;
   final String? errorMessage;
 
   bool get isSuccess => errorMessage == null;
@@ -249,10 +269,12 @@ class PawchiveSyncService {
   }
 
   /// Synchronizes a specific Pawchive account with current local AppSettings.
+  /// If [pushLocalPawchiveArtists] is true (or [settings.pawchiveBidirectionalSync] is enabled),
+  /// local favorites are also pushed to the Pawchive server.
   Future<PawchiveSyncResult> syncAccountFavorites({
     required PawchiveAccount account,
     required AppSettings settings,
-    bool pushLocalPawchiveArtists = false,
+    bool? pushLocalPawchiveArtists,
   }) async {
     try {
       final remoteArtists = await fetchRemoteFavoriteArtists(
@@ -262,40 +284,57 @@ class PawchiveSyncService {
 
       final currentFavorites = List<String>.from(settings.favoriteArtists);
       final existingKeys = <String>{};
+      final existingServiceId = <String>{};
       for (final raw in currentFavorites) {
         try {
           final parsed = FavoriteArtistItem.fromJson(
             jsonDecode(raw) as Map<String, dynamic>,
           );
           existingKeys.add(parsed.key);
+          if (parsed.service.isNotEmpty && parsed.id.isNotEmpty) {
+            existingServiceId.add('${parsed.service}:${parsed.id}'.toLowerCase());
+          }
         } catch (_) {}
       }
 
       var addedCount = 0;
       for (final artist in remoteArtists) {
-        if (!existingKeys.contains(artist.key)) {
+        final pair = '${artist.service}:${artist.id}'.toLowerCase();
+        if (!existingKeys.contains(artist.key) && !existingServiceId.contains(pair)) {
           currentFavorites.insert(0, jsonEncode(artist.toJson()));
           existingKeys.add(artist.key);
+          existingServiceId.add(pair);
           addedCount++;
         }
       }
 
-      // Optionally push local Pawchive artists to remote
-      if (pushLocalPawchiveArtists) {
-        final remoteKeys = remoteArtists.map((a) => a.key).toSet();
+      var pushedCount = 0;
+      final shouldPush =
+          pushLocalPawchiveArtists ?? settings.pawchiveBidirectionalSync;
+      if (shouldPush) {
+        final remotePairSet = remoteArtists
+            .map((a) => '${a.service}:${a.id}'.toLowerCase())
+            .toSet();
+
         for (final raw in currentFavorites) {
           try {
             final parsed = FavoriteArtistItem.fromJson(
               jsonDecode(raw) as Map<String, dynamic>,
             );
-            if (parsed.providerId == 'pawchive' &&
-                !remoteKeys.contains(parsed.key)) {
-              await toggleRemoteFavorite(
-                account: account,
-                service: parsed.service,
-                artistId: parsed.id,
-                isFavorite: true,
-              );
+            if (parsed.service.isNotEmpty && parsed.id.isNotEmpty) {
+              final pair = '${parsed.service}:${parsed.id}'.toLowerCase();
+              if (!remotePairSet.contains(pair)) {
+                final ok = await toggleRemoteFavorite(
+                  account: account,
+                  service: parsed.service,
+                  artistId: parsed.id,
+                  isFavorite: true,
+                );
+                if (ok) {
+                  pushedCount++;
+                  remotePairSet.add(pair);
+                }
+              }
             }
           } catch (_) {}
         }
@@ -304,7 +343,7 @@ class PawchiveSyncService {
       // Update account sync stats in settings
       final updatedAccount = account.copyWith(
         lastSyncedAt: DateTime.now(),
-        syncedArtistsCount: remoteArtists.length,
+        syncedArtistsCount: remoteArtists.length + pushedCount,
       );
 
       final updatedAccountsList = settings.parsedPawchiveAccounts.map((a) {
@@ -320,13 +359,87 @@ class PawchiveSyncService {
       return PawchiveSyncResult(
         updatedSettings: newSettings,
         newlyAddedToLocal: addedCount,
-        totalSyncedCount: remoteArtists.length,
+        pushedToRemoteCount: pushedCount,
+        totalSyncedCount: remoteArtists.length + pushedCount,
       );
     } catch (e) {
       return PawchiveSyncResult(
         updatedSettings: settings,
         newlyAddedToLocal: 0,
+        pushedToRemoteCount: 0,
         totalSyncedCount: 0,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+
+  /// Explicitly pushes all local favorite artists into a specified Pawchive account.
+  Future<PawchivePushResult> pushLocalFavoritesToAccount({
+    required PawchiveAccount account,
+    required AppSettings settings,
+  }) async {
+    try {
+      final remoteArtists = await fetchRemoteFavoriteArtists(
+        baseUrl: account.baseUrl,
+        sessionCookie: account.sessionCookie,
+      );
+
+      final remotePairSet = remoteArtists
+          .map((a) => '${a.service}:${a.id}'.toLowerCase())
+          .toSet();
+
+      var pushedCount = 0;
+      var totalLocalCandidates = 0;
+
+      for (final raw in settings.favoriteArtists) {
+        try {
+          final parsed = FavoriteArtistItem.fromJson(
+            jsonDecode(raw) as Map<String, dynamic>,
+          );
+          if (parsed.service.isNotEmpty && parsed.id.isNotEmpty) {
+            totalLocalCandidates++;
+            final pair = '${parsed.service}:${parsed.id}'.toLowerCase();
+            if (!remotePairSet.contains(pair)) {
+              final ok = await toggleRemoteFavorite(
+                account: account,
+                service: parsed.service,
+                artistId: parsed.id,
+                isFavorite: true,
+              );
+              if (ok) {
+                pushedCount++;
+                remotePairSet.add(pair);
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
+      final updatedAccount = account.copyWith(
+        lastSyncedAt: DateTime.now(),
+        syncedArtistsCount: remoteArtists.length + pushedCount,
+      );
+
+      final updatedAccountsList = settings.parsedPawchiveAccounts.map((a) {
+        return a.id == updatedAccount.id ? updatedAccount : a;
+      }).toList();
+
+      final newSettings = settings.copyWith(
+        pawchiveAccounts:
+            updatedAccountsList.map((a) => jsonEncode(a.toJson())).toList(),
+      );
+
+      return PawchivePushResult(
+        pushedCount: pushedCount,
+        totalRemoteCount: remoteArtists.length + pushedCount,
+        totalLocalCandidates: totalLocalCandidates,
+        updatedSettings: newSettings,
+      );
+    } catch (e) {
+      return PawchivePushResult(
+        pushedCount: 0,
+        totalRemoteCount: 0,
+        totalLocalCandidates: 0,
         errorMessage: e.toString(),
       );
     }
@@ -335,30 +448,36 @@ class PawchiveSyncService {
   /// Synchronizes ALL connected Pawchive accounts with local AppSettings.
   Future<PawchiveSyncResult> syncAllAccounts({
     required AppSettings settings,
+    bool? pushLocalArtists,
   }) async {
     final accounts = settings.parsedPawchiveAccounts;
     if (accounts.isEmpty) {
       return PawchiveSyncResult(
         updatedSettings: settings,
         newlyAddedToLocal: 0,
+        pushedToRemoteCount: 0,
         totalSyncedCount: 0,
         errorMessage: 'Нет добавленных аккаунтов Pawchive',
       );
     }
 
+    final doPush = pushLocalArtists ?? settings.pawchiveBidirectionalSync;
     var runningSettings = settings;
     var totalAdded = 0;
     var totalSynced = 0;
+    var totalPushed = 0;
     String? firstError;
 
     for (final account in accounts) {
       final res = await syncAccountFavorites(
         account: account,
         settings: runningSettings,
+        pushLocalPawchiveArtists: doPush,
       );
       if (res.isSuccess) {
         runningSettings = res.updatedSettings;
         totalAdded += res.newlyAddedToLocal;
+        totalPushed += res.pushedToRemoteCount;
         totalSynced += res.totalSyncedCount;
       } else {
         firstError ??= res.errorMessage;
@@ -368,6 +487,7 @@ class PawchiveSyncService {
     return PawchiveSyncResult(
       updatedSettings: runningSettings,
       newlyAddedToLocal: totalAdded,
+      pushedToRemoteCount: totalPushed,
       totalSyncedCount: totalSynced,
       errorMessage: firstError,
     );

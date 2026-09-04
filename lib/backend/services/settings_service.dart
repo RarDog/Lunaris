@@ -51,6 +51,7 @@ class AppSettings {
     required this.lastFeedScrollOffset,
     this.favoriteArtists = const [],
     this.pawchiveAccounts = const [],
+    this.pawchiveBidirectionalSync = false,
     this.skippedUpdateVersion,
     this.lastUpdateCheckAt,
     this.defaultRatingFilter,
@@ -66,6 +67,7 @@ class AppSettings {
 
   final List<String> favoriteArtists;
   final List<String> pawchiveAccounts;
+  final bool pawchiveBidirectionalSync;
   final List<String> enabledProviderIds;
   final bool nsfwEnabled;
   final int cacheTtlHours;
@@ -122,6 +124,7 @@ class AppSettings {
     providerPriority: {'gelbooru': 0, 'rule34': 1, 'realbooru': 2},
     favoriteArtists: [],
     pawchiveAccounts: [],
+    pawchiveBidirectionalSync: false,
     themeMode: 'dark',
     languageCode: 'ru',
     appSeedColor: 0xFFE84D8A,
@@ -205,6 +208,7 @@ class AppSettings {
     bool clearLastFeedRating = false,
     List<String>? favoriteArtists,
     List<String>? pawchiveAccounts,
+    bool? pawchiveBidirectionalSync,
     bool? amoledMode,
     bool? useDynamicColor,
     String? gridMode,
@@ -216,6 +220,8 @@ class AppSettings {
     return AppSettings(
       favoriteArtists: favoriteArtists ?? this.favoriteArtists,
       pawchiveAccounts: pawchiveAccounts ?? this.pawchiveAccounts,
+      pawchiveBidirectionalSync:
+          pawchiveBidirectionalSync ?? this.pawchiveBidirectionalSync,
       enabledProviderIds: enabledProviderIds ?? this.enabledProviderIds,
       nsfwEnabled: nsfwEnabled ?? this.nsfwEnabled,
       cacheTtlHours: cacheTtlHours ?? this.cacheTtlHours,
@@ -276,6 +282,7 @@ class AppSettings {
   Map<String, dynamic> toJson() => {
         'favoriteArtists': favoriteArtists,
         'pawchiveAccounts': pawchiveAccounts,
+        'pawchiveBidirectionalSync': pawchiveBidirectionalSync,
         'enabledProviderIds': enabledProviderIds,
         'nsfwEnabled': nsfwEnabled,
         'cacheTtlHours': cacheTtlHours,
@@ -421,6 +428,9 @@ class AppSettings {
         pawchiveAccounts: List<String>.from(
           (json['pawchiveAccounts'] as List?) ?? defaults.pawchiveAccounts,
         ),
+        pawchiveBidirectionalSync:
+            (json['pawchiveBidirectionalSync'] as bool?) ??
+                defaults.pawchiveBidirectionalSync,
         skippedUpdateVersion: json['skippedUpdateVersion'] as String?,
         lastUpdateCheckAt: json['lastUpdateCheckAt'] as String?,
         defaultRatingFilter: json['defaultRatingFilter'] as String?,

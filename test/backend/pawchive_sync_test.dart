@@ -265,5 +265,83 @@ void main() {
       expect(lastMethod, equals('DELETE'));
       expect(lastPath, equals('https://pawchive.pw/api/v1/favorites/creator/fanbox/12345'));
     });
+
+    test('pushLocalFavoritesToAccount exports local artists to Pawchive', () async {
+      final postedPaths = <String>[];
+      final dio = Dio();
+      dio.httpClientAdapter = _FakeAdapter((options) async {
+        if (options.path.endsWith('/api/v1/account/favorites')) {
+          final payload = jsonEncode([
+            {
+              'id': 'already_remote_1',
+              'service': 'fanbox',
+              'name': 'AlreadyRemote',
+            },
+          ]);
+          return ResponseBody.fromString(
+            payload,
+            200,
+            headers: {
+              Headers.contentTypeHeader: [Headers.jsonContentType],
+            },
+          );
+        }
+        if (options.method == 'POST' &&
+            options.path.contains('/api/v1/favorites/creator/')) {
+          postedPaths.add(options.path);
+          return ResponseBody.fromString('ok', 204);
+        }
+        return ResponseBody.fromString('Not found', 404);
+      });
+
+      final service = PawchiveSyncService(dio: dio);
+
+      const itemAlreadyRemote = FavoriteArtistItem(
+        id: 'already_remote_1',
+        service: 'fanbox',
+        providerId: 'pawchive',
+        name: 'AlreadyRemote',
+      );
+      const itemToUpload1 = FavoriteArtistItem(
+        id: 'local_creator_99',
+        service: 'patreon',
+        providerId: 'kemono',
+        name: 'LocalPatreonCreator',
+      );
+      const itemToUpload2 = FavoriteArtistItem(
+        id: 'local_creator_88',
+        service: 'subscribestar',
+        providerId: 'coomer',
+        name: 'LocalSubscribeStarCreator',
+      );
+
+      final settings = AppSettings.defaults.copyWith(
+        favoriteArtists: [
+          jsonEncode(itemAlreadyRemote.toJson()),
+          jsonEncode(itemToUpload1.toJson()),
+          jsonEncode(itemToUpload2.toJson()),
+        ],
+      );
+
+      final account = PawchiveAccount(
+        id: 'myacc',
+        username: 'myacc',
+        sessionCookie: 'session=123',
+        createdAt: DateTime.now(),
+      );
+
+      final pushResult = await service.pushLocalFavoritesToAccount(
+        account: account,
+        settings: settings,
+      );
+
+      expect(pushResult.isSuccess, isTrue);
+      expect(pushResult.pushedCount, equals(2));
+      expect(pushResult.totalLocalCandidates, equals(3));
+      expect(pushResult.totalRemoteCount, equals(3)); // 1 existing + 2 pushed
+      expect(postedPaths.length, equals(2));
+      expect(postedPaths[0], contains('/api/v1/favorites/creator/patreon/local_creator_99'));
+      expect(postedPaths[1], contains('/api/v1/favorites/creator/subscribestar/local_creator_88'));
+    });
   });
 }

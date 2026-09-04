@@ -78,8 +78,8 @@ class _ArtistsScreenState extends ConsumerState<ArtistsScreen> {
           settings.copyWith(favoriteArtists: current),
         );
 
-    // Sync with active Pawchive account if artist belongs to Pawchive
-    if (artist.providerId == 'pawchive') {
+    // Sync with active Pawchive account if available
+    if (artist.service.isNotEmpty && artist.id.isNotEmpty) {
       final activeAcc = settings.activePawchiveAccount;
       if (activeAcc != null) {
         unawaited(ref.read(pawchiveSyncServiceProvider).toggleRemoteFavorite(

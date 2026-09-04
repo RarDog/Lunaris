@@ -439,7 +439,7 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
           settings.copyWith(favoriteArtists: current),
         );
 
-    if (widget.providerId == 'pawchive') {
+    if (widget.service.isNotEmpty && widget.artistId.isNotEmpty) {
       final activeAcc = settings.activePawchiveAccount;
       if (activeAcc != null) {
         unawaited(ref.read(pawchiveSyncServiceProvider).toggleRemoteFavorite(

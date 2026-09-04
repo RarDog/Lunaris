@@ -33,6 +33,7 @@ class _PawchiveAccountsSheetState extends ConsumerState<PawchiveAccountsSheet>
   bool _isAdding = false;
   bool _obscurePassword = true;
   String? _syncingAccountId;
+  String? _pushingAccountId;
   bool _syncingAll = false;
   String? _errorMessage;
 
@@ -207,10 +208,13 @@ class _PawchiveAccountsSheetState extends ConsumerState<PawchiveAccountsSheet>
             .read(settingsControllerProvider.notifier)
             .saveSettings(result.updatedSettings);
         if (mounted) {
+          final pushedMsg = result.pushedToRemoteCount > 0
+              ? ', выгружено в Pawchive: +${result.pushedToRemoteCount}'
+              : '';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Синхронизировано: ${result.totalSyncedCount} авторов (+${result.newlyAddedToLocal} новых)',
+                'Синхронизировано: ${result.totalSyncedCount} авторов (+${result.newlyAddedToLocal} новых в приложении$pushedMsg)',
               ),
             ),
           );
@@ -232,6 +236,92 @@ class _PawchiveAccountsSheetState extends ConsumerState<PawchiveAccountsSheet>
     }
   }
 
+  Future<void> _pushFavoritesToAccount(PawchiveAccount account) async {
+    final settings =
+        ref.read(appSettingsProvider).value ?? AppSettings.defaults;
+    final totalLocal = settings.favoriteArtists.length;
+    if (totalLocal == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('В локальном избранном пока нет авторов')),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Выгрузить избранное в Pawchive?'),
+        content: Text(
+          'Все локальные авторы из приложения ($totalLocal) будут добавлены в избранное аккаунта @${account.username} на сервере Pawchive.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Отмена'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(ctx, true),
+            icon: const Icon(Icons.cloud_upload_rounded),
+            label: const Text('Выгрузить'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _pushingAccountId = account.id);
+    try {
+      final syncService = ref.read(pawchiveSyncServiceProvider);
+      final result = await syncService.pushLocalFavoritesToAccount(
+        account: account,
+        settings: settings,
+      );
+
+      if (result.isSuccess) {
+        if (result.updatedSettings != null) {
+          await ref
+              .read(settingsControllerProvider.notifier)
+              .saveSettings(result.updatedSettings!);
+        }
+
+        if (mounted) {
+          if (result.pushedCount > 0) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Выгружено ${result.pushedCount} авторов в @${account.username}! Всего в аккаунте: ${result.totalRemoteCount}.',
+                ),
+                backgroundColor: Colors.green.shade700,
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Все авторы (${result.totalLocalCandidates}) уже есть в аккаунте @${account.username}.',
+                ),
+              ),
+            );
+          }
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Ошибка выгрузки: ${result.errorMessage}'),
+              backgroundColor: Colors.red.shade700,
+            ),
+          );
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _pushingAccountId = null);
+      }
+    }
+  }
+
   Future<void> _syncAllAccounts() async {
     setState(() => _syncingAll = true);
     try {
@@ -245,10 +335,13 @@ class _PawchiveAccountsSheetState extends ConsumerState<PawchiveAccountsSheet>
             .read(settingsControllerProvider.notifier)
             .saveSettings(result.updatedSettings);
         if (mounted) {
+          final pushedMsg = result.pushedToRemoteCount > 0
+              ? ', выгружено в Pawchive: +${result.pushedToRemoteCount}'
+              : '';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Все аккаунты синхронизированы! Всего: ${result.totalSyncedCount} (+${result.newlyAddedToLocal} новых)',
+                'Все аккаунты синхронизированы! Всего: ${result.totalSyncedCount} (+${result.newlyAddedToLocal} новых в приложении$pushedMsg)',
               ),
               backgroundColor: Colors.green.shade700,
             ),
@@ -445,6 +538,78 @@ class _PawchiveAccountsSheetState extends ConsumerState<PawchiveAccountsSheet>
                         ),
                       ),
                       ...accounts.map((acc) => _buildAccountCard(acc, scheme, theme)),
+                      const SizedBox(height: 12),
+
+                      // Two-way sync & Export to Pawchive panel
+                      Card(
+                        elevation: 0,
+                        color: scheme.surfaceContainerHigh.withValues(alpha: 0.6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                            color: scheme.outlineVariant.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.swap_vert_rounded, size: 20, color: scheme.primary),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Двусторонняя синхронизация',
+                                      style: theme.textTheme.titleSmall?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  Switch(
+                                    value: settings.pawchiveBidirectionalSync,
+                                    onChanged: (val) async {
+                                      final newSettings = settings.copyWith(
+                                        pawchiveBidirectionalSync: val,
+                                      );
+                                      await ref
+                                          .read(settingsControllerProvider.notifier)
+                                          .saveSettings(newSettings);
+                                    },
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                'При обычной синхронизации также выгружать всех локальных авторов на сервер Pawchive.',
+                                style: TextStyle(
+                                  color: scheme.onSurfaceVariant,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              OutlinedButton.icon(
+                                onPressed: (_syncingAll || _pushingAccountId != null)
+                                    ? null
+                                    : () {
+                                        final target = settings.activePawchiveAccount ?? accounts.first;
+                                        _pushFavoritesToAccount(target);
+                                      },
+                                icon: _pushingAccountId != null
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      )
+                                    : const Icon(Icons.cloud_upload_rounded, size: 18),
+                                label: Text(
+                                  'Выгрузить избранное (${settings.favoriteArtists.length}) в @${(settings.activePawchiveAccount ?? accounts.first).username}',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 16),
                     ],
 
@@ -622,6 +787,8 @@ class _PawchiveAccountsSheetState extends ConsumerState<PawchiveAccountsSheet>
 
   Widget _buildAccountCard(PawchiveAccount acc, ColorScheme scheme, ThemeData theme) {
     final isSyncing = _syncingAccountId == acc.id;
+    final isPushing = _pushingAccountId == acc.id;
+    final isBusy = isSyncing || isPushing;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -688,6 +855,17 @@ class _PawchiveAccountsSheetState extends ConsumerState<PawchiveAccountsSheet>
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
+              icon: isPushing
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.cloud_upload_outlined),
+              tooltip: 'Выгрузить локальное избранное в этот аккаунт',
+              onPressed: isBusy ? null : () => _pushFavoritesToAccount(acc),
+            ),
+            IconButton(
               icon: isSyncing
                   ? const SizedBox(
                       width: 18,
@@ -696,13 +874,15 @@ class _PawchiveAccountsSheetState extends ConsumerState<PawchiveAccountsSheet>
                     )
                   : const Icon(Icons.sync_rounded),
               tooltip: 'Синхронизировать этот аккаунт',
-              onPressed: isSyncing ? null : () => _syncSingleAccount(acc),
+              onPressed: isBusy ? null : () => _syncSingleAccount(acc),
             ),
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert_rounded),
               onSelected: (val) {
                 if (val == 'active') {
                   _setActiveAccount(acc);
+                } else if (val == 'push') {
+                  _pushFavoritesToAccount(acc);
                 } else if (val == 'delete') {
                   _removeAccount(acc);
                 }
@@ -719,6 +899,16 @@ class _PawchiveAccountsSheetState extends ConsumerState<PawchiveAccountsSheet>
                       ],
                     ),
                   ),
+                const PopupMenuItem(
+                  value: 'push',
+                  child: Row(
+                    children: [
+                      Icon(Icons.cloud_upload_outlined, size: 20),
+                      SizedBox(width: 8),
+                      Text('Выгрузить в Pawchive'),
+                    ],
+                  ),
+                ),
                 const PopupMenuItem(
                   value: 'delete',
                   child: Row(
