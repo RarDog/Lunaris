@@ -1,5 +1,15 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.1.0',
+    title: '4-Tab Major Redesign: Search, Favorites, History & Collections',
+    bullets: [
+      'Search Tab Redesign: hero search container, quick search operator chips (and, type:video, rating:safe, etc.), interactive recent search cloud with 1-tap delete (x), popular exploratory category cards, and search tips cheat sheet.',
+      'Favorites Tab Redesign: live counters on segment tabs (All, Offline, Artists), quick media filter chips (All, Videos, Images), in-favorites search bar, and Spotify/Apple Music-style artist album cards with 3-thumbnail preview collages.',
+      'History Tab Redesign: timeline grouped by time (Today, Yesterday, Date), view mode switcher (rich list with 68x68 rounded thumbnails, provider chips, timestamps, and delete from history vs full visual Masonry gallery grid), and confirmation dialog before clearing.',
+      'Collections Tab Redesign: Pinterest-style collection cards with 2x2 thumbnail mosaic covers and glassmorphism post counters, modernized collection details screen with description banner, and elegant squircle creation dialog.',
+    ],
+  ),
+  LunarisChange(
     version: '2.0.15',
     title: 'Settings 2.0 Layout Fixes & Pinned Quick Navigation',
     bullets: [

@@ -47,6 +47,12 @@ class SearchRepository {
     });
   }
 
+  Future<Result<bool>> delete(String historyId) {
+    return _databaseService.safeWrite((isar) async {
+      return await isar.searchHistoryEntitys.deleteByHistoryId(historyId);
+    });
+  }
+
   Future<Result<void>> clear() {
     return _databaseService.safeWrite((isar) async {
       await isar.searchHistoryEntitys.clear();

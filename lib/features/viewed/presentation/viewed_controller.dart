@@ -16,6 +16,14 @@ class ViewedController extends AsyncNotifier<List<ViewedTimelineGroup>> {
     state = AsyncData(await _load());
   }
 
+  Future<void> deleteItem(String providerId, String postId) async {
+    await ref
+        .read(viewedHistoryServiceProvider)
+        .deleteItem(providerId, postId);
+    ref.invalidate(viewedKeysProvider);
+    state = AsyncData(await _load());
+  }
+
   Future<void> clear() async {
     await ref.read(viewedHistoryServiceProvider).clearHistory();
     ref.invalidate(viewedKeysProvider);

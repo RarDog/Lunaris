@@ -51,6 +51,14 @@ class ViewedPostRepository {
     });
   }
 
+  Future<Result<void>> deleteItem(String providerId, String postId) {
+    return _databaseService.safeWrite((isar) async {
+      await isar.viewedPostEntitys.deleteByViewedKey(
+        ViewedPost.keyFor(providerId, postId),
+      );
+    });
+  }
+
   Future<Result<void>> clear() {
     return _databaseService.safeWrite((isar) async {
       await isar.viewedPostEntitys.clear();

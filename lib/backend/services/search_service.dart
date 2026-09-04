@@ -161,6 +161,9 @@ class SearchService {
     return Success(sorted.take(limit).toList(growable: false));
   }
 
+  Future<Result<bool>> deleteHistoryItem(String historyId) =>
+      _repository.delete(historyId);
+
   Future<Result<void>> clearHistory() => _repository.clear();
 
   Future<void> clearTagCache() async {

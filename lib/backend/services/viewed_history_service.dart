@@ -59,6 +59,10 @@ class ViewedHistoryService {
     ]);
   }
 
+  Future<Result<void>> deleteItem(String providerId, String postId) {
+    return _repository.deleteItem(providerId, postId);
+  }
+
   Future<Result<void>> clearHistory() {
     return _repository.clear();
   }

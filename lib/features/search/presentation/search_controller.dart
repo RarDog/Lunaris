@@ -74,6 +74,14 @@ class SearchController extends AsyncNotifier<SearchState> {
     });
   }
 
+  Future<void> deleteHistory(String historyId) async {
+    await ref.read(searchServiceProvider).deleteHistoryItem(historyId);
+    final recent = await _recent();
+    state = AsyncData(
+      (state.value ?? const SearchState()).copyWith(recent: recent),
+    );
+  }
+
   Future<void> clearHistory() async {
     await ref.read(searchServiceProvider).clearHistory();
     state = const AsyncData(SearchState());
