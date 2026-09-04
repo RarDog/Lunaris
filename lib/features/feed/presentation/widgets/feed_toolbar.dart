@@ -104,7 +104,7 @@ class _FeedToolbarState extends State<FeedToolbar> {
                   },
                   onCleared: () {
                     _query = '';
-                    widget.onClearFilters();
+                    widget.onSearch('');
                   },
                 ),
               ),
@@ -235,7 +235,7 @@ class _FeedToolbarState extends State<FeedToolbar> {
                   },
                   onCleared: () {
                     _query = '';
-                    widget.onClearFilters();
+                    widget.onSearch('');
                   },
                 ),
               ),

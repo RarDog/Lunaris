@@ -115,6 +115,27 @@ class _PostMediaViewerState extends State<PostMediaViewer>
         unawaited(_retryVideo());
       }
     }
+    if (oldWidget.initialVolume != widget.initialVolume) {
+      _currentVolume = widget.initialVolume;
+      unawaited(_applyVolume());
+    }
+    if (oldWidget.initialMuted != widget.initialMuted) {
+      _muted = widget.initialMuted;
+      unawaited(_applyVolume());
+    }
+    if (oldWidget.initialHalfVolume != widget.initialHalfVolume) {
+      _halfVolume = widget.initialHalfVolume;
+      unawaited(_applyVolume());
+    }
+    if (oldWidget.initialLoop != widget.initialLoop) {
+      _loopVideo = widget.initialLoop;
+      unawaited(_player?.setPlaylistMode(
+        _loopVideo ? PlaylistMode.single : PlaylistMode.none,
+      ));
+    }
+    if (oldWidget.initialCoverVideo != widget.initialCoverVideo) {
+      _coverVideo = widget.initialCoverVideo;
+    }
   }
 
   @override
@@ -177,6 +198,7 @@ class _PostMediaViewerState extends State<PostMediaViewer>
               onVolumeChanged: (vol) {
                 _currentVolume = vol;
                 widget.onVolumeChanged?.call(vol);
+                _emitPlaybackPreferences();
               },
               fullscreen: widget.fullscreen,
               errorMessage: _videoError,
@@ -338,6 +360,12 @@ class _PostMediaViewerState extends State<PostMediaViewer>
     MediaKit.ensureInitialized();
     _player = Player();
     _controller = VideoController(_player!);
+    try {
+      final native = _player!.platform as dynamic;
+      native?.setProperty('hwdec', 'auto-safe', waitForInitialization: false);
+      native?.setProperty('vd-lavc-software-fallback', 'yes', waitForInitialization: false);
+      native?.setProperty('vd-lavc-check-hw-profile', 'yes', waitForInitialization: false);
+    } catch (_) {}
     _applyVolume();
     _player!.setPlaylistMode(
       _loopVideo ? PlaylistMode.single : PlaylistMode.none,
@@ -381,6 +409,7 @@ class _PostMediaViewerState extends State<PostMediaViewer>
         ),
         play: false,
       );
+      await _applyVolume();
       if (initialPosition > Duration.zero) {
         await player.seek(initialPosition);
       }
@@ -396,14 +425,22 @@ class _PostMediaViewerState extends State<PostMediaViewer>
       await _openVideo(play: play);
       return;
     }
-    // If format error occurred on initial load (often due to async referer headers), retry once automatically
+    final lower = message.toLowerCase();
+    // If format or codec error occurred (e.g. unsupported hwdec profile), fallback to software decoding and retry once
     if (!_retriedFormatError &&
-        (message.contains('Failed to recognize file format') ||
-            message.contains('Demuxer error') ||
-            message.contains('Could not open') ||
-            message.contains('Stream format not recognized') ||
-            message.contains('format unrecognized'))) {
+        (lower.contains('codec') ||
+            lower.contains('could not open') ||
+            lower.contains('couldnt open') ||
+            lower.contains('could not initialize codec') ||
+            lower.contains('demuxer error') ||
+            lower.contains('format unrecognized') ||
+            lower.contains('stream format not recognized') ||
+            lower.contains('failed to recognize file format'))) {
       _retriedFormatError = true;
+      try {
+        final native = _player?.platform as dynamic;
+        await native?.setProperty('hwdec', 'no', waitForInitialization: false);
+      } catch (_) {}
       await Future<void>.delayed(const Duration(milliseconds: 300));
       if (mounted && _player != null) {
         _videoIndex = 0;
@@ -419,6 +456,10 @@ class _PostMediaViewerState extends State<PostMediaViewer>
   Future<void> _retryVideo() async {
     _videoIndex = 0;
     _retriedFormatError = false;
+    try {
+      final native = _player?.platform as dynamic;
+      await native?.setProperty('hwdec', 'no', waitForInitialization: false);
+    } catch (_) {}
     await _openVideo(play: true);
   }
 
@@ -732,6 +773,7 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
     _loopVideo = widget.loopVideo;
     _halfVolume = widget.halfVolume;
     _currentVolume = widget.initialVolume;
+    _applyVolume();
     _isLandscape = widget.aspectRatio > 1.05;
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _applyOrientation();
@@ -996,9 +1038,17 @@ class _VideoSurfaceState extends State<_VideoSurface> {
   @override
   void initState() {
     super.initState();
-    _currentVolume = widget.player.state.volume > 0
-        ? widget.player.state.volume
-        : widget.initialVolume;
+    _currentVolume = widget.initialVolume;
+    widget.player.setVolume(_currentVolume);
+  }
+
+  @override
+  void didUpdateWidget(covariant _VideoSurface oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialVolume != widget.initialVolume) {
+      _currentVolume = widget.initialVolume;
+      widget.player.setVolume(_currentVolume);
+    }
   }
 
   @override
@@ -1495,9 +1545,9 @@ class _RoundControlButton extends StatelessWidget {
             : Colors.white;
     return Tooltip(
       message: tooltip,
-      child: InkResponse(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: onPressed,
-        radius: size / 2 + 4,
         child: AnimatedContainer(
           duration: AppMotion.duration(context, 140),
           width: size,
@@ -1513,12 +1563,15 @@ class _RoundControlButton extends StatelessWidget {
             boxShadow: [
               if (emphasized)
                 BoxShadow(
-                  color: scheme.primary.withValues(alpha: 0.35),
-                  blurRadius: 14,
+                  color: scheme.primary.withValues(alpha: 0.45),
+                  blurRadius: 28,
+                  spreadRadius: 2,
                 ),
             ],
           ),
-          child: Icon(icon, color: foreground, size: iconSize),
+          child: Center(
+            child: Icon(icon, color: foreground, size: iconSize),
+          ),
         ),
       ),
     );
@@ -1918,41 +1971,31 @@ class _VideoControls extends StatelessWidget {
                         },
                       ),
                       const SizedBox(width: 32),
-                      Container(
-                        width: 68,
-                        height: 68,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: scheme.primary.withValues(alpha: 0.94),
-                          boxShadow: [
-                            BoxShadow(
-                              color: scheme.primary.withValues(alpha: 0.45),
-                              blurRadius: 28,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
-                        child: IconButton(
-                          tooltip: playing ? 'Пауза' : 'Воспроизведение',
-                          iconSize: 42,
-                          color: scheme.onPrimary,
-                          onPressed: () async {
+                      _RoundControlButton(
+                        tooltip: playing ? 'Пауза' : 'Воспроизведение',
+                        icon: playing
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                        size: 68,
+                        iconSize: 42,
+                        emphasized: true,
+                        onPressed: () async {
+                          try {
+                            if (player.state.completed) {
+                              await player.seek(Duration.zero);
+                              await player.play();
+                            } else {
+                              await player.playOrPause();
+                            }
+                          } catch (_) {
                             if (player.state.playing) {
                               await player.pause();
                             } else {
-                              if (player.state.completed) {
-                                await player.seek(Duration.zero);
-                              }
                               await player.play();
                             }
-                            onInteract?.call();
-                          },
-                          icon: Icon(
-                            playing
-                                ? Icons.pause_rounded
-                                : Icons.play_arrow_rounded,
-                          ),
-                        ),
+                          }
+                          onInteract?.call();
+                        },
                       ),
                       const SizedBox(width: 32),
                       _RoundControlButton(
