@@ -1,5 +1,14 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.3.7',
+    title: 'Lazy Media Dimensions for Pawchive & Unknown-Size Providers',
+    bullets: [
+      'Auto-Resolve Image Dimensions: when a provider (such as Pawchive) does not supply width/height metadata, the app now lazily resolves the real pixel dimensions by decoding the image in the background and displays them as soon as they are ready.',
+      'No More "0 × 0": the resolution badge now shows "… × …" while dimensions are being fetched, and the correct resolution (e.g. 1920 × 1080) once decoded. The badge is hidden entirely for video/link posts where dimensions cannot be resolved.',
+      'Session Cache: resolved image dimensions are cached in memory for the lifetime of the app so repeated visits to the same post do not trigger re-downloads.',
+    ],
+  ),
+  LunarisChange(
     version: '2.3.6',
     title: 'Pawchive Accounts Integration & Favorites Synchronization',
     bullets: [

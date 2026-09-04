@@ -1185,7 +1185,7 @@ class _CommentsSectionState extends ConsumerState<_CommentsSection> {
   }
 }
 
-class _PostInfoCard extends StatelessWidget {
+class _PostInfoCard extends StatefulWidget {
   const _PostInfoCard({
     required this.post,
     required this.strings,
@@ -1199,7 +1199,89 @@ class _PostInfoCard extends StatelessWidget {
   final int? fileSizeBytes;
 
   @override
+  State<_PostInfoCard> createState() => _PostInfoCardState();
+}
+
+class _PostInfoCardState extends State<_PostInfoCard> {
+  // Lazily resolved dimensions (used when post.width/height == 0).
+  int? _resolvedWidth;
+  int? _resolvedHeight;
+  bool _resolvingDimensions = false;
+
+  static final _dimensionCache = <String, (int, int)>{};
+
+  static bool _isImageType(String fileType) {
+    const imageTypes = {'image', 'jpeg', 'jpg', 'png', 'gif', 'webp', 'avif'};
+    return imageTypes.contains(fileType.toLowerCase());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _maybeResolveDimensions();
+  }
+
+  @override
+  void didUpdateWidget(_PostInfoCard old) {
+    super.didUpdateWidget(old);
+    if (old.post.fileUrl != widget.post.fileUrl) {
+      _resolvedWidth = null;
+      _resolvedHeight = null;
+      _resolvingDimensions = false;
+      _maybeResolveDimensions();
+    }
+  }
+
+  void _maybeResolveDimensions() {
+    final post = widget.post;
+    // Only attempt lazy resolution when dimensions are unknown (0) and it's
+    // an image (not video/link which we can't resolve this way).
+    if (post.width != 0 || post.height != 0) return;
+    if (!_isImageType(post.fileType)) return;
+    final url = post.fileUrl.isNotEmpty ? post.fileUrl : post.sampleUrl;
+    if (url.isEmpty) return;
+
+    // Check cache first.
+    if (_dimensionCache.containsKey(url)) {
+      final cached = _dimensionCache[url]!;
+      _resolvedWidth = cached.$1;
+      _resolvedHeight = cached.$2;
+      return;
+    }
+
+    if (_resolvingDimensions) return;
+    _resolvingDimensions = true;
+
+    final imageProvider = NetworkImage(url);
+    final completer = imageProvider.resolve(ImageConfiguration.empty);
+    completer.addListener(
+      ImageStreamListener(
+        (info, _) {
+          final w = info.image.width;
+          final h = info.image.height;
+          _dimensionCache[url] = (w, h);
+          if (mounted) {
+            setState(() {
+              _resolvedWidth = w;
+              _resolvedHeight = h;
+              _resolvingDimensions = false;
+            });
+          }
+        },
+        onError: (_, __) {
+          if (mounted) setState(() => _resolvingDimensions = false);
+        },
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final post = widget.post;
+    final strings = widget.strings;
+    final localMedia = widget.localMedia;
+    final fileSizeBytes = widget.fileSizeBytes;
+
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final artists = post.tagGroups['artist'] ??
@@ -1207,6 +1289,14 @@ class _PostInfoCard extends StatelessWidget {
             .where((t) => t.startsWith('artist:'))
             .map((t) => t.replaceFirst('artist:', ''))
             .toList();
+
+    // Determine which dimensions to display.
+    final displayWidth = post.width != 0 ? post.width : _resolvedWidth;
+    final displayHeight = post.height != 0 ? post.height : _resolvedHeight;
+    final hasDimensions = displayWidth != null && displayHeight != null;
+    final dimensionLabel = hasDimensions
+        ? '$displayWidth × $displayHeight'
+        : (_resolvingDimensions ? '… × …' : null);
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -1293,7 +1383,7 @@ class _PostInfoCard extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          _formatDate(post.createdAt),
+                          _formatPostDate(post.createdAt),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: scheme.onSurfaceVariant,
                           ),
@@ -1321,8 +1411,8 @@ class _PostInfoCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        fileSizeBytes != null && fileSizeBytes! > 0
-                            ? DownloadedMediaService.formatBytes(fileSizeBytes!)
+                        fileSizeBytes != null && fileSizeBytes > 0
+                            ? DownloadedMediaService.formatBytes(fileSizeBytes)
                             : (strings.ru ? 'Офлайн' : 'Offline'),
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: scheme.onPrimaryContainer,
@@ -1341,10 +1431,11 @@ class _PostInfoCard extends StatelessWidget {
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              _SpecBadge(
-                icon: Icons.aspect_ratio_rounded,
-                label: '${post.width} × ${post.height}',
-              ),
+              if (dimensionLabel != null)
+                _SpecBadge(
+                  icon: Icons.aspect_ratio_rounded,
+                  label: dimensionLabel,
+                ),
               if (post.fileType.isNotEmpty)
                 _SpecBadge(
                   icon: Icons.insert_drive_file_outlined,
@@ -1373,10 +1464,10 @@ class _PostInfoCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  static String _formatDate(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-  }
+String _formatPostDate(DateTime date) {
+  return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 }
 
 class _SpecBadge extends StatelessWidget {
