@@ -596,6 +596,8 @@ class _FeedVideoPreviewState extends State<_FeedVideoPreview> {
               controller: _controller,
               fit: BoxFit.cover,
               controls: null,
+              pauseUponEnteringBackgroundMode: false,
+              resumeUponEnteringForegroundMode: false,
             ),
           ),
         ),

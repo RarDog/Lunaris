@@ -571,6 +571,7 @@ class _PostMediaViewerState extends State<PostMediaViewer>
     final player = _player;
     final controller = _controller;
     if (player == null || controller == null) return;
+    final wasPlaying = player.state.playing;
     setState(() => _inFullscreen = true);
     if (!context.mounted) return;
     final result = await Navigator.of(context, rootNavigator: true)
@@ -580,6 +581,7 @@ class _PostMediaViewerState extends State<PostMediaViewer>
         pageBuilder: (_, __, ___) => _FullscreenVideoPage(
           player: player,
           controller: controller,
+          wasPlaying: wasPlaying,
           aspectRatio: widget.post.width > 0 && widget.post.height > 0
               ? widget.post.width / widget.post.height
               : 16 / 9,
@@ -603,6 +605,11 @@ class _PostMediaViewerState extends State<PostMediaViewer>
     if (mounted) setState(() => _inFullscreen = false);
     if (result != null) {
       await _applyPlaybackSnapshot(result);
+      if (result.playing && !player.state.playing) {
+        await player.play();
+      } else if (!result.playing && player.state.playing) {
+        await player.pause();
+      }
       return;
     }
   }
@@ -729,6 +736,7 @@ class _FullscreenVideoPage extends StatefulWidget {
   const _FullscreenVideoPage({
     required this.player,
     required this.controller,
+    required this.wasPlaying,
     required this.aspectRatio,
     required this.loopVideo,
     required this.muted,
@@ -742,6 +750,7 @@ class _FullscreenVideoPage extends StatefulWidget {
 
   final Player player;
   final VideoController controller;
+  final bool wasPlaying;
   final double aspectRatio;
   final bool loopVideo;
   final bool muted;
@@ -779,6 +788,13 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _applyOrientation();
     _scheduleControlsHide();
+    if (widget.wasPlaying) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !widget.player.state.playing) {
+          widget.player.play();
+        }
+      });
+    }
   }
 
   void _applyOrientation() {
@@ -1131,6 +1147,7 @@ class _VideoSurfaceState extends State<_VideoSurface> {
   @override
   Widget build(BuildContext context) {
     final player = widget.player;
+    Offset? lastTapDown;
 
     final child = LayoutBuilder(
       builder: (context, constraints) {
@@ -1143,6 +1160,32 @@ class _VideoSurfaceState extends State<_VideoSurface> {
                 controller: widget.controller,
                 fit: widget.coverVideo ? BoxFit.cover : BoxFit.contain,
                 controls: null,
+                pauseUponEnteringBackgroundMode: false,
+                resumeUponEnteringForegroundMode: false,
+              ),
+            ),
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (details) => lastTapDown = details.localPosition,
+                onTap: widget.onInteract,
+                onDoubleTap: () {
+                  if (lastTapDown != null) {
+                    _onDoubleTapAt(
+                      lastTapDown!,
+                      MediaQuery.sizeOf(context).width,
+                    );
+                  }
+                },
+                onLongPressStart: (_) => _startSpeedBoost(),
+                onLongPressEnd: (_) => _stopSpeedBoost(),
+                onVerticalDragUpdate: (details) {
+                  final x = details.localPosition.dx;
+                  final width = MediaQuery.sizeOf(context).width;
+                  if (x > width * 0.4) {
+                    _adjustVolume(details.primaryDelta ?? 0.0);
+                  }
+                },
               ),
             ),
             StreamBuilder<bool>(
@@ -1199,36 +1242,16 @@ class _VideoSurfaceState extends State<_VideoSurface> {
       },
     );
 
-    Offset? lastTapDown;
-
     return MouseRegion(
       onHover: (_) => widget.onInteract(),
-      child: GestureDetector(
-        onTapDown: (details) => lastTapDown = details.localPosition,
-        onTap: widget.onInteract,
-        onDoubleTap: () {
-          if (lastTapDown != null) {
-            _onDoubleTapAt(lastTapDown!, MediaQuery.sizeOf(context).width);
-          }
-        },
-        onLongPressStart: (_) => _startSpeedBoost(),
-        onLongPressEnd: (_) => _stopSpeedBoost(),
-        onVerticalDragUpdate: (details) {
-          final x = details.localPosition.dx;
-          final width = MediaQuery.sizeOf(context).width;
-          if (x > width * 0.4) {
-            _adjustVolume(details.primaryDelta ?? 0.0);
-          }
-        },
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(widget.fullscreen ? 0 : 10),
-          child: widget.fullscreen
-              ? SizedBox.expand(child: child)
-              : AspectRatio(
-                  aspectRatio: widget.aspectRatio.clamp(0.35, 2.4),
-                  child: child,
-                ),
-        ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(widget.fullscreen ? 0 : 10),
+        child: widget.fullscreen
+            ? SizedBox.expand(child: child)
+            : AspectRatio(
+                aspectRatio: widget.aspectRatio.clamp(0.35, 2.4),
+                child: child,
+              ),
       ),
     );
   }
@@ -1546,32 +1569,37 @@ class _RoundControlButton extends StatelessWidget {
             : Colors.white;
     return Tooltip(
       message: tooltip,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onPressed,
-        child: AnimatedContainer(
-          duration: AppMotion.duration(context, 140),
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            color: background,
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: selected
-                  ? scheme.primary.withValues(alpha: 0.4)
-                  : Colors.white.withValues(alpha: 0.14),
+      child: Material(
+        color: Colors.transparent,
+        shape: const CircleBorder(),
+        child: InkResponse(
+          containedInkWell: true,
+          highlightShape: BoxShape.circle,
+          onTap: onPressed,
+          child: AnimatedContainer(
+            duration: AppMotion.duration(context, 140),
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: background,
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: selected
+                    ? scheme.primary.withValues(alpha: 0.4)
+                    : Colors.white.withValues(alpha: 0.14),
+              ),
+              boxShadow: [
+                if (emphasized)
+                  BoxShadow(
+                    color: scheme.primary.withValues(alpha: 0.45),
+                    blurRadius: 28,
+                    spreadRadius: 2,
+                  ),
+              ],
             ),
-            boxShadow: [
-              if (emphasized)
-                BoxShadow(
-                  color: scheme.primary.withValues(alpha: 0.45),
-                  blurRadius: 28,
-                  spreadRadius: 2,
-                ),
-            ],
-          ),
-          child: Center(
-            child: Icon(icon, color: foreground, size: iconSize),
+            child: Center(
+              child: Icon(icon, color: foreground, size: iconSize),
+            ),
           ),
         ),
       ),
@@ -1982,11 +2010,13 @@ class _VideoControls extends StatelessWidget {
                         emphasized: true,
                         onPressed: () async {
                           try {
-                            if (player.state.completed) {
-                              await player.seek(Duration.zero);
-                              await player.play();
+                            if (player.state.playing) {
+                              await player.pause();
                             } else {
-                              await player.playOrPause();
+                              if (player.state.completed) {
+                                await player.seek(Duration.zero);
+                              }
+                              await player.play();
                             }
                           } catch (_) {
                             if (player.state.playing) {
