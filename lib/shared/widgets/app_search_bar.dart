@@ -192,23 +192,46 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
             return const SizedBox.shrink();
           }
 
+          final screenSize = MediaQuery.sizeOf(context);
           final renderBox =
               _fieldKey.currentContext?.findRenderObject() as RenderBox?;
-          final width =
+          final fieldWidth =
               renderBox?.hasSize == true ? renderBox!.size.width : 360.0;
-          final height =
+          final fieldHeight =
               renderBox?.hasSize == true ? renderBox!.size.height : 48.0;
+
+          final screenW = screenSize.width;
+          // Substantially wider dropdown:
+          // Mobile (< 600px): use full screen width minus comfortable 24px margins.
+          // Desktop/Tablet (>= 600px): expand to 1.35x field width, up to 780px.
+          final dropdownWidth = screenW < 600
+              ? (screenW - 24.0).clamp(fieldWidth, 580.0)
+              : (fieldWidth * 1.35).clamp(fieldWidth, (screenW - 32.0).clamp(fieldWidth, 780.0));
+
+          // Ensure dropdown stays fully on screen and doesn't get clipped
+          double dxOffset = 0.0;
+          if (renderBox?.hasSize == true && renderBox?.attached == true) {
+            final globalPos = renderBox!.localToGlobal(Offset.zero);
+            final globalRight = globalPos.dx + dropdownWidth;
+            final maxRight = screenW - 12.0;
+            if (globalRight > maxRight) {
+              dxOffset = maxRight - globalRight;
+            }
+            if (globalPos.dx + dxOffset < 12.0) {
+              dxOffset = 12.0 - globalPos.dx;
+            }
+          }
 
           return CompositedTransformFollower(
             link: _layerLink,
             showWhenUnlinked: false,
-            offset: Offset(0, height + 6),
+            offset: Offset(dxOffset, fieldHeight + 6),
             child: Align(
               alignment: Alignment.topLeft,
               child: TapRegion(
                 groupId: _fieldKey,
                 child: SizedBox(
-                  width: width.clamp(280.0, 620.0),
+                  width: dropdownWidth,
                   child: _TagSuggestionDropdown(
                     suggestions: suggestions,
                     query: token,
@@ -565,7 +588,7 @@ class _TagSuggestionDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 620),
+      constraints: const BoxConstraints(maxWidth: 820),
       child: Material(
         elevation: 8,
         shadowColor: Colors.black.withValues(alpha: 0.18),
@@ -641,7 +664,7 @@ class _TagSuggestionDropdown extends StatelessWidget {
     if (cleanToken.isEmpty) {
       return Text(
         text,
-        maxLines: 1,
+        maxLines: 2,
         overflow: TextOverflow.ellipsis,
         style: defaultStyle,
       );
@@ -653,7 +676,7 @@ class _TagSuggestionDropdown extends StatelessWidget {
     if (matchIndex < 0) {
       return Text(
         text,
-        maxLines: 1,
+        maxLines: 2,
         overflow: TextOverflow.ellipsis,
         style: defaultStyle,
       );
@@ -678,7 +701,7 @@ class _TagSuggestionDropdown extends StatelessWidget {
           if (after.isNotEmpty) TextSpan(text: after),
         ],
       ),
-      maxLines: 1,
+      maxLines: 2,
       overflow: TextOverflow.ellipsis,
     );
   }
