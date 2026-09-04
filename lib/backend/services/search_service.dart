@@ -21,10 +21,7 @@ class SearchService {
   TagCacheService? get tagCacheService => _tagCacheService;
 
   static String sanitizeToken(String raw) {
-    return raw
-        .replaceAll(RegExp(r'^[\(\)]+|[\(\)]+$'), '')
-        .trim()
-        .toLowerCase();
+    return raw.trim().toLowerCase();
   }
 
   List<String> parseTags(String query) {

@@ -567,7 +567,7 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
     final draft = _controller.text.trim().toLowerCase();
     if (draft.isEmpty) return '';
     final raw = draft.split(RegExp(r'\s+')).last;
-    return raw.replaceAll(RegExp(r'^[\(\)]+|[\(\)]+$'), '').trim();
+    return raw.trim();
   }
 
   bool get _isEditing => _focusNode.hasFocus || _localDirty;

@@ -320,13 +320,51 @@ class _TagGroupBlock extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text(label, style: Theme.of(context).textTheme.labelLarge),
-              const SizedBox(width: 8),
-              Text(
-                '${tags.length}',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+              Container(
+                width: 8,
+                height: 8,
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  color: _headerDotColor(group, Theme.of(context)),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: _headerDotColor(group, Theme.of(context))
+                          .withValues(alpha: 0.55),
+                      blurRadius: 5,
+                      spreadRadius: 1,
                     ),
+                  ],
+                ),
+              ),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.1,
+                    ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1.5),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : Colors.black.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white.withValues(alpha: 0.12)
+                        : Colors.black.withValues(alpha: 0.08),
+                  ),
+                ),
+                child: Text(
+                  '${tags.length}',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
               ),
             ],
           ),
@@ -338,6 +376,7 @@ class _TagGroupBlock extends StatelessWidget {
               for (final tag in visibleTags)
                 TagChip(
                   tag: tag,
+                  group: group,
                   onTap: () => onTap(tag),
                   onLongPress: () => onLongPress(tag),
                 ),
@@ -360,4 +399,17 @@ class _TagGroupBlock extends StatelessWidget {
       ),
     );
   }
+
+  static Color _headerDotColor(String group, ThemeData theme) {
+    return switch (group.toLowerCase()) {
+      'artist' => const Color(0xFFFF4757),
+      'character' => const Color(0xFF2ED573),
+      'copyright' => const Color(0xFFA55EEA),
+      'species' => const Color(0xFFFFA502),
+      'meta' => const Color(0xFF1E90FF),
+      _ => theme.colorScheme.primary,
+    };
+  }
 }
+
+

@@ -169,7 +169,16 @@ class ProviderManager {
 
     for (final raw in rawTags) {
       var token = raw.trim();
-      token = token.replaceAll(RegExp(r'^[\(\)]+|[\(\)]+$'), '').trim();
+      if (token.isEmpty) continue;
+
+      // Only strip parentheses if they are grouping delimiters (unbalanced in the token, e.g. '(cat' or 'dog)')
+      // but preserve tags that have internal paired parentheses like 'tyson_(password)'.
+      if (token.startsWith('(') && !token.contains(')')) {
+        token = token.substring(1).trim();
+      }
+      if (token.endsWith(')') && !token.contains('(')) {
+        token = token.substring(0, token.length - 1).trim();
+      }
       if (token.isEmpty) continue;
 
       if (token.toLowerCase() == 'and') {

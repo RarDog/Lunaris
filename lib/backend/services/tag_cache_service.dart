@@ -66,10 +66,11 @@ class TagCacheService {
     int limit = 16,
     Iterable<String>? priorityTags,
   }) {
-    final cleanPrefix = prefix
-        .replaceAll(RegExp(r'^[\(\)]+|[\(\)]+$'), '')
-        .trim()
-        .toLowerCase();
+    var cleanPrefix = prefix.trim().toLowerCase();
+    // If the prefix has an unbalanced opening parenthesis at the start (e.g. '(cat'), strip it
+    if (cleanPrefix.startsWith('(') && !cleanPrefix.contains(')')) {
+      cleanPrefix = cleanPrefix.substring(1).trim();
+    }
     if (cleanPrefix.isEmpty) return const [];
 
     final prioritySet = priorityTags
