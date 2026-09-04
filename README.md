@@ -13,6 +13,7 @@
   <a href="https://github.com/RarDog/Lunaris/releases"><img src="https://img.shields.io/badge/Version-3.0.0-8A2BE2?style=for-the-badge&logo=semver&logoColor=white" alt="Version 3.0.0" /></a>
   <img src="https://img.shields.io/badge/Flutter-3.47+-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter" />
   <img src="https://img.shields.io/badge/Platform-Android%20%7C%20Linux%20%7C%20Windows-00C853?style=for-the-badge" alt="Platforms" />
+  <a href="https://github.com/RarDog/Lunaris/wiki"><img src="https://img.shields.io/badge/Wiki-Documentation-FF6F00?style=for-the-badge&logo=gitbook&logoColor=white" alt="Wiki" /></a>
   <a href="https://gitea.rardogsynapse.online/RarDog/Lunaris"><img src="https://img.shields.io/badge/Gitea-RarDog%2FLunaris-FC6D26?style=for-the-badge&logo=gitea&logoColor=white" alt="Gitea" /></a>
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License MIT" />
 </p>
@@ -38,6 +39,21 @@
 ### 📦 Разделение APK и умное автообновление по ABI
 - Сборка облегчённых APK с разделением по архитектурам процессора (`arm64-v8a`, `armeabi-v7a`, `x86_64`).
 - Встроенная система обновлений автоматически определяет архитектуру вашего Android-устройства и скачивает только нужный APK, экономя трафик и ускоряя загрузку.
+
+---
+
+## 📚 Документация и Вики (Руководство пользователя)
+
+Подробные иллюстрированные руководства доступны в **[Lunaris Wiki](https://github.com/RarDog/Lunaris/wiki)** и прямо в репозитории:
+
+- 🚀 **[Быстрый старт и установка](docs/wiki/Getting-Started.md)** — выбор правильного APK под процессор, запуск на Linux.
+- 🌐 **[Провайдеры контента](docs/wiki/Providers.md)** — особенности Booru (Gelbooru, Rule34, Realbooru, e621) и архивов Pawchive.
+- 🔍 **[Умный поиск и теги](docs/wiki/Search-and-Tags.md)** — оператор `and`, общие модификаторы и подсказки за 0 мс.
+- 🐾 **[Интеграция с Pawchive](docs/wiki/Pawchive-Sync.md)** — вход по паролю/куки, двусторонняя синхронизация и выгрузка авторов.
+- 🎬 **[Медиаплеер и просмотр](docs/wiki/Media-Viewer.md)** — жесты, автоповорот видео, разрешение 1920×1080 и Action Dock 2.0.
+- 💾 **[Офлайн-режим и загрузки](docs/wiki/Offline-and-Downloads.md)** — Sync Hub, шаблоны папок и сохранение оригиналов.
+- 🛡️ **[Черный список и фильтрация](docs/wiki/Safety-and-Blacklist.md)** — настройка Blacklist, Safe Mode и очистка кэша.
+- ❓ **[Часто задаваемые вопросы (FAQ)](docs/wiki/FAQ.md)** — автообновление, звук в видео и решение проблем.
 
 ---
 
