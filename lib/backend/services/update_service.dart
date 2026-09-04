@@ -13,9 +13,9 @@ class UpdateService {
   UpdateService(this._dio, this._settingsService);
 
   static const latestReleaseUrl =
-      'https://gitea.rardogsynapse.online/api/v1/repos/RarDog/Lunaris/releases/latest';
+      'https://api.github.com/repos/RarDog/Lunaris/releases/latest';
   static const releasesUrl =
-      'https://gitea.rardogsynapse.online/api/v1/repos/RarDog/Lunaris/releases';
+      'https://api.github.com/repos/RarDog/Lunaris/releases';
 
   static const _deviceChannel = MethodChannel('rulegel/device');
 
@@ -84,7 +84,13 @@ class UpdateService {
   Future<AppUpdateInfo> _latestAllowedRelease(AppSettings settings) async {
     final response = await _dio.get<dynamic>(
       releasesUrl,
-      queryParameters: {'limit': 30},
+      queryParameters: {'per_page': 30},
+      options: Options(
+        headers: {
+          'User-Agent': 'Lunaris-App',
+          'Accept': 'application/vnd.github+json',
+        },
+      ),
     );
     final items = (response.data as List?) ?? const [];
     final releases = items
@@ -95,7 +101,15 @@ class UpdateService {
         .map((item) => _releaseFromJson(Map<String, dynamic>.from(item)))
         .toList(growable: false);
     if (releases.isEmpty) {
-      final latest = await _dio.get<dynamic>(latestReleaseUrl);
+      final latest = await _dio.get<dynamic>(
+        latestReleaseUrl,
+        options: Options(
+          headers: {
+            'User-Agent': 'Lunaris-App',
+            'Accept': 'application/vnd.github+json',
+          },
+        ),
+      );
       return _releaseFromJson(Map<String, dynamic>.from(latest.data as Map));
     }
     releases.sort((a, b) {

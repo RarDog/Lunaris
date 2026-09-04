@@ -2183,12 +2183,12 @@ class _HeroBrandBanner extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: () async {
                   final url = Uri.parse(
-                    'https://gitea.rardogsynapse.online/RarDog/Lunaris',
+                    'https://github.com/RarDog/Lunaris',
                   );
                   await launchUrl(url, mode: LaunchMode.externalApplication);
                 },
                 icon: const Icon(Icons.code_rounded, size: 18),
-                label: const Text('Gitea'),
+                label: const Text('GitHub'),
               ),
             ],
           ),

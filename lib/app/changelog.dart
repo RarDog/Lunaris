@@ -8,7 +8,7 @@ const lunarisChangelog = [
       'Новая архитектура поиска (OverlayPortal): подсказки тегов отображаются через нативный портал Flutter без блокировки кнопок панели, очистки и сброса фильтров.',
       'Pawchive 2.0 & Двусторонняя синхронизация: подключение аккаунтов через логин/пароль или Session Cookie, импорт избранного с сервера, экспорт локальных коллекций в аккаунт на сервере и сквозная синхронизация со всех поддерживаемых платформ.',
       'Ленивое автоопределение разрешения: фоновый декодер автоматически рассчитывает и выводит точные размеры медиа (например, 1920 × 1080) для постов Pawchive без серверных метаданных.',
-      'Умные per-ABI обновления: автообновление через Gitea скачивает точный APK под архитектуру вашего процессора (arm64-v8a, armeabi-v7a, x86_64), сокращая вес загрузки.',
+      'Умные per-ABI обновления: автообновление через GitHub скачивает точный APK под архитектуру вашего процессора (arm64-v8a, armeabi-v7a, x86_64), сокращая вес загрузки.',
       'Исправление вёрстки: устранены переносы текста в заголовке окна аккаунтов и карточках пользователей на экранах смартфонов.',
     ],
   ),
@@ -36,7 +36,7 @@ const lunarisChangelog = [
     title: 'ABI-Aware Auto-Update — правильный APK для вашего процессора',
     bullets: [
       'Определение архитектуры Android: приложение читает Build.SUPPORTED_ABIS (arm64-v8a, armeabi-v7a, x86_64) через нативный канал.',
-      'Точный APK из Gitea: при обновлении скачивается per-ABI APK (app-arm64-v8a-release.apk и т.д.), а не один общий файл.',
+      'Точный APK из GitHub: при обновлении скачивается per-ABI APK (app-arm64-v8a-release.apk и т.д.), а не один общий файл.',
       'Fallback: нет per-ABI APK → универсальный APK → страница релиза в браузере.',
       'Кеш ABI: архитектура определяется один раз за сеанс.',
     ],
@@ -163,7 +163,7 @@ const lunarisChangelog = [
       'Instant Segmented Controls: replaced tedious dropdowns with fast 1-tap SegmentedButtons for Theme (Dark/Light/Auto), Language (RU/EN), and Media Quality (Auto/Data saver/HQ).',
       'Folder Structure Bottom Sheet: intuitive download directory template picker with preset chips and custom pattern editor.',
       'Interactive Stepper & Limit Controls: modernized desktop & mobile column steppers and disk cache limits with accent pill badges.',
-      'Hero Brand Banner: polished app presentation card in About section with glowing icon, version build badge, update checker, and Gitea repository link.',
+      'Hero Brand Banner: polished app presentation card in About section with glowing icon, version build badge, update checker, and GitHub repository link.',
     ],
   ),
   LunarisChange(
@@ -301,7 +301,7 @@ const lunarisChangelog = [
       'Added favorite artists bar at the top of the Artists tab with quick access and recent photos/videos stream.',
       'Multi-image posts now feature an in-post navigation indicator with image switching.',
       'New Pawchive provider support and cleaned up deprecated providers.',
-      'In-app update checks and downloads connected directly to RarDog Gitea releases.',
+      'In-app update checks and downloads connected directly to RarDog GitHub releases.',
     ],
   ),
   LunarisChange(
@@ -369,7 +369,7 @@ const lunarisChangelog = [
     version: '1.0.1',
     title: 'Mobile polish',
     bullets: [
-      'Startup update checks now look for new Gitea releases every launch.',
+      'Startup update checks now look for new GitHub releases every launch.',
       'Refresh-rate controls are Android-only; desktop keeps stable app motion.',
       'Tag chip input no longer jumps while typing.',
     ],

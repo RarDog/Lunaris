@@ -10,11 +10,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/RarDog/Lunaris/releases"><img src="https://img.shields.io/badge/Version-3.0.0-8A2BE2?style=for-the-badge&logo=semver&logoColor=white" alt="Version 3.0.0" /></a>
+  <a href="https://github.com/RarDog/Lunaris/releases"><img src="https://img.shields.io/badge/Version-3.0.1-8A2BE2?style=for-the-badge&logo=semver&logoColor=white" alt="Version 3.0.1" /></a>
   <img src="https://img.shields.io/badge/Flutter-3.47+-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter" />
   <img src="https://img.shields.io/badge/Platform-Android%20%7C%20Linux%20%7C%20Windows-00C853?style=for-the-badge" alt="Platforms" />
   <a href="https://github.com/RarDog/Lunaris/wiki"><img src="https://img.shields.io/badge/Wiki-Documentation-FF6F00?style=for-the-badge&logo=gitbook&logoColor=white" alt="Wiki" /></a>
-  <a href="https://gitea.rardogsynapse.online/RarDog/Lunaris"><img src="https://img.shields.io/badge/Gitea-RarDog%2FLunaris-FC6D26?style=for-the-badge&logo=gitea&logoColor=white" alt="Gitea" /></a>
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License MIT" />
 </p>
 
@@ -82,7 +81,7 @@
 
 ## 📥 Загрузка (Скачать сборки)
 
-Релизы доступны на **[GitHub Releases](https://github.com/RarDog/Lunaris/releases)** и в личном репозитории **[Gitea Releases](https://gitea.rardogsynapse.online/RarDog/Lunaris/releases)**.
+Релизы доступны на странице **[GitHub Releases](https://github.com/RarDog/Lunaris/releases)**.
 
 | Платформа | Архитектура | Формат | Описание |
 |---|---|---|---|

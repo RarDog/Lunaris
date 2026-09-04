@@ -46,25 +46,3 @@ jobs:
           files: ${{ env.ZIP_NAME }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Windows Zip to Gitea Release
-        shell: pwsh
-        run: |
-          $tag = "${{ github.ref_name }}"
-          if (-not $tag) { $tag = "v3.0.0" }
-          $token = "1c744d6044d756759d7b1f693c94c80cf70d75fa"
-          $giteaUrl = "https://gitea.rardogsynapse.online"
-          $repo = "RarDog/Lunaris"
-          $zipName = $env:ZIP_NAME
-
-          Write-Host "Fetching Gitea release info for tag $tag..."
-          $relUrl = "$giteaUrl/api/v1/repos/$repo/releases/tags/$tag"
-          $headers = @{ "Authorization" = "token $token" }
-          $rel = Invoke-RestMethod -Uri $relUrl -Headers $headers -Method Get
-          $releaseId = $rel.id
-          Write-Host "Found Gitea release ID: $releaseId"
-
-          $uploadUrl = "$giteaUrl/api/v1/repos/$repo/releases/$releaseId/assets?name=$zipName"
-          Write-Host "Uploading $zipName to $uploadUrl..."
-          curl.exe -X POST -H "Authorization: token $token" -F "attachment=@$zipName" $uploadUrl
-          Write-Host "Successfully uploaded Windows build to Gitea!"
