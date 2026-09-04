@@ -130,7 +130,7 @@ class _ProviderFormScreenState extends ConsumerState<ProviderFormScreen> {
             decoration: const InputDecoration(
               labelText: 'API key',
               helperText:
-                  'Gelbooru/Danbooru API key (Gelbooru: Account -> Options)',
+                  'Gelbooru/Rule34/Danbooru API key (Account -> Options)',
             ),
           ),
           const SizedBox(height: 12),
@@ -139,7 +139,7 @@ class _ProviderFormScreenState extends ConsumerState<ProviderFormScreen> {
             decoration: const InputDecoration(
               labelText: 'User ID',
               helperText:
-                  'Gelbooru User ID (required when throttled, see profile)',
+                  'Gelbooru/Rule34 User ID (required for API access, see Options)',
             ),
           ),
           const SizedBox(height: 12),

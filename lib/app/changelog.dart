@@ -1,5 +1,15 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.3.3',
+    title: 'Tag Suggestions Overlay Fix & Rule34 API Alignment',
+    bullets: [
+      'Tag Suggestions Hanging Fix: eliminated the bug where the tag suggestion card remained stuck on screen after clearing text or tapping outside. Added immediate dismissal on empty input, outside-tap backdrop dismissal, controller listener, and unfocus on submission.',
+      'Rule34 Dedicated Autocomplete: connected Rule34 directly to its official fast /autocomplete.php?q= endpoint, displaying real-time tag suggestions with accurate post counts (e.g. braid (216,984)).',
+      'Rule34 Tag Types (fields=tag_info): added tag_info field to post query for accurate tag categories per post.',
+      'Rule34 Authentication & Outage Handling: added detection for "missing authentication", rate limits, and server overload/search down ("success": false) with informative guidance to enter API Key & User ID.',
+    ],
+  ),
+  LunarisChange(
     version: '2.3.2',
     title: 'Gelbooru DAPI Compliance & Tag Query Optimization',
     bullets: [

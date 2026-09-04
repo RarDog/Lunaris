@@ -64,8 +64,15 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
     _focusNode = FocusNode();
     _tagScrollController = ScrollController();
     _focusNode.addListener(_handleFocusChanged);
+    _controller.addListener(_handleControllerChanged);
     _lastExternalValue = widget.initialValue ?? '';
     _setFromQuery(_lastExternalValue);
+  }
+
+  void _handleControllerChanged() {
+    if (_controller.text.trim().isEmpty && _suggestionsOverlay != null) {
+      _removeSuggestionsOverlay();
+    }
   }
 
   @override
@@ -89,6 +96,7 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
     _debounce?.cancel();
     _removeSuggestionsOverlay();
     _tagScrollController.dispose();
+    _controller.removeListener(_handleControllerChanged);
     _focusNode.removeListener(_handleFocusChanged);
     _focusNode.dispose();
     _controller.dispose();
@@ -97,15 +105,19 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
 
   void _handleFocusChanged() {
     if (!mounted) return;
-    if (!_focusNode.hasFocus && !_localDirty) {
-      final next = widget.initialValue ?? '';
-      if (next != _lastExternalValue) {
-        _setFromQuery(next);
-        _lastExternalValue = next;
+    if (!_focusNode.hasFocus) {
+      _removeSuggestionsOverlay();
+      if (!_localDirty) {
+        final next = widget.initialValue ?? '';
+        if (next != _lastExternalValue) {
+          _setFromQuery(next);
+          _lastExternalValue = next;
+        }
       }
+    } else {
+      _syncSuggestionsOverlay();
     }
     setState(() {});
-    _syncSuggestionsOverlay();
   }
 
   @override
@@ -209,17 +221,24 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
 
   void _syncSuggestionsOverlay() {
     final token = _activeToken;
+    if (!_focusNode.hasFocus || token.isEmpty) {
+      _removeSuggestionsOverlay();
+      return;
+    }
     final suggestions = widget.suggestions
         .where((item) => item.name.toLowerCase().startsWith(token))
         .toList(growable: false);
-    if (!_focusNode.hasFocus || token.isEmpty || suggestions.isEmpty) {
+    if (suggestions.isEmpty) {
       _removeSuggestionsOverlay();
       return;
     }
     final overlay = Overlay.maybeOf(context);
     final renderBox =
         _fieldKey.currentContext?.findRenderObject() as RenderBox?;
-    if (overlay == null || renderBox == null || !renderBox.hasSize) return;
+    if (overlay == null || renderBox == null || !renderBox.hasSize) {
+      _removeSuggestionsOverlay();
+      return;
+    }
 
     final size = renderBox.size;
     _removeSuggestionsOverlay();
@@ -231,14 +250,22 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
         suggestions: suggestions,
         query: token,
         onSelected: _applySuggestion,
+        onDismiss: () {
+          _removeSuggestionsOverlay();
+          _focusNode.unfocus();
+        },
       ),
     );
     overlay.insert(_suggestionsOverlay!);
   }
 
   void _removeSuggestionsOverlay() {
-    _suggestionsOverlay?.remove();
-    _suggestionsOverlay = null;
+    if (_suggestionsOverlay != null) {
+      if (_suggestionsOverlay!.mounted) {
+        _suggestionsOverlay!.remove();
+      }
+      _suggestionsOverlay = null;
+    }
   }
 
   Widget _buildTagChip(BuildContext context, String tag) {
@@ -302,10 +329,15 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
 
   void _handleDraftChanged(String value) {
     _localDirty = true;
+    if (value.trim().isEmpty) {
+      _debounce?.cancel();
+      _removeSuggestionsOverlay();
+      setState(() {});
+      _notifyChanged();
+      return;
+    }
     final composing = _controller.value.composing;
-    if (!composing.isValid &&
-        value.isNotEmpty &&
-        RegExp(r'\s$').hasMatch(value)) {
+    if (!composing.isValid && RegExp(r'\s$').hasMatch(value)) {
       _commitDraft(value);
       return;
     }
@@ -334,22 +366,24 @@ class _TagInputSearchBarState extends State<TagInputSearchBar> {
 
   void _submit() {
     _debounce?.cancel();
-    _commitDraft(_controller.text);
     _removeSuggestionsOverlay();
+    _commitDraft(_controller.text);
     _lastExternalValue = _query;
     _localDirty = false;
+    _focusNode.unfocus();
     widget.onSubmitted(_query);
   }
 
   void _clear() {
     _debounce?.cancel();
+    _removeSuggestionsOverlay();
     _localDirty = true;
     setState(() {
       _tags = [];
       _controller.clear();
     });
     _notifyChanged();
-    _focusNode.requestFocus();
+    _focusNode.unfocus();
   }
 
   void _editTag(String tag) {
@@ -446,6 +480,7 @@ class _TagSuggestionOverlay extends StatelessWidget {
     required this.suggestions,
     required this.query,
     required this.onSelected,
+    required this.onDismiss,
   });
 
   final LayerLink link;
@@ -454,26 +489,37 @@ class _TagSuggestionOverlay extends StatelessWidget {
   final List<TagSuggestion> suggestions;
   final String query;
   final ValueChanged<String> onSelected;
+  final VoidCallback onDismiss;
 
   @override
   Widget build(BuildContext context) {
-    return Positioned.fill(
-      child: CompositedTransformFollower(
-        link: link,
-        showWhenUnlinked: false,
-        offset: Offset(0, yOffset),
-        child: Align(
-          alignment: Alignment.topLeft,
-          child: SizedBox(
-            width: width.clamp(280, 620).toDouble(),
-            child: _TagSuggestionDropdown(
-              suggestions: suggestions,
-              query: query,
-              onSelected: onSelected,
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: onDismiss,
+          ),
+        ),
+        Positioned.fill(
+          child: CompositedTransformFollower(
+            link: link,
+            showWhenUnlinked: false,
+            offset: Offset(0, yOffset),
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(
+                width: width.clamp(280, 620).toDouble(),
+                child: _TagSuggestionDropdown(
+                  suggestions: suggestions,
+                  query: query,
+                  onSelected: onSelected,
+                ),
+              ),
             ),
           ),
         ),
-      ),
+      ],
     );
   }
 }
