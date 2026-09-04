@@ -129,7 +129,8 @@ class _ProviderFormScreenState extends ConsumerState<ProviderFormScreen> {
             controller: _apiKey,
             decoration: const InputDecoration(
               labelText: 'API key',
-              helperText: 'Gelbooru: api_key, Danbooru: api_key',
+              helperText:
+                  'Gelbooru/Danbooru API key (Gelbooru: Account -> Options)',
             ),
           ),
           const SizedBox(height: 12),
@@ -137,7 +138,8 @@ class _ProviderFormScreenState extends ConsumerState<ProviderFormScreen> {
             controller: _userId,
             decoration: const InputDecoration(
               labelText: 'User ID',
-              helperText: 'Gelbooru-compatible APIs may require user_id',
+              helperText:
+                  'Gelbooru User ID (required when throttled, see profile)',
             ),
           ),
           const SizedBox(height: 12),

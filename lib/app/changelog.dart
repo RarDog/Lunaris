@@ -1,5 +1,15 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.3.2',
+    title: 'Gelbooru DAPI Compliance & Tag Query Optimization',
+    bullets: [
+      'Official Gelbooru DAPI Alignment: fixed tag suggestions pattern to use SQL LIKE wildcard (%) instead of literal asterisk (*), restoring accurate tag autocompletion.',
+      'Popularity Tag Sorting: added orderby=count and order=DESC to Gelbooru tag search so the most relevant and widely used tags appear first.',
+      'Batch Tag Categorization: migrated post tag metadata queries to the official "names" parameter, resolving categories for up to 80 tags in a single batch request instead of dozens of sequential requests.',
+      'Throttling & Auth Guidance: enhanced API credentials helper text and informative error messages with direct instructions to configure API Key & User ID from Gelbooru account options.',
+    ],
+  ),
+  LunarisChange(
     version: '2.3.1',
     title: 'Cloud Mirrors & Author Announcements Fixes',
     bullets: [

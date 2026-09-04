@@ -65,45 +65,55 @@ class GelbooruProvider
       if (rating != null && rating.isNotEmpty) 'rating:$rating',
       ..._topTags(topPeriod),
     ];
-    final response = await _dio.get<dynamic>(
-      '/index.php',
-      queryParameters: {
-        'page': 'dapi',
-        's': 'post',
-        'q': 'index',
-        'json': '1',
-        'pid': page,
-        'limit': limit,
-        'tags': queryTags.join(' '),
-        ..._queryParameters,
-      },
-    );
-    return GelbooruMapper.postsFromResponse(
-      response.data,
-      providerId: id,
-      providerName: name,
-    );
+    try {
+      final response = await _dio.get<dynamic>(
+        '/index.php',
+        queryParameters: {
+          'page': 'dapi',
+          's': 'post',
+          'q': 'index',
+          'json': '1',
+          'pid': page,
+          'limit': limit,
+          'tags': queryTags.join(' '),
+          ..._queryParameters,
+        },
+      );
+      _checkResponse(response);
+      return GelbooruMapper.postsFromResponse(
+        response.data,
+        providerId: id,
+        providerName: name,
+      );
+    } on DioException catch (e) {
+      _handleDioError(e);
+    }
   }
 
   @override
   Future<Post?> getPost(String id) async {
-    final response = await _dio.get<dynamic>(
-      '/index.php',
-      queryParameters: {
-        'page': 'dapi',
-        's': 'post',
-        'q': 'index',
-        'json': '1',
-        'id': id,
-        ..._queryParameters,
-      },
-    );
-    final posts = GelbooruMapper.postsFromResponse(
-      response.data,
-      providerId: this.id,
-      providerName: name,
-    );
-    return posts.isEmpty ? null : posts.first;
+    try {
+      final response = await _dio.get<dynamic>(
+        '/index.php',
+        queryParameters: {
+          'page': 'dapi',
+          's': 'post',
+          'q': 'index',
+          'json': '1',
+          'id': id,
+          ..._queryParameters,
+        },
+      );
+      _checkResponse(response);
+      final posts = GelbooruMapper.postsFromResponse(
+        response.data,
+        providerId: this.id,
+        providerName: name,
+      );
+      return posts.isEmpty ? null : posts.first;
+    } on DioException catch (e) {
+      _handleDioError(e);
+    }
   }
 
   @override
@@ -142,18 +152,22 @@ class GelbooruProvider
 
   @override
   Future<List<PostComment>> getComments(String postId) async {
-    final response = await _dio.get<dynamic>(
-      '/index.php',
-      queryParameters: {
-        'page': 'dapi',
-        's': 'comment',
-        'q': 'index',
-        'json': '1',
-        'post_id': postId,
-        ..._queryParameters,
-      },
-    );
-    return _commentsFromResponse(response.data, postId);
+    try {
+      final response = await _dio.get<dynamic>(
+        '/index.php',
+        queryParameters: {
+          'page': 'dapi',
+          's': 'comment',
+          'q': 'index',
+          'json': '1',
+          'post_id': postId,
+          ..._queryParameters,
+        },
+      );
+      return _commentsFromResponse(response.data, postId);
+    } catch (_) {
+      return const [];
+    }
   }
 
   @override
@@ -161,33 +175,39 @@ class GelbooruProvider
       {int limit = 20}) async {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return const [];
-    final response = await _dio.get<dynamic>(
-      '/index.php',
-      queryParameters: {
-        'page': 'dapi',
-        's': 'tag',
-        'q': 'index',
-        'json': '1',
-        'name_pattern': '$trimmed*',
-        'limit': limit.clamp(1, 100),
-        ..._queryParameters,
-      },
-    );
-    return _tagItems(response.data)
-        .whereType<Map>()
-        .map((item) {
-          final json = Map<String, dynamic>.from(item);
-          return TagSuggestion(
-            name: (json['name'] ?? '').toString(),
-            category: tagCategoryFromString(
-              (json['type'] ?? json['tag_type'] ?? json['category']).toString(),
-            ),
-            postCount: _int(json['count'] ?? json['post_count']),
-            providerId: id,
-          );
-        })
-        .where((tag) => tag.name.isNotEmpty)
-        .toList(growable: false);
+    try {
+      final response = await _dio.get<dynamic>(
+        '/index.php',
+        queryParameters: {
+          'page': 'dapi',
+          's': 'tag',
+          'q': 'index',
+          'json': '1',
+          'name_pattern': '$trimmed%',
+          'orderby': 'count',
+          'order': 'DESC',
+          'limit': limit.clamp(1, 100),
+          ..._queryParameters,
+        },
+      );
+      return _tagItems(response.data)
+          .whereType<Map>()
+          .map((item) {
+            final json = Map<String, dynamic>.from(item);
+            return TagSuggestion(
+              name: (json['name'] ?? '').toString(),
+              category: tagCategoryFromString(
+                (json['type'] ?? json['tag_type'] ?? json['category']).toString(),
+              ),
+              postCount: _int(json['count'] ?? json['post_count']),
+              providerId: id,
+            );
+          })
+          .where((tag) => tag.name.isNotEmpty)
+          .toList(growable: false);
+    } catch (_) {
+      return const [];
+    }
   }
 
   @override
@@ -201,25 +221,79 @@ class GelbooruProvider
     if (cleaned.isEmpty) return const {};
 
     final groups = <String, List<String>>{};
-    for (final tag in cleaned) {
-      try {
-        final suggestions = await suggestTags(tag, limit: 3);
-        final exact = suggestions.where((item) => item.name == tag).firstOrNull;
-        final category = exact?.category ?? TagCategory.general;
-        final key = switch (category) {
-          TagCategory.artist => 'artist',
-          TagCategory.copyright => 'copyright',
-          TagCategory.character => 'character',
-          TagCategory.meta => 'meta',
-          TagCategory.species => 'species',
-          TagCategory.general || TagCategory.unknown => 'general',
-        };
-        groups.putIfAbsent(key, () => <String>[]).add(tag);
-      } catch (_) {
-        groups.putIfAbsent('general', () => <String>[]).add(tag);
+    final tagToCategory = <String, TagCategory>{};
+
+    // Batch query tag metadata using Gelbooru DAPI "names" parameter
+    try {
+      for (var i = 0; i < cleaned.length; i += 50) {
+        final chunk = cleaned.sublist(
+          i,
+          (i + 50 > cleaned.length) ? cleaned.length : i + 50,
+        );
+        final response = await _dio.get<dynamic>(
+          '/index.php',
+          queryParameters: {
+            'page': 'dapi',
+            's': 'tag',
+            'q': 'index',
+            'json': '1',
+            'names': chunk.join(' '),
+            'limit': chunk.length.clamp(1, 100),
+            ..._queryParameters,
+          },
+        );
+        for (final item in _tagItems(response.data).whereType<Map>()) {
+          final json = Map<String, dynamic>.from(item);
+          final name = (json['name'] ?? '').toString().trim();
+          if (name.isNotEmpty) {
+            tagToCategory[name] = tagCategoryFromString(
+              (json['type'] ?? json['tag_type'] ?? json['category']).toString(),
+            );
+          }
+        }
       }
+    } catch (_) {
+      // Gracefully continue to fallback categorization
+    }
+
+    for (final tag in cleaned) {
+      final category = tagToCategory[tag] ?? TagCategory.general;
+      final key = switch (category) {
+        TagCategory.artist => 'artist',
+        TagCategory.copyright => 'copyright',
+        TagCategory.character => 'character',
+        TagCategory.meta => 'meta',
+        TagCategory.species => 'species',
+        TagCategory.general || TagCategory.unknown => 'general',
+      };
+      groups.putIfAbsent(key, () => <String>[]).add(tag);
     }
     return groups;
+  }
+
+  void _checkResponse(Response<dynamic> response) {
+    if (response.data is String) {
+      final text = (response.data as String).toLowerCase();
+      if (text.contains('throttled') ||
+          text.contains('authentication required') ||
+          text.contains('requires authentication')) {
+        unavailable(
+          '$name requires authentication or is throttled. '
+          'Please configure API Key & User ID in Settings -> Providers.',
+        );
+      }
+    }
+  }
+
+  Never _handleDioError(DioException error) {
+    final status = error.response?.statusCode;
+    if (status == 401 || status == 403 || status == 429) {
+      unavailable(
+        '$name requires authentication or rate limit exceeded ($status). '
+        'Please enter your API Key and User ID in Settings -> Providers.',
+      );
+    }
+    throw error;
   }
 
   Never unavailable(String message) =>
