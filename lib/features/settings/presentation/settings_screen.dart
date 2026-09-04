@@ -1005,13 +1005,13 @@ class _SettingsContentState extends ConsumerState<_SettingsContent> {
               ),
               const SizedBox(height: 20),
 
-              // Option 1: Gitea (Recommended for speed)
+              // Option 1: GitHub (Recommended for speed)
               Material(
                 color: theme.colorScheme.primaryContainer.withValues(alpha: 0.35),
                 borderRadius: BorderRadius.circular(16),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(16),
-                  onTap: () => Navigator.pop(sheetContext, UpdateSource.gitea),
+                  onTap: () => Navigator.pop(sheetContext, UpdateSource.github),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Row(
@@ -1037,7 +1037,7 @@ class _SettingsContentState extends ConsumerState<_SettingsContent> {
                               Row(
                                 children: [
                                   Text(
-                                    'Gitea',
+                                    'GitHub',
                                     style: theme.textTheme.titleSmall?.copyWith(
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -1087,13 +1087,13 @@ class _SettingsContentState extends ConsumerState<_SettingsContent> {
               ),
               const SizedBox(height: 12),
 
-              // Option 2: GitHub (Muted / neutral grey)
+              // Option 2: Gitea (Muted / neutral grey)
               Material(
                 color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
                 borderRadius: BorderRadius.circular(16),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(16),
-                  onTap: () => Navigator.pop(sheetContext, UpdateSource.github),
+                  onTap: () => Navigator.pop(sheetContext, UpdateSource.gitea),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Row(
@@ -1106,7 +1106,7 @@ class _SettingsContentState extends ConsumerState<_SettingsContent> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
-                            Icons.code_rounded,
+                            Icons.dns_rounded,
                             color: theme.colorScheme.onSurfaceVariant,
                             size: 22,
                           ),
@@ -1117,7 +1117,7 @@ class _SettingsContentState extends ConsumerState<_SettingsContent> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'GitHub',
+                                'Gitea',
                                 style: theme.textTheme.titleSmall?.copyWith(
                                   fontWeight: FontWeight.w600,
                                   color: theme.colorScheme.onSurfaceVariant,
@@ -1126,8 +1126,8 @@ class _SettingsContentState extends ConsumerState<_SettingsContent> {
                               const SizedBox(height: 3),
                               Text(
                                 isRu
-                                    ? 'Глобальное зеркало релизов'
-                                    : 'Global release mirror',
+                                    ? 'Сервер релизов'
+                                    : 'Release server',
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                                 ),
