@@ -12,6 +12,7 @@ import '../models/post.dart';
 import '../models/post_comment.dart';
 import '../models/provider_health.dart';
 import '../models/top_period_filter.dart';
+import '../services/cloud_link_extractor.dart';
 import 'content_provider.dart';
 
 class PawchiveProvider
@@ -394,6 +395,18 @@ class PawchiveProvider
         _dateFromAny(json['added']) ??
         _dateFromAny(json['edited']) ??
         DateTime.fromMillisecondsSinceEpoch(0);
+    final postSource =
+        '$baseUrl/${query.service}/user/${query.artistId}/post/$postId';
+    final rawContent = (json['content'] ?? '').toString();
+    final embed = json['embed'] is Map ? Map<String, dynamic>.from(json['embed']) : null;
+    final cloudLinks = CloudLinkExtractor.extractLinks(
+      content: rawContent,
+      source: postSource,
+      embed: embed,
+    );
+    final cloudLinksJson = cloudLinks.map((e) => e.encode()).toList(growable: false);
+    final cleanDesc = CloudLinkExtractor.cleanCommentary(rawContent);
+
     final files = <Map<String, dynamic>>[];
     final file = json['file'];
     if (file is Map && file.isNotEmpty) {
@@ -402,6 +415,46 @@ class PawchiveProvider
     final attachments = json['attachments'];
     if (attachments is List) {
       files.addAll(attachments.whereType<Map>().map(Map<String, dynamic>.from));
+    }
+
+    // Support link-only posts where author uploaded files to cloud drives (MEGA, GDrive, etc.)
+    if (files.isEmpty && (cloudLinks.isNotEmpty || cleanDesc.isNotEmpty)) {
+      final stableId = '${query.service}:${query.artistId}:$postId:0';
+      final firstStreamable =
+          cloudLinks.where((l) => l.isStreamable).firstOrNull;
+      final firstLink = cloudLinks.isNotEmpty ? cloudLinks.first : null;
+      final fileUrl = firstStreamable?.directStreamUrl ?? firstLink?.url ?? '';
+      final tags = [
+        query.service,
+        query.artistName,
+        if (title.trim().isNotEmpty) title.trim(),
+        'cloud_mirror',
+      ];
+      return [
+        Post(
+          id: stableId,
+          providerId: id,
+          providerName: name,
+          previewUrl: '',
+          sampleUrl: '',
+          fileUrl: fileUrl,
+          tags: tags,
+          rating: 'unknown',
+          width: 0,
+          height: 0,
+          source: postSource,
+          createdAt: published,
+          fileType: firstStreamable != null ? 'video' : 'link',
+          score: 0,
+          tagGroups: {
+            'artist': [query.artistName],
+            'meta': [query.service],
+            if (title.trim().isNotEmpty) 'copyright': [title.trim()],
+            if (cloudLinksJson.isNotEmpty) 'cloud_links': cloudLinksJson,
+            if (cleanDesc.isNotEmpty) 'description': [cleanDesc],
+          },
+        ),
+      ];
     }
 
     var index = 0;
@@ -436,8 +489,7 @@ class PawchiveProvider
             rating: 'unknown',
             width: 0,
             height: 0,
-            source:
-                '$baseUrl/${query.service}/user/${query.artistId}/post/$postId',
+            source: postSource,
             createdAt: published,
             fileType: type,
             score: 0,
@@ -445,6 +497,8 @@ class PawchiveProvider
               'artist': [query.artistName],
               'meta': [query.service],
               if (title.trim().isNotEmpty) 'copyright': [title.trim()],
+              if (cloudLinksJson.isNotEmpty) 'cloud_links': cloudLinksJson,
+              if (cleanDesc.isNotEmpty) 'description': [cleanDesc],
             },
           );
         })

@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/motion.dart';
 import '../../../../backend/backend.dart';
@@ -210,7 +211,21 @@ class _PostMediaViewerState extends State<PostMediaViewer>
       );
     }
 
-    final url = _imageUrls.isEmpty ? '' : _imageUrls[_imageIndex];
+    if (_imageUrls.isEmpty) {
+      return _CloudMediaHero(
+        post: widget.post,
+        onOpenPrimary: () {
+          final links = widget.post.cloudLinks;
+          final first = links.isNotEmpty ? links.first : null;
+          if (first != null) {
+            launchUrl(Uri.parse(first.url),
+                mode: LaunchMode.externalApplication);
+          }
+        },
+      );
+    }
+
+    final url = _imageUrls[_imageIndex];
     final isLocal = url.startsWith('/') || url.startsWith('file://');
     final headers = _headersFor(widget.post);
     final Widget image;
@@ -419,7 +434,13 @@ class _PostMediaViewerState extends State<PostMediaViewer>
   }
 
   List<String> _buildVideoUrls(Post post) {
-    final list = MediaUrlSelector.video(post);
+    final list = List<String>.from(MediaUrlSelector.video(post));
+    final cloudStreams = post.cloudLinks
+        .where((l) => l.isStreamable && l.directStreamUrl != null)
+        .map((l) => l.directStreamUrl!);
+    for (final stream in cloudStreams) {
+      if (!list.contains(stream)) list.add(stream);
+    }
     final local = widget.localFilePath;
     if (local != null && local.isNotEmpty && File(local).existsSync()) {
       return [local, ...list];
@@ -428,6 +449,7 @@ class _PostMediaViewerState extends State<PostMediaViewer>
   }
 
   bool _isVideo(Post post) {
+    if (post.cloudLinks.any((l) => l.isStreamable)) return true;
     final value = '${post.fileType} ${post.fileUrl}'.toLowerCase();
     return value.contains('video') ||
         value.contains('.webm') ||
@@ -2004,3 +2026,117 @@ class _VideoControls extends StatelessWidget {
     return '$minutes:$seconds';
   }
 }
+
+class _CloudMediaHero extends StatelessWidget {
+  const _CloudMediaHero({
+    required this.post,
+    this.onOpenPrimary,
+  });
+
+  final Post post;
+  final VoidCallback? onOpenPrimary;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isRu = Localizations.maybeLocaleOf(context)?.languageCode == 'ru';
+    final links = post.cloudLinks;
+    final primaryColor = links.isNotEmpty
+        ? links.first.brandColor
+        : theme.colorScheme.primary;
+
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+        constraints: const BoxConstraints(maxWidth: 460),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: primaryColor.withValues(alpha: 0.35),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: primaryColor.withValues(alpha: 0.12),
+              blurRadius: 28,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 68,
+              height: 68,
+              decoration: BoxDecoration(
+                color: primaryColor.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: primaryColor.withValues(alpha: 0.4),
+                  width: 2,
+                ),
+              ),
+              child: Icon(
+                links.isNotEmpty ? links.first.iconData : Icons.cloud_queue_rounded,
+                size: 34,
+                color: primaryColor,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isRu
+                  ? 'Контент на внешнем диске'
+                  : 'Cloud Drive Media',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              links.isNotEmpty
+                  ? (isRu
+                      ? 'Автор опубликовал медиа на ${links.map((l) => l.serviceName).toSet().join(', ')}.'
+                      : 'Author hosted media on ${links.map((l) => l.serviceName).toSet().join(', ')}.')
+                  : (isRu
+                      ? 'В данном посте нет медиафайла на сервере.'
+                      : 'No media file hosted directly on the server.'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            if (links.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 22,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                icon: const Icon(Icons.open_in_new_rounded, size: 16),
+                label: Text(
+                  isRu
+                      ? 'Открыть ${links.first.serviceName}'
+                      : 'Open ${links.first.serviceName}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                onPressed: onOpenPrimary,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+

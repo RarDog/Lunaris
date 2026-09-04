@@ -23,6 +23,7 @@ import '../../favorites/presentation/favorites_controller.dart';
 import '../../feed/presentation/feed_controller.dart';
 import '../../viewed/presentation/viewed_controller.dart';
 import 'post_details_controller.dart';
+import 'widgets/cloud_mirrors_card.dart';
 import 'widgets/post_action_bar.dart';
 import 'widgets/post_media_viewer.dart';
 import 'widgets/post_tags_panel.dart';
@@ -294,6 +295,24 @@ class PostDetailsScreen extends ConsumerWidget {
                       localMedia: localMedia,
                       fileSizeBytes: fileSizeBytes,
                     ),
+                    if (post.cloudLinks.isNotEmpty ||
+                        (post.commentary != null &&
+                            post.commentary!.trim().isNotEmpty)) ...[
+                      const SizedBox(height: 16),
+                      CloudMirrorsCard(
+                        links: post.cloudLinks,
+                        strings: strings,
+                        commentary: post.commentary,
+                        onPlayStream: (streamUrl) => launchUrl(
+                          Uri.parse(streamUrl),
+                          mode: LaunchMode.externalApplication,
+                        ),
+                        onDownloadStream: settings.allowDownloads
+                            ? (streamUrl) =>
+                                _downloadUrl(context, ref, post, streamUrl)
+                            : null,
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     Container(
                       decoration: BoxDecoration(
@@ -443,6 +462,23 @@ class PostDetailsScreen extends ConsumerWidget {
             localMedia: localMedia,
             fileSizeBytes: fileSizeBytes,
           ),
+          if (post.cloudLinks.isNotEmpty ||
+              (post.commentary != null &&
+                  post.commentary!.trim().isNotEmpty)) ...[
+            const SizedBox(height: 12),
+            CloudMirrorsCard(
+              links: post.cloudLinks,
+              strings: strings,
+              commentary: post.commentary,
+              onPlayStream: (streamUrl) => launchUrl(
+                Uri.parse(streamUrl),
+                mode: LaunchMode.externalApplication,
+              ),
+              onDownloadStream: settings.allowDownloads
+                  ? (streamUrl) => _downloadUrl(context, ref, post, streamUrl)
+                  : null,
+            ),
+          ],
           if (feedPosts != null && feedPosts.length > 1) ...[
             const SizedBox(height: 12),
             _NeighborStrip(
@@ -533,6 +569,16 @@ class PostDetailsScreen extends ConsumerWidget {
     Future<void>.delayed(const Duration(seconds: 2), () {
       ref.invalidate(downloadedMediaByKeyProvider(post.cacheKey));
     });
+  }
+
+  Future<void> _downloadUrl(
+    BuildContext context,
+    WidgetRef ref,
+    Post post,
+    String targetUrl,
+  ) async {
+    final customPost = post.copyWith(fileUrl: targetUrl, sampleUrl: targetUrl);
+    await _download(context, ref, customPost);
   }
 
   Future<void> _sharePost(BuildContext context, WidgetRef ref, Post post) async {

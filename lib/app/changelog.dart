@@ -1,5 +1,17 @@
 const lunarisChangelog = [
   LunarisChange(
+    version: '2.3.0',
+    title: 'Artist Cloud Drives & External Video Mirrors',
+    bullets: [
+      'Cloud Mirrors & Drives: automatic detection and parsing of external links to Google Drive, MEGA, Dropbox, Pixeldrain, Catbox, MediaFire, GoFile, Bunkr, and direct video files from post descriptions, HTML, and embed data.',
+      'Direct Video Playback & Download: resolves direct streaming URLs for Dropbox (?raw=1), Google Drive, Pixeldrain API, and Catbox with 1-tap playback and direct downloads.',
+      'Cloud Mirrors Card: styled cards with service branding colors (MEGA Red, Google Drive Blue, Dropbox Blue, Pixeldrain Cyan) showing link type, direct stream button, external open, and copy link.',
+      'Link-Only Posts Support: artist posts that only contain cloud drive links without direct server files are now displayed with an elegant CloudMediaHero banner instead of an empty view.',
+      'Archive Password Detection: automatically extracts and displays archive passwords (Pass: ..., Password: ...) with 1-tap copy button.',
+      'Artist Commentary Card: formatted display of author notes, instructions, and text below post details.',
+    ],
+  ),
+  LunarisChange(
     version: '2.2.0',
     title: 'Offline Mode Overhaul & Post Details Screen Redesign',
     bullets: [

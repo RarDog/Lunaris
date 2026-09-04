@@ -36,6 +36,7 @@ class AppStrings {
   String get downloading => ru ? 'Скачивается' : 'Downloading';
   String get failed => ru ? 'Ошибка' : 'Failed';
   String get open => ru ? 'Открыть' : 'Open';
+  String get copyLink => ru ? 'Копировать ссылку' : 'Copy link';
   String get hidePost => ru ? 'Скрыть пост' : 'Hide post';
   String get hiddenLocally =>
       ru ? 'Пост скрыт локально' : 'Post hidden locally';

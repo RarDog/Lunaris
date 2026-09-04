@@ -1,3 +1,6 @@
+import 'cloud_media_link.dart';
+import '../services/cloud_link_extractor.dart';
+
 class Post {
   const Post({
     required this.id,
@@ -34,6 +37,28 @@ class Post {
   final Map<String, List<String>> tagGroups;
 
   String get cacheKey => '$providerId:$id';
+
+  List<CloudMediaLink> get cloudLinks {
+    final list = tagGroups['cloud_links'];
+    if (list != null && list.isNotEmpty) {
+      return list
+          .map((e) => CloudMediaLink.tryDecode(e))
+          .whereType<CloudMediaLink>()
+          .toList(growable: false);
+    }
+    if (source != null && source!.isNotEmpty) {
+      return CloudLinkExtractor.extractLinks(source: source);
+    }
+    return const [];
+  }
+
+  String? get commentary {
+    final list = tagGroups['description'];
+    if (list != null && list.isNotEmpty) {
+      return list.first;
+    }
+    return null;
+  }
 
   Post copyWith({
     String? id,
