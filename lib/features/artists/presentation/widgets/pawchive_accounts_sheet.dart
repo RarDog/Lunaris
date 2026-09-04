@@ -466,7 +466,7 @@ class _PawchiveAccountsSheetState extends ConsumerState<PawchiveAccountsSheet>
               ),
               // Header
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 child: Row(
                   children: [
                     Container(
@@ -488,31 +488,39 @@ class _PawchiveAccountsSheetState extends ConsumerState<PawchiveAccountsSheet>
                         children: [
                           Text(
                             'Аккаунты Pawchive',
-                            style: theme.textTheme.titleLarge?.copyWith(
+                            style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
+                              fontSize: 18,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           Text(
                             'Синхронизация авторов и избранного',
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: scheme.onSurfaceVariant,
+                              fontSize: 12,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
-                    if (accounts.isNotEmpty)
-                      FilledButton.tonalIcon(
+                    if (accounts.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      IconButton.filledTonal(
                         onPressed: _syncingAll ? null : _syncAllAccounts,
                         icon: _syncingAll
                             ? const SizedBox(
-                                width: 16,
-                                height: 16,
+                                width: 18,
+                                height: 18,
                                 child: CircularProgressIndicator(strokeWidth: 2),
                               )
-                            : const Icon(Icons.sync_rounded, size: 18),
-                        label: const Text('Синхронизировать'),
+                            : const Icon(Icons.sync_rounded, size: 20),
+                        tooltip: 'Синхронизировать все аккаунты',
                       ),
+                    ],
                   ],
                 ),
               ),
@@ -806,7 +814,7 @@ class _PawchiveAccountsSheetState extends ConsumerState<PawchiveAccountsSheet>
         ),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
         leading: CircleAvatar(
           backgroundColor: acc.isActive ? scheme.primary : scheme.surfaceContainerHighest,
           foregroundColor: acc.isActive ? scheme.onPrimary : scheme.onSurfaceVariant,
@@ -817,48 +825,55 @@ class _PawchiveAccountsSheetState extends ConsumerState<PawchiveAccountsSheet>
         ),
         title: Row(
           children: [
-            Expanded(
+            Flexible(
               child: Text(
                 acc.username,
-                style: const TextStyle(fontWeight: FontWeight.bold),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            if (acc.isActive)
+            if (acc.isActive) ...[
+              const SizedBox(width: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                 decoration: BoxDecoration(
-                  color: scheme.primary,
-                  borderRadius: BorderRadius.circular(10),
+                  color: scheme.primary.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   'Активен',
                   style: TextStyle(
-                    color: scheme.onPrimary,
-                    fontSize: 11,
+                    color: scheme.primary,
+                    fontSize: 10,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
+            ],
           ],
         ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 2),
-            Text(
-              'Авторов: ${acc.syncedArtistsCount} • ${acc.lastSyncedAt != null ? _formatDate(acc.lastSyncedAt!) : "не синхр."}',
-              style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
-            ),
-          ],
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Text(
+            'Авторов: ${acc.syncedArtistsCount} • ${acc.lastSyncedAt != null ? _formatDate(acc.lastSyncedAt!) : "не синхр."}',
+            style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 12),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              padding: const EdgeInsets.all(6),
+              iconSize: 18,
               icon: isPushing
                   ? const SizedBox(
-                      width: 18,
-                      height: 18,
+                      width: 14,
+                      height: 14,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.cloud_upload_outlined),
@@ -866,10 +881,14 @@ class _PawchiveAccountsSheetState extends ConsumerState<PawchiveAccountsSheet>
               onPressed: isBusy ? null : () => _pushFavoritesToAccount(acc),
             ),
             IconButton(
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              padding: const EdgeInsets.all(6),
+              iconSize: 18,
               icon: isSyncing
                   ? const SizedBox(
-                      width: 18,
-                      height: 18,
+                      width: 14,
+                      height: 14,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.sync_rounded),
@@ -877,6 +896,9 @@ class _PawchiveAccountsSheetState extends ConsumerState<PawchiveAccountsSheet>
               onPressed: isBusy ? null : () => _syncSingleAccount(acc),
             ),
             PopupMenuButton<String>(
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 28, minHeight: 32),
+              iconSize: 18,
               icon: const Icon(Icons.more_vert_rounded),
               onSelected: (val) {
                 if (val == 'active') {
