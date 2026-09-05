@@ -1,6 +1,8 @@
 # Project-level configuration.
 cmake_minimum_required(VERSION 3.13)
-project(runner LANGUAGES CXX)
+project(runner LANGUAGES CXX C)
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=incompatible-pointer-types -Wno-incompatible-pointer-types")
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
@@ -41,7 +43,8 @@ endif()
 # of modifying this function.
 function(APPLY_STANDARD_SETTINGS TARGET)
   target_compile_features(${TARGET} PUBLIC cxx_std_14)
-  target_compile_options(${TARGET} PRIVATE -Wall -Werror)
+  target_compile_options(${TARGET} PRIVATE -Wall)
+  target_compile_options(${TARGET} PRIVATE "$<$<COMPILE_LANGUAGE:C>:-Wno-error=incompatible-pointer-types;-Wno-incompatible-pointer-types>")
   target_compile_options(${TARGET} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:-O3>")
   target_compile_definitions(${TARGET} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:NDEBUG>")
 endfunction()
