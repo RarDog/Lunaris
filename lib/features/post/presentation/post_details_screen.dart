@@ -110,6 +110,16 @@ class PostDetailsScreen extends ConsumerWidget {
                             t.status == DownloadTaskStatus.queued),
                   ) ??
               false;
+          final isTextOnly = post.fileType == 'text' ||
+              (post.previewUrl.isEmpty &&
+                  post.sampleUrl.isEmpty &&
+                  post.fileUrl.isEmpty &&
+                  !MediaUrlSelector.isVideo(post));
+          final shouldShowCloudCard = isTextOnly
+              ? post.cloudLinks.isNotEmpty
+              : (post.cloudLinks.isNotEmpty ||
+                  (post.commentary != null &&
+                      post.commentary!.trim().isNotEmpty));
 
           if (Responsive.isMobile(context)) {
             if (currentIndex >= 0 && feedPosts.length > 1) {
@@ -341,14 +351,12 @@ class PostDetailsScreen extends ConsumerWidget {
                       localMedia: localMedia,
                       fileSizeBytes: fileSizeBytes,
                     ),
-                    if (post.cloudLinks.isNotEmpty ||
-                        (post.commentary != null &&
-                            post.commentary!.trim().isNotEmpty)) ...[
+                    if (shouldShowCloudCard) ...[
                       const SizedBox(height: 16),
                       CloudMirrorsCard(
                         links: post.cloudLinks,
                         strings: strings,
-                        commentary: post.commentary,
+                        commentary: isTextOnly ? null : post.commentary,
                         onPlayStream: (streamUrl) => launchUrl(
                           Uri.parse(streamUrl),
                           mode: LaunchMode.externalApplication,
@@ -438,6 +446,16 @@ class PostDetailsScreen extends ConsumerWidget {
                       t.status == DownloadTaskStatus.queued),
             ) ??
         false;
+    final isTextOnly = post.fileType == 'text' ||
+        (post.previewUrl.isEmpty &&
+            post.sampleUrl.isEmpty &&
+            post.fileUrl.isEmpty &&
+            !MediaUrlSelector.isVideo(post));
+    final shouldShowCloudCard = isTextOnly
+        ? post.cloudLinks.isNotEmpty
+        : (post.cloudLinks.isNotEmpty ||
+            (post.commentary != null &&
+                post.commentary!.trim().isNotEmpty));
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -562,14 +580,12 @@ class PostDetailsScreen extends ConsumerWidget {
             localMedia: localMedia,
             fileSizeBytes: fileSizeBytes,
           ),
-          if (post.cloudLinks.isNotEmpty ||
-              (post.commentary != null &&
-                  post.commentary!.trim().isNotEmpty)) ...[
+          if (shouldShowCloudCard) ...[
             const SizedBox(height: 12),
             CloudMirrorsCard(
               links: post.cloudLinks,
               strings: strings,
-              commentary: post.commentary,
+              commentary: isTextOnly ? null : post.commentary,
               onPlayStream: (streamUrl) => launchUrl(
                 Uri.parse(streamUrl),
                 mode: LaunchMode.externalApplication,

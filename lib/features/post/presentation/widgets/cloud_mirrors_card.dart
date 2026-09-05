@@ -7,7 +7,7 @@ import '../../../../backend/models/cloud_media_link.dart';
 import '../../../../backend/models/creator_link.dart';
 import '../../../../shared/widgets/formatted_content_text.dart';
 
-class CloudMirrorsCard extends StatelessWidget {
+class CloudMirrorsCard extends StatefulWidget {
   const CloudMirrorsCard({
     super.key,
     required this.links,
@@ -26,8 +26,20 @@ class CloudMirrorsCard extends StatelessWidget {
   final bool initiallyExpanded;
 
   @override
+  State<CloudMirrorsCard> createState() => _CloudMirrorsCardState();
+}
+
+class _CloudMirrorsCardState extends State<CloudMirrorsCard> {
+  int _selectedTab = 0; // 0: mirrors, 1: commentary
+
+  @override
   Widget build(BuildContext context) {
-    if (links.isEmpty && (commentary == null || commentary!.trim().isEmpty)) {
+    final links = widget.links;
+    final commentary = widget.commentary;
+    final hasLinks = links.isNotEmpty;
+    final hasCommentary = commentary != null && commentary.trim().isNotEmpty;
+
+    if (!hasLinks && !hasCommentary) {
       return const SizedBox.shrink();
     }
 
@@ -36,6 +48,14 @@ class CloudMirrorsCard extends StatelessWidget {
         .map((l) => l.detectedPassword)
         .whereType<String>()
         .firstWhere((p) => p.isNotEmpty, orElse: () => '');
+
+    final cardTitle = hasLinks
+        ? (widget.strings.ru
+            ? 'Облачные диски и зеркала (${links.length})'
+            : 'Cloud Mirrors & Drives (${links.length})')
+        : (widget.strings.ru ? 'Описание от автора' : 'Artist Commentary');
+
+    final cardIcon = hasLinks ? Icons.cloud_sync_rounded : Icons.notes_rounded;
 
     return Container(
       decoration: BoxDecoration(
@@ -49,20 +69,18 @@ class CloudMirrorsCard extends StatelessWidget {
       child: ExpansionTile(
         tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
         childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-        initiallyExpanded: initiallyExpanded,
+        initiallyExpanded: widget.initiallyExpanded,
         shape: const Border(),
         collapsedShape: const Border(),
         leading: Icon(
-          Icons.cloud_sync_rounded,
+          cardIcon,
           color: theme.colorScheme.primary,
         ),
         title: Row(
           children: [
             Expanded(
               child: Text(
-                strings.ru
-                    ? 'Облачные диски и зеркала (${links.length})'
-                    : 'Cloud Mirrors & Drives (${links.length})',
+                cardTitle,
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -77,7 +95,8 @@ class CloudMirrorsCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.green.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.green.withValues(alpha: 0.4)),
+                  border:
+                      Border.all(color: Colors.green.withValues(alpha: 0.4)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -86,7 +105,7 @@ class CloudMirrorsCard extends StatelessWidget {
                         size: 13, color: Colors.green),
                     const SizedBox(width: 4),
                     Text(
-                      strings.ru ? 'Плеер' : 'Stream',
+                      widget.strings.ru ? 'Плеер' : 'Stream',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: Colors.green,
                         fontWeight: FontWeight.bold,
@@ -116,7 +135,9 @@ class CloudMirrorsCard extends StatelessWidget {
                   Expanded(
                     child: Text.rich(
                       TextSpan(
-                        text: strings.ru ? 'Пароль к архиву: ' : 'Archive Password: ',
+                        text: widget.strings.ru
+                            ? 'Пароль к архиву: '
+                            : 'Archive Password: ',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurface,
                         ),
@@ -135,13 +156,15 @@ class CloudMirrorsCard extends StatelessWidget {
                   IconButton(
                     icon: const Icon(Icons.copy_rounded, size: 16),
                     visualDensity: VisualDensity.compact,
-                    tooltip: strings.ru ? 'Копировать пароль' : 'Copy Password',
+                    tooltip: widget.strings.ru
+                        ? 'Копировать пароль'
+                        : 'Copy Password',
                     onPressed: () {
                       Clipboard.setData(ClipboardData(text: detectedPassword));
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            strings.ru
+                            widget.strings.ru
                                 ? 'Пароль скопирован: $detectedPassword'
                                 : 'Password copied: $detectedPassword',
                           ),
@@ -157,60 +180,108 @@ class CloudMirrorsCard extends StatelessWidget {
             const SizedBox(height: 10),
           ],
 
-          // Links list
-          if (links.isNotEmpty) ...[
-            ...links.map((link) => _buildLinkTile(context, link, strings)),
-          ],
-
-          // Commentary / Description
-          if (commentary != null && commentary!.trim().isNotEmpty) ...[
-            const SizedBox(height: 10),
-            Divider(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
-              height: 1,
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Icon(
-                  Icons.notes_rounded,
-                  size: 16,
-                  color: theme.colorScheme.primary,
+          if (hasLinks && hasCommentary) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<int>(
+                  segments: [
+                    ButtonSegment(
+                      value: 0,
+                      icon: const Icon(Icons.cloud_queue_rounded, size: 16),
+                      label: Text(
+                        widget.strings.ru
+                            ? 'Зеркала (${links.length})'
+                            : 'Mirrors (${links.length})',
+                      ),
+                    ),
+                    ButtonSegment(
+                      value: 1,
+                      icon: const Icon(Icons.notes_rounded, size: 16),
+                      label: Text(
+                        widget.strings.ru ? 'Описание' : 'Description',
+                      ),
+                    ),
+                  ],
+                  selected: {_selectedTab},
+                  onSelectionChanged: (set) =>
+                      setState(() => _selectedTab = set.first),
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  strings.ru ? 'Описание от автора' : 'Artist Commentary',
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            FormattedContentText(
-              text: commentary!.trim(),
-              style: theme.textTheme.bodySmall?.copyWith(
-                height: 1.45,
-                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-            Builder(
-              builder: (context) {
-                final creatorLinks = CreatorLink.extractLinks(commentary);
-                if (creatorLinks.isEmpty) return const SizedBox.shrink();
-                return Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: CreatorLinkChips(
-                    links: creatorLinks,
-                    title: strings.ru ? 'Ссылки автора' : 'Author Links',
-                  ),
-                );
-              },
+            IndexedStack(
+              index: _selectedTab,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: links
+                      .map((link) => _buildLinkTile(
+                            context,
+                            link,
+                            widget.strings,
+                          ))
+                      .toList(),
+                ),
+                _buildCommentarySection(context, commentary, theme),
+              ],
             ),
+          ] else if (hasLinks) ...[
+            ...links.map((link) => _buildLinkTile(
+                  context,
+                  link,
+                  widget.strings,
+                )),
+          ] else if (hasCommentary) ...[
+            _buildCommentarySection(context, commentary, theme),
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildCommentarySection(
+    BuildContext context,
+    String text,
+    ThemeData theme,
+  ) {
+    final creatorLinks = CreatorLink.extractLinks(text);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              Icons.notes_rounded,
+              size: 16,
+              color: theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              widget.strings.ru ? 'Описание от автора' : 'Artist Commentary',
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.primary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        FormattedContentText(
+          text: text.trim(),
+          style: theme.textTheme.bodySmall?.copyWith(
+            height: 1.45,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        if (creatorLinks.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          CreatorLinkChips(
+            links: creatorLinks,
+            title: widget.strings.ru ? 'Ссылки автора' : 'Author Links',
+          ),
+        ],
+      ],
     );
   }
 
@@ -303,7 +374,7 @@ class CloudMirrorsCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               // Play button (if streamable)
-              if (link.isStreamable && onPlayStream != null) ...[
+              if (link.isStreamable && widget.onPlayStream != null) ...[
                 FilledButton.tonalIcon(
                   style: FilledButton.styleFrom(
                     visualDensity: VisualDensity.compact,
@@ -313,7 +384,7 @@ class CloudMirrorsCard extends StatelessWidget {
                   label: Text(strings.ru ? 'Смотреть' : 'Play'),
                   onPressed: () {
                     final target = link.directStreamUrl ?? link.url;
-                    onPlayStream!(target);
+                    widget.onPlayStream!(target);
                   },
                 ),
                 const SizedBox(width: 8),
@@ -321,12 +392,13 @@ class CloudMirrorsCard extends StatelessWidget {
               // Download button (if direct streamable and callback exists)
               if (link.isStreamable &&
                   link.directStreamUrl != null &&
-                  onDownloadStream != null) ...[
+                  widget.onDownloadStream != null) ...[
                 IconButton.filledTonal(
                   visualDensity: VisualDensity.compact,
                   tooltip: strings.download,
                   icon: const Icon(Icons.download_rounded, size: 16),
-                  onPressed: () => onDownloadStream!(link.directStreamUrl!),
+                  onPressed: () =>
+                      widget.onDownloadStream!(link.directStreamUrl!),
                 ),
                 const SizedBox(width: 8),
               ],
