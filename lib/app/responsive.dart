@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 class AppBreakpoints {
@@ -6,11 +8,19 @@ class AppBreakpoints {
 }
 
 class Responsive {
-  static bool isMobile(BuildContext context) =>
-      MediaQuery.sizeOf(context).width < AppBreakpoints.mobile;
+  static bool isMobile(BuildContext context) {
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      return MediaQuery.sizeOf(context).shortestSide < 600;
+    }
+    return MediaQuery.sizeOf(context).width < AppBreakpoints.mobile;
+  }
 
-  static bool isDesktop(BuildContext context) =>
-      MediaQuery.sizeOf(context).width >= AppBreakpoints.desktop;
+  static bool isDesktop(BuildContext context) {
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      return MediaQuery.sizeOf(context).shortestSide >= 600;
+    }
+    return MediaQuery.sizeOf(context).width >= AppBreakpoints.desktop;
+  }
 
   static int columnsFor(
     BuildContext context, {

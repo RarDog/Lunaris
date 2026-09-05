@@ -3,12 +3,12 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:screen_brightness/screen_brightness.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/motion.dart';
@@ -143,7 +143,9 @@ class _PostMediaViewerState extends State<PostMediaViewer>
 
   @override
   void dispose() {
-    _disposeVideo();
+    if (!_inFullscreen) {
+      _disposeVideo();
+    }
     super.dispose();
   }
 
@@ -205,6 +207,7 @@ class _PostMediaViewerState extends State<PostMediaViewer>
               },
               fullscreen: widget.fullscreen,
               errorMessage: _videoError,
+              onTapSurface: _toggleControls,
               onInteract: _showControls,
               onRetry: _retryVideo,
               onToggleFit: () {
@@ -553,6 +556,16 @@ class _PostMediaViewerState extends State<PostMediaViewer>
     });
   }
 
+  void _toggleControls() {
+    if (!mounted) return;
+    if (_controlsVisible) {
+      _hideTimer?.cancel();
+      setState(() => _controlsVisible = false);
+    } else {
+      _showControls();
+    }
+  }
+
   void _showControls() {
     if (!mounted) return;
     setState(() => _controlsVisible = true);
@@ -601,7 +614,12 @@ class _PostMediaViewerState extends State<PostMediaViewer>
         ),
       ),
     );
-    if (mounted) setState(() => _inFullscreen = false);
+    if (mounted) {
+      setState(() => _inFullscreen = false);
+    } else {
+      player.dispose();
+      return;
+    }
     if (result != null) {
       await _applyPlaybackSnapshot(result);
       if (result.playing && !player.state.playing) {
@@ -816,14 +834,28 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
     _showControls();
   }
 
+  void _toggleControls() {
+    if (!mounted) return;
+    if (_controlsVisible) {
+      _hideTimer?.cancel();
+      setState(() => _controlsVisible = false);
+    } else {
+      _showControls();
+    }
+  }
+
   @override
   void dispose() {
     _hideTimer?.cancel();
-    try {
-      ScreenBrightness.instance.resetApplicationScreenBrightness();
-    } catch (_) {}
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+      Future.delayed(const Duration(milliseconds: 300), () {
+        SystemChrome.setPreferredOrientations([]);
+      });
+    } else {
+      SystemChrome.setPreferredOrientations(DeviceOrientation.values);
+    }
     super.dispose();
   }
 
@@ -860,91 +892,59 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
             },
             child: Focus(
               autofocus: true,
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: _VideoSurface(
-                      player: widget.player,
-                      controller: widget.controller,
-                      aspectRatio: widget.aspectRatio,
-                      controlsVisible: _controlsVisible,
-                      coverVideo: _coverVideo,
-                      muted: _muted,
-                      loopVideo: _loopVideo,
-                      halfVolume: _halfVolume,
-                      initialVolume: _currentVolume,
-                      onVolumeChanged: (vol) {
-                        _currentVolume = vol;
-                        widget.onChanged(_snapshot());
-                      },
-                      fullscreen: true,
-                      errorMessage: widget.errorMessage,
-                      onInteract: _showControls,
-                      onRetry: widget.onRetry,
-                      onToggleFit: () {
-                        setState(() => _coverVideo = !_coverVideo);
-                        widget.onChanged(_snapshot());
-                        _showControls();
-                      },
-                      onToggleMute: () async {
-                        setState(() => _muted = !_muted);
-                        await _applyVolume();
-                        widget.onChanged(_snapshot());
-                        _showControls();
-                      },
-                      onToggleHalfVolume: () async {
-                        setState(() {
-                          _halfVolume = !_halfVolume;
-                          if (_halfVolume) _muted = false;
-                        });
-                        await _applyVolume();
-                        widget.onChanged(_snapshot());
-                        _showControls();
-                      },
-                      onToggleLoop: () async {
-                        setState(() => _loopVideo = !_loopVideo);
-                        await widget.player.setPlaylistMode(
-                          _loopVideo ? PlaylistMode.single : PlaylistMode.none,
-                        );
-                        widget.onChanged(_snapshot());
-                        _showControls();
-                      },
-                      onFullscreen: () => Navigator.of(
-                        context,
-                        rootNavigator: true,
-                      ).pop(_snapshot()),
-                    ),
-                  ),
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: SafeArea(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton.filledTonal(
-                            tooltip: _isLandscape
-                                ? 'Портретная ориентация'
-                                : 'Альбомная ориентация',
-                            onPressed: _toggleOrientation,
-                            icon: Icon(_isLandscape
-                                ? Icons.screen_lock_portrait_rounded
-                                : Icons.screen_lock_landscape_rounded),
-                          ),
-                          const SizedBox(width: 8),
-                          IconButton.filledTonal(
-                            tooltip: 'Close fullscreen',
-                            onPressed: () => Navigator.of(
-                              context,
-                              rootNavigator: true,
-                            ).pop(_snapshot()),
-                            icon: const Icon(Icons.close_rounded),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+              child: _VideoSurface(
+                player: widget.player,
+                controller: widget.controller,
+                aspectRatio: widget.aspectRatio,
+                controlsVisible: _controlsVisible,
+                coverVideo: _coverVideo,
+                muted: _muted,
+                loopVideo: _loopVideo,
+                halfVolume: _halfVolume,
+                initialVolume: _currentVolume,
+                onVolumeChanged: (vol) {
+                  _currentVolume = vol;
+                  widget.onChanged(_snapshot());
+                },
+                fullscreen: true,
+                errorMessage: widget.errorMessage,
+                onTapSurface: _toggleControls,
+                onInteract: _showControls,
+                isLandscape: _isLandscape,
+                onToggleOrientation: _toggleOrientation,
+                onRetry: widget.onRetry,
+                onToggleFit: () {
+                  setState(() => _coverVideo = !_coverVideo);
+                  widget.onChanged(_snapshot());
+                  _showControls();
+                },
+                onToggleMute: () async {
+                  setState(() => _muted = !_muted);
+                  await _applyVolume();
+                  widget.onChanged(_snapshot());
+                  _showControls();
+                },
+                onToggleHalfVolume: () async {
+                  setState(() {
+                    _halfVolume = !_halfVolume;
+                    if (_halfVolume) _muted = false;
+                  });
+                  await _applyVolume();
+                  widget.onChanged(_snapshot());
+                  _showControls();
+                },
+                onToggleLoop: () async {
+                  setState(() => _loopVideo = !_loopVideo);
+                  await widget.player.setPlaylistMode(
+                    _loopVideo ? PlaylistMode.single : PlaylistMode.none,
+                  );
+                  widget.onChanged(_snapshot());
+                  _showControls();
+                },
+                onFullscreen: () => Navigator.of(
+                  context,
+                  rootNavigator: true,
+                ).pop(_snapshot()),
               ),
             ),
           ),
@@ -1007,6 +1007,7 @@ class _VideoSurface extends StatefulWidget {
     this.onVolumeChanged,
     required this.fullscreen,
     required this.errorMessage,
+    this.onTapSurface,
     required this.onInteract,
     required this.onRetry,
     required this.onToggleFit,
@@ -1014,6 +1015,8 @@ class _VideoSurface extends StatefulWidget {
     required this.onToggleHalfVolume,
     required this.onToggleLoop,
     required this.onFullscreen,
+    this.isLandscape,
+    this.onToggleOrientation,
   });
 
   final Player player;
@@ -1028,6 +1031,7 @@ class _VideoSurface extends StatefulWidget {
   final ValueChanged<double>? onVolumeChanged;
   final bool fullscreen;
   final String? errorMessage;
+  final VoidCallback? onTapSurface;
   final VoidCallback onInteract;
   final VoidCallback onRetry;
   final VoidCallback onToggleFit;
@@ -1035,6 +1039,8 @@ class _VideoSurface extends StatefulWidget {
   final VoidCallback onToggleHalfVolume;
   final VoidCallback onToggleLoop;
   final VoidCallback onFullscreen;
+  final bool? isLandscape;
+  final VoidCallback? onToggleOrientation;
 
   @override
   State<_VideoSurface> createState() => _VideoSurfaceState();
@@ -1055,7 +1061,7 @@ class _VideoSurfaceState extends State<_VideoSurface> {
   Timer? _volumeTimer;
 
   bool _showBrightnessIndicator = false;
-  double _currentBrightness = 0.5;
+  double _currentBrightness = 1.0;
   Timer? _brightnessTimer;
 
   @override
@@ -1063,14 +1069,6 @@ class _VideoSurfaceState extends State<_VideoSurface> {
     super.initState();
     _currentVolume = widget.initialVolume;
     widget.player.setVolume(_currentVolume);
-    _initBrightness();
-  }
-
-  Future<void> _initBrightness() async {
-    try {
-      final b = await ScreenBrightness.instance.application;
-      if (mounted) setState(() => _currentBrightness = b);
-    } catch (_) {}
   }
 
   @override
@@ -1159,14 +1157,13 @@ class _VideoSurfaceState extends State<_VideoSurface> {
     });
   }
 
-  void _adjustBrightness(double deltaY) async {
+  void _adjustBrightness(double deltaY) {
     if (_isLocked) return;
-    final newB = (_currentBrightness - deltaY * 0.004).clamp(0.02, 1.0);
-    _currentBrightness = newB;
-    try {
-      await ScreenBrightness.instance.setApplicationScreenBrightness(newB);
-    } catch (_) {}
-    setState(() => _showBrightnessIndicator = true);
+    final newB = (_currentBrightness - deltaY * 0.004).clamp(0.08, 1.0);
+    setState(() {
+      _currentBrightness = newB;
+      _showBrightnessIndicator = true;
+    });
     _brightnessTimer?.cancel();
     _brightnessTimer = Timer(const Duration(milliseconds: 1100), () {
       if (mounted) setState(() => _showBrightnessIndicator = false);
@@ -1193,11 +1190,21 @@ class _VideoSurfaceState extends State<_VideoSurface> {
                 resumeUponEnteringForegroundMode: false,
               ),
             ),
+            if (_currentBrightness < 0.99)
+              Positioned.fill(
+                child: IgnorePointer(
+                  child: ColoredBox(
+                    color: Colors.black.withValues(
+                      alpha: (1.0 - _currentBrightness).clamp(0.0, 0.92),
+                    ),
+                  ),
+                ),
+              ),
             Positioned.fill(
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTapDown: (details) => lastTapDown = details.localPosition,
-                onTap: widget.onInteract,
+                onTap: widget.onTapSurface ?? widget.onInteract,
                 onDoubleTap: () {
                   if (lastTapDown != null) {
                     _onDoubleTapAt(
@@ -1259,6 +1266,8 @@ class _VideoSurfaceState extends State<_VideoSurface> {
                   coverVideo: widget.coverVideo,
                   fullscreen: widget.fullscreen,
                   isLocked: _isLocked,
+                  isLandscape: widget.isLandscape,
+                  onToggleOrientation: widget.onToggleOrientation,
                   onToggleLock: () => setState(() => _isLocked = !_isLocked),
                   onToggleFit: widget.onToggleFit,
                   onToggleMute: widget.onToggleMute,
@@ -1944,6 +1953,8 @@ class _VideoControls extends StatefulWidget {
     required this.coverVideo,
     required this.fullscreen,
     required this.isLocked,
+    this.isLandscape,
+    this.onToggleOrientation,
     required this.onToggleLock,
     required this.onToggleFit,
     required this.onToggleMute,
@@ -1961,6 +1972,8 @@ class _VideoControls extends StatefulWidget {
   final bool coverVideo;
   final bool fullscreen;
   final bool isLocked;
+  final bool? isLandscape;
+  final VoidCallback? onToggleOrientation;
   final VoidCallback onToggleLock;
   final VoidCallback onToggleFit;
   final VoidCallback onToggleMute;
@@ -2035,6 +2048,21 @@ class _VideoControlsState extends State<_VideoControls> {
                           tooltip: 'Закрыть',
                           icon: Icons.arrow_back_rounded,
                           onPressed: widget.onFullscreen,
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      if (widget.fullscreen && widget.onToggleOrientation != null) ...[
+                        _RoundControlButton(
+                          tooltip: (widget.isLandscape ?? false)
+                              ? 'Портретная ориентация'
+                              : 'Альбомная ориентация',
+                          icon: (widget.isLandscape ?? false)
+                              ? Icons.screen_lock_portrait_rounded
+                              : Icons.screen_lock_landscape_rounded,
+                          onPressed: () {
+                            widget.onToggleOrientation?.call();
+                            widget.onInteract?.call();
+                          },
                         ),
                         const SizedBox(width: 8),
                       ],
@@ -2121,11 +2149,9 @@ class _VideoControlsState extends State<_VideoControls> {
                               await widget.player.play();
                             }
                           } catch (_) {
-                            if (widget.player.state.playing) {
-                              await widget.player.pause();
-                            } else {
-                              await widget.player.play();
-                            }
+                            try {
+                              await widget.player.playOrPause();
+                            } catch (_) {}
                           }
                           widget.onInteract?.call();
                         },
