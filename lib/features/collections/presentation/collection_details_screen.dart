@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/app.dart';
+import '../../../app/app_navigator.dart';
 import '../../../app/responsive.dart';
 import '../../../backend/backend.dart';
 import '../../../shared/widgets/adaptive_scaffold.dart';
@@ -167,12 +168,10 @@ class CollectionDetailsScreen extends ConsumerWidget {
                   mediaQualityMode:
                       MediaQualityMode.fromName(settings.mediaQualityMode),
                   favoriteKeys: favoriteKeys,
-                  onOpen: (post) => context.push(
-                    '/post/${post.providerId}/${post.id}',
-                    extra: PostNavigationContext(
-                      currentPost: post,
-                      posts: items,
-                    ),
+                  onOpen: (post) => AppNavigator.openPost(
+                    context,
+                    post: post,
+                    postsList: items,
                   ),
                   onFavorite: (post) async {
                     if (favoriteKeys.contains(post.cacheKey)) {

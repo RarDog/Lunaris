@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/app.dart';
+import '../../../app/app_navigator.dart';
 import '../../../app/responsive.dart';
 import '../../../backend/backend.dart';
 import '../../../core/utils/result.dart';
@@ -1574,12 +1575,10 @@ class _FavoriteArtistMediaStrip extends ConsumerWidget {
                 final isVideo = MediaUrlSelector.isVideo(post);
                 return InkWell(
                   borderRadius: BorderRadius.circular(14),
-                  onTap: () => context.push(
-                    '/post/${post.providerId}/${post.id}',
-                    extra: PostNavigationContext(
-                      currentPost: post,
-                      posts: posts,
-                    ),
+                  onTap: () => AppNavigator.openPost(
+                    context,
+                    post: post,
+                    postsList: posts,
                   ),
                   child: Container(
                     decoration: BoxDecoration(

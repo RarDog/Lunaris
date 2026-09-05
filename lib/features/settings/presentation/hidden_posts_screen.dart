@@ -1,9 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../app/app.dart';
+import '../../../app/app_navigator.dart';
 import '../../../backend/backend.dart';
 import '../../../core/utils/result.dart';
 import '../../../shared/widgets/adaptive_scaffold.dart';
@@ -62,9 +62,9 @@ class HiddenPostsScreen extends ConsumerWidget {
                     item: item,
                     onOpen: item.post == null
                         ? null
-                        : () => context.push(
-                              '/post/${item.post!.providerId}/${item.post!.id}',
-                              extra: item.post,
+                        : () => AppNavigator.openPost(
+                              context,
+                              post: item.post!,
                             ),
                     onRestore: () async {
                       await ref

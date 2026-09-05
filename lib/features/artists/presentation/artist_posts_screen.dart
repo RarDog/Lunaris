@@ -3,10 +3,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/app.dart';
+import '../../../app/app_navigator.dart';
 import '../../../app/responsive.dart';
 import '../../../backend/backend.dart';
 import '../../../core/utils/result.dart';
@@ -791,12 +791,10 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
                                       settings.mediaQualityMode),
                                   favoriteKeys: favoriteKeys,
                                   viewedKeys: viewedKeys,
-                                  onOpen: (post) => context.push(
-                                    '/post/${post.providerId}/${post.id}',
-                                    extra: PostNavigationContext(
-                                      currentPost: post,
-                                      posts: displayedPosts,
-                                    ),
+                                  onOpen: (post) => AppNavigator.openPost(
+                                    context,
+                                    post: post,
+                                    postsList: displayedPosts,
                                   ),
                                   onFavorite: (post) async {
                                     if (favoriteKeys.contains(post.cacheKey)) {

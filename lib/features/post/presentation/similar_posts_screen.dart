@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../app/app.dart';
+import '../../../app/app_navigator.dart';
 import '../../../app/responsive.dart';
 import '../../../backend/backend.dart';
 import '../../../core/utils/result.dart';
@@ -98,9 +98,9 @@ class SimilarPostsScreen extends ConsumerWidget {
                           MediaQualityMode.fromName(settings.mediaQualityMode),
                       favoriteKeys: favorites,
                       viewedKeys: viewed,
-                      onOpen: (post) => context.push(
-                        '/post/${post.providerId}/${post.id}',
-                        extra: post,
+                      onOpen: (post) => AppNavigator.openPost(
+                        context,
+                        post: post,
                       ),
                       onFavorite: (post) =>
                           _toggleFavorite(ref, post, favorites),

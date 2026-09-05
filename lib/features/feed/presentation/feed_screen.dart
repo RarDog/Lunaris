@@ -8,6 +8,7 @@ import 'dart:async';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../app/app.dart';
+import '../../../app/app_navigator.dart';
 import '../../../app/responsive.dart';
 import '../../../backend/backend.dart';
 import '../../../core/utils/result.dart';
@@ -331,12 +332,10 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
                             selectionMode: _selectionMode,
                             selectedKeys: _selectedKeys,
                             gridMode: settings.gridMode,
-                            onOpen: (post) => context.push(
-                              '/post/${post.providerId}/${post.id}',
-                              extra: PostNavigationContext(
-                                currentPost: post,
-                                posts: state.posts,
-                              ),
+                            onOpen: (post) => AppNavigator.openPost(
+                              context,
+                              post: post,
+                              postsList: state.posts,
                             ),
                             onPreview: (post) => _showPreview(context, post),
                             onToggleSelected: (post) => _toggleSelected(post),
@@ -392,7 +391,7 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
   void _openRandom(List<Post> posts) {
     if (posts.isEmpty) return;
     final post = posts[Random().nextInt(posts.length)];
-    context.push('/post/${post.providerId}/${post.id}', extra: post);
+    AppNavigator.openPost(context, post: post, postsList: posts);
   }
 
   Future<void> _applySearchQuery(String query) async {

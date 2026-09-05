@@ -7,13 +7,19 @@ import 'package:go_router/go_router.dart';
 import '../../app/app.dart';
 import '../../app/motion.dart';
 import '../../app/responsive.dart';
+import '../../app/router.dart';
 import '../../backend/backend.dart';
 import '../../core/utils/result.dart';
 
 class AppShell extends ConsumerStatefulWidget {
-  const AppShell({required this.child, super.key});
+  const AppShell({
+    required this.child,
+    this.navigationShell,
+    super.key,
+  });
 
   final Widget child;
+  final StatefulNavigationShell? navigationShell;
 
   static const destinations = [
     _Destination('feed', 'Feed', Icons.dashboard_rounded, '/'),
@@ -32,6 +38,30 @@ class AppShell extends ConsumerStatefulWidget {
     _Destination('providers', 'Providers', Icons.hub_rounded, '/providers'),
     _Destination('settings', 'Settings', Icons.settings_rounded, '/settings'),
   ];
+
+  static int branchIndexForLocation(String location) {
+    if (location.startsWith('/settings')) return 7;
+    if (location.startsWith('/providers')) return 6;
+    if (location.startsWith('/artists')) return 5;
+    if (location.startsWith('/collections')) return 4;
+    if (location.startsWith('/viewed')) return 3;
+    if (location.startsWith('/favorites')) return 2;
+    if (location.startsWith('/search')) return 1;
+    return 0;
+  }
+
+  static String locationForBranchIndex(int index) {
+    return switch (index) {
+      1 => '/search',
+      2 => '/favorites',
+      3 => '/viewed',
+      4 => '/collections',
+      5 => '/artists',
+      6 => '/providers',
+      7 => '/settings',
+      _ => '/',
+    };
+  }
 
   static List<_Destination> _visibleDestinations(
     AppSettings settings,
@@ -52,11 +82,70 @@ class _AppShellState extends ConsumerState<AppShell> {
   final List<String> _tabHistory = [];
   String? _currentPath;
   bool _isBackNavigating = false;
+  bool _restoredTab = false;
+  late final AppLifecycleListener _lifecycleListener;
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycleListener = AppLifecycleListener(
+      onStateChange: (state) {
+        if (state == AppLifecycleState.paused ||
+            state == AppLifecycleState.inactive ||
+            state == AppLifecycleState.detached) {
+          _saveCurrentLocation();
+        }
+      },
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final settings = ref.read(appSettingsProvider).value;
+      _maybeRestoreLastActiveTab(settings);
+    });
+  }
+
+  @override
+  void dispose() {
+    _lifecycleListener.dispose();
+    super.dispose();
+  }
+
+  void _saveCurrentLocation([String? location]) {
+    final loc = location ??
+        _currentPath ??
+        (widget.navigationShell != null
+            ? AppShell.locationForBranchIndex(
+                widget.navigationShell!.currentIndex)
+            : '/');
+    ref.read(settingsServiceProvider).saveLastActiveLocation(loc);
+  }
+
+  void _maybeRestoreLastActiveTab(AppSettings? settings) {
+    if (_restoredTab || settings == null) return;
+    final lastLocation = settings.lastActiveLocation;
+    if (lastLocation.isNotEmpty && lastLocation != '/') {
+      final idx = AppShell.branchIndexForLocation(lastLocation);
+      if (idx > 0 && widget.navigationShell != null) {
+        _restoredTab = true;
+        widget.navigationShell!.goBranch(idx, initialLocation: false);
+      }
+    }
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final path = GoRouterState.of(context).uri.path;
+    _syncPath(path);
+  }
+
+  @override
+  void didUpdateWidget(covariant AppShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final path = GoRouterState.of(context).uri.path;
+    _syncPath(path);
+  }
+
+  void _syncPath(String path) {
     if (_isBackNavigating) {
       _isBackNavigating = false;
       _currentPath = path;
@@ -74,10 +163,37 @@ class _AppShellState extends ConsumerState<AppShell> {
       }
     }
     _currentPath = path;
+    _saveCurrentLocation(path);
+  }
+
+  void _onNavigate(String location) {
+    final targetIndex = AppShell.branchIndexForLocation(location);
+    if (widget.navigationShell != null) {
+      if (widget.navigationShell!.currentIndex == targetIndex) {
+        branchNavKeys[targetIndex]
+            .currentState
+            ?.popUntil((route) => route.isFirst);
+      } else {
+        widget.navigationShell!.goBranch(
+          targetIndex,
+          initialLocation: false,
+        );
+      }
+    } else {
+      context.go(location);
+    }
+    _saveCurrentLocation(location);
   }
 
   bool _handleBack() {
-    if (Navigator.of(context).canPop()) {
+    final shell = widget.navigationShell;
+    if (shell != null) {
+      final currentBranchKey = branchNavKeys[shell.currentIndex];
+      if (currentBranchKey.currentState?.canPop() ?? false) {
+        currentBranchKey.currentState?.pop();
+        return true;
+      }
+    } else if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop();
       return true;
     }
@@ -90,13 +206,13 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (_tabHistory.isNotEmpty) {
       final previous = _tabHistory.removeLast();
       _isBackNavigating = true;
-      context.go(previous);
+      _onNavigate(previous);
       return true;
     }
 
-    if (currentPath != '/') {
+    if (currentPath != '/' && (shell == null || shell.currentIndex != 0)) {
       _isBackNavigating = true;
-      context.go('/');
+      _onNavigate('/');
       return true;
     }
 
@@ -105,6 +221,12 @@ class _AppShellState extends ConsumerState<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue<AppSettings>>(appSettingsProvider, (prev, next) {
+      next.whenData((settings) {
+        _maybeRestoreLastActiveTab(settings);
+      });
+    });
+
     final settings =
         ref.watch(appSettingsProvider).value ?? AppSettings.defaults;
     final artistConfigs =
@@ -147,7 +269,7 @@ class _AppShellState extends ConsumerState<AppShell> {
           actions: {
             _NavigateIntent: CallbackAction<_NavigateIntent>(
               onInvoke: (intent) {
-                context.go(intent.location);
+                _onNavigate(intent.location);
                 return null;
               },
             ),
@@ -164,11 +286,15 @@ class _AppShellState extends ConsumerState<AppShell> {
                 ? _DesktopShell(
                     destinations: destinations,
                     ru: ru,
+                    currentBranchIndex: widget.navigationShell?.currentIndex,
+                    onNavigate: _onNavigate,
                     child: widget.child,
                   )
                 : _MobileShell(
                     destinations: destinations,
                     ru: ru,
+                    currentBranchIndex: widget.navigationShell?.currentIndex,
+                    onNavigate: _onNavigate,
                     child: widget.child,
                   ),
           ),
@@ -183,10 +309,14 @@ class _DesktopShell extends StatefulWidget {
     required this.child,
     required this.destinations,
     required this.ru,
+    required this.onNavigate,
+    this.currentBranchIndex,
   });
   final Widget child;
   final List<_Destination> destinations;
   final bool ru;
+  final ValueChanged<String> onNavigate;
+  final int? currentBranchIndex;
 
   @override
   State<_DesktopShell> createState() => _DesktopShellState();
@@ -198,10 +328,10 @@ class _DesktopShellState extends State<_DesktopShell> {
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).uri.path;
+    final activeBranch = widget.currentBranchIndex ??
+        AppShell.branchIndexForLocation(location);
     final selected = widget.destinations.indexWhere(
-      (item) => item.location == '/'
-          ? location == '/'
-          : location.startsWith(item.location),
+      (item) => AppShell.branchIndexForLocation(item.location) == activeBranch,
     );
     return Scaffold(
       body: Row(
@@ -229,7 +359,7 @@ class _DesktopShellState extends State<_DesktopShell> {
                           selected: (selected < 0 ? 0 : selected) == index,
                           expanded: _hovered,
                           onTap: () {
-                            context.go(widget.destinations[index].location);
+                            widget.onNavigate(widget.destinations[index].location);
                           },
                         ),
                       const Spacer(),
@@ -334,10 +464,14 @@ class _MobileShell extends StatelessWidget {
     required this.child,
     required this.destinations,
     required this.ru,
+    required this.onNavigate,
+    this.currentBranchIndex,
   });
   final Widget child;
   final List<_Destination> destinations;
   final bool ru;
+  final ValueChanged<String> onNavigate;
+  final int? currentBranchIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -347,10 +481,10 @@ class _MobileShell extends StatelessWidget {
         .take(6)
         .toList();
     final location = GoRouterState.of(context).uri.path;
+    final activeBranch = currentBranchIndex ??
+        AppShell.branchIndexForLocation(location);
     final selected = items.indexWhere(
-      (item) => item.location == '/'
-          ? location == '/'
-          : location.startsWith(item.location),
+      (item) => AppShell.branchIndexForLocation(item.location) == activeBranch,
     );
     final isKeyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
     final bottomInset = isKeyboardOpen
@@ -368,13 +502,13 @@ class _MobileShell extends StatelessWidget {
         ),
         child: child,
       ),
-      floatingActionButton: (location == '/settings' || isKeyboardOpen)
+      floatingActionButton: (activeBranch == 7 || isKeyboardOpen)
           ? null
           : Padding(
               padding: const EdgeInsets.only(bottom: 0, right: 2),
               child: _LiquidGlassSettingsButton(
                 ru: ru,
-                onTap: () => context.go('/settings'),
+                onTap: () => onNavigate('/settings'),
               ),
             ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
@@ -383,7 +517,7 @@ class _MobileShell extends StatelessWidget {
           : _LiquidGlassBottomBar(
               selectedIndex: selected < 0 ? 0 : selected,
               onDestinationSelected: (index) =>
-                  context.go(items[index].location),
+                  onNavigate(items[index].location),
               items: items,
               ru: ru,
             ),

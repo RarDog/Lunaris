@@ -64,8 +64,10 @@ class AppSettings {
     this.downloadPathTemplate = '{Artist}/{ID}',
     this.searchHistoryLimit = 500,
     this.tagCacheLimit = 5000,
+    this.lastActiveLocation = '/',
   });
 
+  final String lastActiveLocation;
   final List<String> favoriteArtists;
   final List<String> pawchiveAccounts;
   final bool pawchiveBidirectionalSync;
@@ -165,6 +167,7 @@ class AppSettings {
     lastFeedRating: null,
     searchHistoryLimit: 500,
     tagCacheLimit: 5000,
+    lastActiveLocation: '/',
   );
 
   AppSettings copyWith({
@@ -220,8 +223,10 @@ class AppSettings {
     String? downloadPathTemplate,
     int? searchHistoryLimit,
     int? tagCacheLimit,
+    String? lastActiveLocation,
   }) {
     return AppSettings(
+      lastActiveLocation: lastActiveLocation ?? this.lastActiveLocation,
       favoriteArtists: favoriteArtists ?? this.favoriteArtists,
       pawchiveAccounts: pawchiveAccounts ?? this.pawchiveAccounts,
       pawchiveBidirectionalSync:
@@ -336,6 +341,7 @@ class AppSettings {
         'downloadPathTemplate': downloadPathTemplate,
         'searchHistoryLimit': searchHistoryLimit,
         'tagCacheLimit': tagCacheLimit,
+        'lastActiveLocation': lastActiveLocation,
       };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) => AppSettings(
@@ -455,6 +461,8 @@ class AppSettings {
             defaults.searchHistoryLimit,
         tagCacheLimit: (json['tagCacheLimit'] as num?)?.toInt() ??
             defaults.tagCacheLimit,
+        lastActiveLocation: (json['lastActiveLocation'] as String?) ??
+            defaults.lastActiveLocation,
       );
 
   List<PawchiveAccount> get parsedPawchiveAccounts {
@@ -543,6 +551,14 @@ class SettingsService {
     if (result is Error<AppSettings>) return Error(result.failure);
     final settings = (result as Success<AppSettings>).data;
     return updateSettings(settings.copyWith(nsfwEnabled: enabled));
+  }
+
+  Future<Result<void>> saveLastActiveLocation(String location) async {
+    final result = await getSettings();
+    if (result is Error<AppSettings>) return Error(result.failure);
+    final settings = (result as Success<AppSettings>).data;
+    if (settings.lastActiveLocation == location) return const Success(null);
+    return updateSettings(settings.copyWith(lastActiveLocation: location));
   }
 
   Future<Result<void>> saveCacheSettings({

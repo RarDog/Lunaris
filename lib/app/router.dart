@@ -21,115 +21,170 @@ import '../features/settings/presentation/settings_screen.dart';
 import '../features/viewed/presentation/viewed_screen.dart';
 import '../shared/widgets/app_shell.dart';
 
+final branchNavKeys = List.generate(8, (_) => GlobalKey<NavigatorState>());
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/',
     routes: [
-      ShellRoute(
-        builder: (context, state, child) => AppShell(child: child),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) => AppShell(
+          navigationShell: navigationShell,
+          child: navigationShell,
+        ),
+        branches: [
+          StatefulShellBranch(
+            navigatorKey: branchNavKeys[0],
+            routes: [
+              GoRoute(
+                path: '/',
+                pageBuilder: (context, state) => _transitionPage(
+                  state,
+                  child: FeedScreen(initialQuery: state.uri.queryParameters['q']),
+                ),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            navigatorKey: branchNavKeys[1],
+            routes: [
+              GoRoute(
+                path: '/search',
+                builder: (context, state) => const SearchScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            navigatorKey: branchNavKeys[2],
+            routes: [
+              GoRoute(
+                path: '/favorites',
+                builder: (context, state) => const FavoritesScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            navigatorKey: branchNavKeys[3],
+            routes: [
+              GoRoute(
+                path: '/viewed',
+                builder: (context, state) => const ViewedScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            navigatorKey: branchNavKeys[4],
+            routes: [
+              GoRoute(
+                path: '/collections',
+                builder: (context, state) => const CollectionsScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':collectionId',
+                    builder: (context, state) => CollectionDetailsScreen(
+                      collectionId: state.pathParameters['collectionId']!,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            navigatorKey: branchNavKeys[5],
+            routes: [
+              GoRoute(
+                path: '/artists',
+                builder: (context, state) => const ArtistsScreen(),
+                routes: [
+                  GoRoute(
+                    path: ':providerId/:service/:artistId',
+                    builder: (context, state) => ArtistPostsScreen(
+                      providerId: state.pathParameters['providerId']!,
+                      service: state.pathParameters['service']!,
+                      artistId: state.pathParameters['artistId']!,
+                      artistName: state.uri.queryParameters['name'] ??
+                          state.pathParameters['artistId']!,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            navigatorKey: branchNavKeys[6],
+            routes: [
+              GoRoute(
+                path: '/providers',
+                builder: (context, state) => const ProvidersScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'new',
+                    builder: (context, state) => ProviderFormScreen(
+                      initialConfig: state.extra is ContentProviderConfig
+                          ? state.extra! as ContentProviderConfig
+                          : null,
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'check',
+                    builder: (context, state) => const ProviderCheckScreen(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            navigatorKey: branchNavKeys[7],
+            routes: [
+              GoRoute(
+                path: '/settings',
+                builder: (context, state) => const SettingsScreen(),
+                routes: [
+                  GoRoute(
+                    path: 'hidden',
+                    builder: (context, state) => const HiddenPostsScreen(),
+                  ),
+                  GoRoute(
+                    path: 'cache',
+                    builder: (context, state) => const CacheManagerScreen(),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+      GoRoute(
+        path: '/post/:providerId/:postId',
+        builder: (context, state) {
+          final extra = state.extra;
+          final Post? initialPost;
+          final List<Post>? postsList;
+          if (extra is PostNavigationContext) {
+            initialPost = extra.currentPost;
+            postsList = extra.posts;
+          } else if (extra is Post) {
+            initialPost = extra;
+            postsList = null;
+          } else {
+            initialPost = null;
+            postsList = null;
+          }
+          return PostDetailsScreen(
+            providerId: state.pathParameters['providerId']!,
+            postId: state.pathParameters['postId']!,
+            initialPost: initialPost,
+            postsList: postsList,
+          );
+        },
         routes: [
           GoRoute(
-            path: '/',
-            pageBuilder: (context, state) => _transitionPage(
-              state,
-              child: FeedScreen(initialQuery: state.uri.queryParameters['q']),
-            ),
-          ),
-          GoRoute(
-            path: '/search',
-            builder: (context, state) => const SearchScreen(),
-          ),
-          GoRoute(
-            path: '/post/:providerId/:postId',
-            builder: (context, state) {
-              final extra = state.extra;
-              final Post? initialPost;
-              final List<Post>? postsList;
-              if (extra is PostNavigationContext) {
-                initialPost = extra.currentPost;
-                postsList = extra.posts;
-              } else if (extra is Post) {
-                initialPost = extra;
-                postsList = null;
-              } else {
-                initialPost = null;
-                postsList = null;
-              }
-              return PostDetailsScreen(
-                providerId: state.pathParameters['providerId']!,
-                postId: state.pathParameters['postId']!,
-                initialPost: initialPost,
-                postsList: postsList,
-              );
-            },
-          ),
-          GoRoute(
-            path: '/post/:providerId/:postId/similar',
+            path: 'similar',
             builder: (context, state) => SimilarPostsScreen(
               providerId: state.pathParameters['providerId']!,
               postId: state.pathParameters['postId']!,
               initialPost: state.extra is Post ? state.extra! as Post : null,
             ),
-          ),
-          GoRoute(
-            path: '/favorites',
-            builder: (context, state) => const FavoritesScreen(),
-          ),
-          GoRoute(
-            path: '/viewed',
-            builder: (context, state) => const ViewedScreen(),
-          ),
-          GoRoute(
-            path: '/collections',
-            builder: (context, state) => const CollectionsScreen(),
-          ),
-          GoRoute(
-            path: '/collections/:collectionId',
-            builder: (context, state) => CollectionDetailsScreen(
-              collectionId: state.pathParameters['collectionId']!,
-            ),
-          ),
-          GoRoute(
-            path: '/artists',
-            builder: (context, state) => const ArtistsScreen(),
-          ),
-          GoRoute(
-            path: '/artists/:providerId/:service/:artistId',
-            builder: (context, state) => ArtistPostsScreen(
-              providerId: state.pathParameters['providerId']!,
-              service: state.pathParameters['service']!,
-              artistId: state.pathParameters['artistId']!,
-              artistName: state.uri.queryParameters['name'] ??
-                  state.pathParameters['artistId']!,
-            ),
-          ),
-          GoRoute(
-            path: '/providers',
-            builder: (context, state) => const ProvidersScreen(),
-          ),
-          GoRoute(
-            path: '/providers/new',
-            builder: (context, state) => ProviderFormScreen(
-              initialConfig: state.extra is ContentProviderConfig
-                  ? state.extra! as ContentProviderConfig
-                  : null,
-            ),
-          ),
-          GoRoute(
-            path: '/providers/check',
-            builder: (context, state) => const ProviderCheckScreen(),
-          ),
-          GoRoute(
-            path: '/settings',
-            builder: (context, state) => const SettingsScreen(),
-          ),
-          GoRoute(
-            path: '/settings/hidden',
-            builder: (context, state) => const HiddenPostsScreen(),
-          ),
-          GoRoute(
-            path: '/settings/cache',
-            builder: (context, state) => const CacheManagerScreen(),
           ),
         ],
       ),

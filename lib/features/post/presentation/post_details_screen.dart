@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/app.dart';
+import '../../../app/app_navigator.dart';
 import '../../../app/app_strings.dart';
 import '../../../app/motion.dart';
 import '../../../app/responsive.dart';
@@ -872,7 +873,7 @@ class PostDetailsScreen extends ConsumerWidget {
   }
 
   void _openSimilar(BuildContext context, WidgetRef ref, Post post) {
-    context.push('/post/${post.providerId}/${post.id}/similar', extra: post);
+    AppNavigator.openSimilarPosts(context, post: post);
   }
 
   Future<void> _openSourcePage(WidgetRef ref, Post post) async {
@@ -888,7 +889,16 @@ class PostDetailsScreen extends ConsumerWidget {
   }
 
   void _replacePost(BuildContext context, Post post) {
-    context.replace('/post/${post.providerId}/${post.id}', extra: post);
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (ctx) => PostDetailsScreen(
+          providerId: post.providerId,
+          postId: post.id,
+          initialPost: post,
+          postsList: postsList,
+        ),
+      ),
+    );
   }
 
   void _close(BuildContext context) {

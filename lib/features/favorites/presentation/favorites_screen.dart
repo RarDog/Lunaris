@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/app.dart';
+import '../../../app/app_navigator.dart';
 import '../../../app/responsive.dart';
 import '../../../backend/backend.dart';
 import '../../../shared/widgets/adaptive_scaffold.dart';
@@ -970,12 +971,10 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
       mediaQualityMode: MediaQualityMode.fromName(settings.mediaQualityMode),
       favoriteKeys: posts.map((post) => post.cacheKey).toSet(),
       downloadedKeys: downloadedKeys,
-      onOpen: (post) => context.push(
-        '/post/${post.providerId}/${post.id}',
-        extra: PostNavigationContext(
-          currentPost: post,
-          posts: posts,
-        ),
+      onOpen: (post) => AppNavigator.openPost(
+        context,
+        post: post,
+        postsList: posts,
       ),
       onFavorite: (post) =>
           ref.read(favoritesControllerProvider.notifier).remove(post),

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/app.dart';
+import '../../../app/app_navigator.dart';
 import '../../../app/responsive.dart';
 import '../../../backend/backend.dart';
 import '../../../shared/widgets/adaptive_scaffold.dart';
@@ -142,12 +143,10 @@ class _ViewedScreenState extends ConsumerState<ViewedScreen> {
                 mediaQualityMode:
                     MediaQualityMode.fromName(settings.mediaQualityMode),
                 favoriteKeys: favoriteKeys,
-                onOpen: (post) => context.push(
-                  '/post/${post.providerId}/${post.id}',
-                  extra: PostNavigationContext(
-                    currentPost: post,
-                    posts: allPosts,
-                  ),
+                onOpen: (post) => AppNavigator.openPost(
+                  context,
+                  post: post,
+                  postsList: allPosts,
                 ),
                 onFavorite: (post) => _toggleFavorite(
                   ref,
@@ -260,12 +259,10 @@ class _ViewedScreenState extends ConsumerState<ViewedScreen> {
                       isFavorite: favoriteKeys.contains(item.post.cacheKey),
                       isRu: isRu,
                       onOpen: () {
-                        context.push(
-                          '/post/${item.post.providerId}/${item.post.id}',
-                          extra: PostNavigationContext(
-                            currentPost: item.post,
-                            posts: allPosts,
-                          ),
+                        AppNavigator.openPost(
+                          context,
+                          post: item.post,
+                          postsList: allPosts,
                         );
                       },
                       onFavorite: () => _toggleFavorite(
