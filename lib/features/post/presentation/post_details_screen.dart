@@ -1155,6 +1155,8 @@ class _NeighborStrip extends StatelessWidget {
                 imageUrl: post.previewUrl.isNotEmpty
                     ? post.previewUrl
                     : post.sampleUrl,
+                memCacheWidth: 160,
+                memCacheHeight: 160,
                 fit: BoxFit.cover,
                 errorWidget: (_, __, ___) =>
                     const Center(child: Icon(Icons.broken_image_rounded)),

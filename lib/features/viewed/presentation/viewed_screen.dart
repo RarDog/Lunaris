@@ -427,6 +427,8 @@ class _ViewedPostTile extends StatelessWidget {
                                   )
                                 : CachedNetworkImage(
                                     imageUrl: image,
+                                    memCacheWidth: 320,
+                                    memCacheHeight: 320,
                                     fit: BoxFit.cover,
                                     placeholder: (_, __) => Container(
                                       color: scheme.surfaceContainerHighest,

@@ -314,6 +314,8 @@ class _CollectionCard extends ConsumerWidget {
     if (urls.length == 1) {
       return CachedNetworkImage(
         imageUrl: urls[0],
+        memCacheWidth: 260,
+        memCacheHeight: 260,
         fit: BoxFit.cover,
         placeholder: (_, __) => Container(color: scheme.surfaceContainerHighest),
         errorWidget: (_, __, ___) => Container(
@@ -333,6 +335,8 @@ class _CollectionCard extends ConsumerWidget {
           if (i < urls.length)
             CachedNetworkImage(
               imageUrl: urls[i],
+              memCacheWidth: 200,
+              memCacheHeight: 200,
               fit: BoxFit.cover,
               placeholder: (_, __) =>
                   Container(color: scheme.surfaceContainerHighest),

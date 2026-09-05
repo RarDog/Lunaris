@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
@@ -316,10 +317,16 @@ class _PostMediaViewerState extends State<PostMediaViewer>
         ),
       );
     } else {
+      final mq = MediaQuery.maybeOf(context);
+      final dpr = mq?.devicePixelRatio ?? 1.5;
+      final screenWidth = mq?.size.width ?? 1280;
+      final maxCacheWidth =
+          (screenWidth * dpr * 1.5).round().clamp(1080, 2560);
       image = CachedNetworkImage(
         key: ValueKey(url),
         imageUrl: url,
         httpHeaders: headers,
+        memCacheWidth: maxCacheWidth,
         fit: BoxFit.contain,
         placeholder: (context, url) =>
             const Center(child: CircularProgressIndicator()),
@@ -2205,6 +2212,7 @@ class _ZoomableImageState extends State<_ZoomableImage> {
                     transformationController: _controller,
                     minScale: 1,
                     maxScale: 6,
+                    scaleFactor: 1000000.0,
                     boundaryMargin: const EdgeInsets.all(160),
                     panEnabled: _zoomed,
                     scaleEnabled: true,
@@ -2221,7 +2229,15 @@ class _ZoomableImageState extends State<_ZoomableImage> {
                       if (mounted) setState(() => _zoomed = nextZoomed);
                       _setLocked(nextZoomed || _pointerCount >= 2);
                     },
-                    child: child,
+                    child: Listener(
+                      onPointerSignal: (event) {
+                        if (event is PointerScrollEvent) {
+                          GestureBinding.instance.pointerSignalResolver
+                              .register(event, (_) {});
+                        }
+                      },
+                      child: child,
+                    ),
                   ),
                 ),
               );

@@ -1474,6 +1474,8 @@ class _FavoriteArtistsSection extends ConsumerWidget {
                                       fav.avatarUrl!.isNotEmpty
                                   ? CachedNetworkImage(
                                       imageUrl: fav.avatarUrl!,
+                                      memCacheWidth: 120,
+                                      memCacheHeight: 120,
                                       fit: BoxFit.cover,
                                       placeholder: (_, __) => const Icon(
                                           Icons.person_rounded,
@@ -1599,6 +1601,8 @@ class _FavoriteArtistMediaStrip extends ConsumerWidget {
                               imageUrl: post.previewUrl.isNotEmpty
                                   ? post.previewUrl
                                   : post.sampleUrl,
+                              memCacheWidth: 200,
+                              memCacheHeight: 200,
                               fit: BoxFit.cover,
                               placeholder: (_, __) => ColoredBox(
                                 color: Theme.of(context)
@@ -1706,6 +1710,8 @@ class _ArtistAvatar extends StatelessWidget {
             ? fallback
             : CachedNetworkImage(
                 imageUrl: artist.avatarUrl!,
+                memCacheWidth: 140,
+                memCacheHeight: 140,
                 fit: BoxFit.cover,
                 placeholder: (_, __) => fallback,
                 errorWidget: (_, __, ___) => fallback,

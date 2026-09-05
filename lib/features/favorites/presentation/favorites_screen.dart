@@ -1225,6 +1225,8 @@ class _ArtistCard extends StatelessWidget {
                                   ),
                                   child: CachedNetworkImage(
                                     imageUrl: url,
+                                    memCacheWidth: 128,
+                                    memCacheHeight: 128,
                                     fit: BoxFit.cover,
                                     placeholder: (_, __) => Container(
                                       color: scheme.surfaceContainerHighest,

@@ -68,24 +68,26 @@ class PostMasonryGrid extends StatelessWidget {
     final spacing = mobile ? 8.0 : 12.0;
 
     Widget buildCard(Post post) {
-      return PostCard(
-        post: post,
-        blurExplicit: blurExplicit && !nsfwEnabled,
-        showBadges: showBadges,
-        isFavorite: favoriteKeys.contains(post.cacheKey),
-        isViewed: viewedKeys.contains(post.cacheKey),
-        isDownloaded: downloadedKeys.contains(post.cacheKey),
-        mediaQualityMode: mediaQualityMode,
-        onOpen: () => onOpen(post),
-        onFavorite: () => onFavorite(post),
-        onPreview: onPreview == null ? null : () => onPreview!(post),
-        onHide: onHide == null ? null : () => onHide!(post),
-        selectionMode: selectionMode,
-        selected: selectedKeys.contains(post.cacheKey),
-        onToggleSelected:
-            onToggleSelected == null ? null : () => onToggleSelected!(post),
-        onAddToCollection:
-            onAddToCollection == null ? null : () => onAddToCollection!(post),
+      return RepaintBoundary(
+        child: PostCard(
+          post: post,
+          blurExplicit: blurExplicit && !nsfwEnabled,
+          showBadges: showBadges,
+          isFavorite: favoriteKeys.contains(post.cacheKey),
+          isViewed: viewedKeys.contains(post.cacheKey),
+          isDownloaded: downloadedKeys.contains(post.cacheKey),
+          mediaQualityMode: mediaQualityMode,
+          onOpen: () => onOpen(post),
+          onFavorite: () => onFavorite(post),
+          onPreview: onPreview == null ? null : () => onPreview!(post),
+          onHide: onHide == null ? null : () => onHide!(post),
+          selectionMode: selectionMode,
+          selected: selectedKeys.contains(post.cacheKey),
+          onToggleSelected:
+              onToggleSelected == null ? null : () => onToggleSelected!(post),
+          onAddToCollection:
+              onAddToCollection == null ? null : () => onAddToCollection!(post),
+        ),
       );
     }
 

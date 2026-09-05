@@ -232,7 +232,7 @@ class _PostCardState extends ConsumerState<PostCard>
                         }
                         final dpr = MediaQuery.devicePixelRatioOf(context);
                         final cacheWidth =
-                            (constraints.maxWidth * dpr).round().clamp(320, 1800);
+                            (constraints.maxWidth * dpr).round().clamp(280, 960);
                         final headers = _headersFor(post);
                         final videoUrls = MediaUrlSelector.video(post);
                         if (!mobile &&
