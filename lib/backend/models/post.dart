@@ -62,6 +62,27 @@ class Post {
 
   String? get description => commentary;
 
+  String? get parentId {
+    final list = tagGroups['parent_id'];
+    return (list != null && list.isNotEmpty && list.first.trim().isNotEmpty)
+        ? list.first.trim()
+        : null;
+  }
+
+  List<String> get childrenIds => tagGroups['children'] ?? const [];
+
+  List<String> get poolIds => tagGroups['pools'] ?? const [];
+
+  bool get hasRelations =>
+      (parentId != null && parentId!.isNotEmpty) || childrenIds.isNotEmpty;
+
+  bool get hasPools => poolIds.isNotEmpty;
+
+  int? get favCount {
+    final raw = tagGroups['fav_count']?.firstOrNull;
+    return raw != null ? int.tryParse(raw) : null;
+  }
+
   String? get title {
     final list = tagGroups['copyright'];
     if (list != null && list.isNotEmpty) {

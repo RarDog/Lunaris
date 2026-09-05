@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../../core/http/dio_client.dart';
 import '../models/content_provider_config.dart';
 import 'content_provider.dart';
@@ -20,6 +22,17 @@ class ProviderFactory {
         if (entry.key.startsWith('query.') && entry.value.trim().isNotEmpty)
           entry.key.substring('query.'.length): entry.value.trim(),
     };
+
+    if (config.apiType.toLowerCase() == 'e621') {
+      final login = queryParameters['login'] ?? headers['login'];
+      final apiKey = queryParameters['api_key'] ?? headers['api_key'];
+      if (login != null && apiKey != null && login.isNotEmpty && apiKey.isNotEmpty) {
+        final basicAuth = base64Encode(utf8.encode('$login:$apiKey'));
+        headers['Authorization'] = 'Basic $basicAuth';
+        headers['User-Agent'] = 'Prisma/3.6.6 (by $login on e621)';
+      }
+    }
+
     final client = DioClient(
       baseUrl: config.baseUrl,
       timeout: Duration(seconds: config.timeoutSeconds),

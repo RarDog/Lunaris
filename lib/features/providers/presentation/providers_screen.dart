@@ -358,6 +358,9 @@ class ProvidersScreen extends ConsumerWidget {
                           '/providers/new',
                           extra: item,
                         ),
+                        onSaveConfig: (updated) => ref
+                            .read(providersControllerProvider.notifier)
+                            .save(updated),
                         onDelete: () async {
                           final ok = await showConfirmDialog(
                             context,

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../core/http/dio_client.dart';
 import '../mappers/e621_mapper.dart';
+import '../models/e621_pool.dart';
 import '../models/post.dart';
 import '../models/post_comment.dart';
 import '../models/provider_health.dart';
@@ -33,6 +34,24 @@ class E621Provider
   final Dio _dio;
   final Map<String, String> _queryParameters;
 
+  static DateTime _lastRequestTime = DateTime.fromMillisecondsSinceEpoch(0);
+
+  static Future<void> _throttle() async {
+    final now = DateTime.now();
+    final diff = now.difference(_lastRequestTime);
+    if (diff.inMilliseconds < 500) {
+      final waitMs = 500 - diff.inMilliseconds;
+      await Future<void>.delayed(Duration(milliseconds: waitMs));
+    }
+    _lastRequestTime = DateTime.now();
+  }
+
+  bool get isAuthorized =>
+      _queryParameters.containsKey('login') ||
+      _dio.options.headers.containsKey('Authorization');
+
+  String? get login => _queryParameters['login'];
+
   @override
   String postPageUrl(Post post) => '$baseUrl/posts/${post.id}';
 
@@ -44,6 +63,7 @@ class E621Provider
     String? rating,
     TopPeriodFilter topPeriod = TopPeriodFilter.none,
   }) async {
+    await _throttle();
     final response = await _dio.get<dynamic>(
       '/posts.json',
       queryParameters: {
@@ -66,6 +86,7 @@ class E621Provider
 
   @override
   Future<Post?> getPost(String id) async {
+    await _throttle();
     final response = await _dio.get<dynamic>(
       '/posts/$id.json',
       queryParameters: _queryParameters,
@@ -76,6 +97,63 @@ class E621Provider
       providerName: name,
     );
     return posts.isEmpty ? null : posts.first;
+  }
+
+  Future<E621Pool?> getPool(String poolId) async {
+    await _throttle();
+    try {
+      final response = await _dio.get<dynamic>(
+        '/pools/$poolId.json',
+        queryParameters: _queryParameters,
+      );
+      if (response.data is Map) {
+        return E621Pool.fromJson(Map<String, dynamic>.from(response.data as Map));
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<bool> votePost(String postId, int score) async {
+    await _throttle();
+    try {
+      final response = await _dio.post<dynamic>(
+        '/posts/$postId/votes.json',
+        data: {'score': score, 'no_unvote': 'true'},
+        queryParameters: _queryParameters,
+        options: Options(contentType: Headers.formUrlEncodedContentType),
+      );
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> addFavorite(String postId) async {
+    await _throttle();
+    try {
+      final response = await _dio.post<dynamic>(
+        '/favorites.json',
+        data: {'post_id': postId},
+        queryParameters: _queryParameters,
+        options: Options(contentType: Headers.formUrlEncodedContentType),
+      );
+      return response.statusCode == 200 || response.statusCode == 201;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> removeFavorite(String postId) async {
+    await _throttle();
+    try {
+      final response = await _dio.delete<dynamic>(
+        '/favorites/$postId.json',
+        queryParameters: _queryParameters,
+      );
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (_) {
+      return false;
+    }
   }
 
   @override
@@ -109,6 +187,7 @@ class E621Provider
   Future<List<TagSuggestion>> suggestTags(String query,
       {int limit = 20}) async {
     if (query.trim().isEmpty) return const [];
+    await _throttle();
     final response = await _dio.get<dynamic>(
       '/tags.json',
       queryParameters: {
@@ -136,6 +215,7 @@ class E621Provider
 
   @override
   Future<List<PostComment>> getComments(String postId) async {
+    await _throttle();
     final response = await _dio.get<dynamic>(
       '/comments.json',
       queryParameters: {

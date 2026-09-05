@@ -580,7 +580,7 @@ class _DesktopShellState extends State<_DesktopShell>
                                                         ),
                                                       ),
                                                       child: Text(
-                                                        'v3.6.5',
+                                                        'v3.7.0',
                                                         style: TextStyle(
                                                           fontSize: 10,
                                                           fontWeight:

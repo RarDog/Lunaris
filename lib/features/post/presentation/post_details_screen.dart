@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -28,7 +29,10 @@ import 'post_details_controller.dart';
 import 'widgets/cloud_mirrors_card.dart';
 import 'widgets/post_action_bar.dart';
 import 'widgets/post_media_viewer.dart';
+import 'widgets/post_pools_card.dart';
+import 'widgets/post_relations_card.dart';
 import 'widgets/post_tags_panel.dart';
+import '../../../backend/providers/e621_provider.dart';
 
 final postCommentsProvider =
     FutureProvider.family<List<PostComment>, PostDetailsArgs>(
@@ -37,6 +41,11 @@ final postCommentsProvider =
       .watch(providerManagerProvider)
       .getComments(args.providerId, args.postId);
   return result is Success<List<PostComment>> ? result.data : const [];
+});
+
+final postProviderInstanceProvider =
+    FutureProvider.family<ContentProvider?, String>((ref, providerId) async {
+  return ref.watch(providerManagerProvider).getProviderInstance(providerId);
 });
 
 class PostDetailsScreen extends ConsumerWidget {
@@ -122,6 +131,11 @@ class PostDetailsScreen extends ConsumerWidget {
               : (post.cloudLinks.isNotEmpty ||
                   (post.commentary != null &&
                       post.commentary!.trim().isNotEmpty));
+
+          final providerInstance =
+              ref.watch(postProviderInstanceProvider(post.providerId)).value;
+          final e621Provider =
+              providerInstance is E621Provider ? providerInstance : null;
 
           if (Responsive.isMobile(context)) {
             if (currentIndex >= 0 && feedPosts.length > 1) {
@@ -361,7 +375,25 @@ class PostDetailsScreen extends ConsumerWidget {
                       strings: strings,
                       localMedia: localMedia,
                       fileSizeBytes: fileSizeBytes,
+                      e621Provider: e621Provider,
                     ),
+                    if (post.hasRelations) ...[
+                      const SizedBox(height: 16),
+                      PostRelationsCard(
+                        post: post,
+                        onOpenPostId: (targetId) =>
+                            _openPostById(context, post.providerId, targetId),
+                      ),
+                    ],
+                    if (post.hasPools && e621Provider != null) ...[
+                      const SizedBox(height: 16),
+                      PostPoolsCard(
+                        post: post,
+                        provider: e621Provider,
+                        onOpenPostId: (targetId) =>
+                            _openPostById(context, post.providerId, targetId),
+                      ),
+                    ],
                     if (shouldShowCloudCard) ...[
                       const SizedBox(height: 16),
                       CloudMirrorsCard(
@@ -469,6 +501,11 @@ class PostDetailsScreen extends ConsumerWidget {
         : (post.cloudLinks.isNotEmpty ||
             (post.commentary != null &&
                 post.commentary!.trim().isNotEmpty));
+
+    final providerInstance =
+        ref.watch(postProviderInstanceProvider(post.providerId)).value;
+    final e621Provider =
+        providerInstance is E621Provider ? providerInstance : null;
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
@@ -596,7 +633,25 @@ class PostDetailsScreen extends ConsumerWidget {
             strings: strings,
             localMedia: localMedia,
             fileSizeBytes: fileSizeBytes,
+            e621Provider: e621Provider,
           ),
+          if (post.hasRelations) ...[
+            const SizedBox(height: 12),
+            PostRelationsCard(
+              post: post,
+              onOpenPostId: (targetId) =>
+                  _openPostById(context, post.providerId, targetId),
+            ),
+          ],
+          if (post.hasPools && e621Provider != null) ...[
+            const SizedBox(height: 12),
+            PostPoolsCard(
+              post: post,
+              provider: e621Provider,
+              onOpenPostId: (targetId) =>
+                  _openPostById(context, post.providerId, targetId),
+            ),
+          ],
           if (shouldShowCloudCard) ...[
             const SizedBox(height: 12),
             CloudMirrorsCard(
@@ -805,16 +860,41 @@ class PostDetailsScreen extends ConsumerWidget {
     Post post,
     Set<String> favoriteKeys,
   ) async {
-    if (favoriteKeys.contains(post.cacheKey)) {
+    final isFav = favoriteKeys.contains(post.cacheKey);
+    if (isFav) {
       await ref
           .read(favoriteServiceProvider)
           .removeFavorite(post.id, post.providerId);
+      final provider = await ref
+          .read(providerManagerProvider)
+          .getProviderInstance(post.providerId);
+      if (provider is E621Provider && provider.isAuthorized) {
+        unawaited(provider.removeFavorite(post.id));
+      }
     } else {
       await ref.read(favoriteServiceProvider).addFavorite(post);
       await _maybeAutoDownloadFavorite(ref, post);
+      final provider = await ref
+          .read(providerManagerProvider)
+          .getProviderInstance(post.providerId);
+      if (provider is E621Provider && provider.isAuthorized) {
+        unawaited(provider.addFavorite(post.id));
+      }
     }
     ref.invalidate(favoriteKeysProvider);
     ref.invalidate(favoritesControllerProvider);
+  }
+
+  void _openPostById(
+      BuildContext context, String providerId, String targetId) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (ctx) => PostDetailsScreen(
+          providerId: providerId,
+          postId: targetId,
+        ),
+      ),
+    );
   }
 
   Future<void> _maybeAutoDownloadFavorite(WidgetRef ref, Post post) async {
@@ -1340,12 +1420,14 @@ class _PostInfoCard extends StatefulWidget {
     required this.strings,
     this.localMedia,
     this.fileSizeBytes,
+    this.e621Provider,
   });
 
   final Post post;
   final AppStrings strings;
   final DownloadedMedia? localMedia;
   final int? fileSizeBytes;
+  final E621Provider? e621Provider;
 
   @override
   State<_PostInfoCard> createState() => _PostInfoCardState();
@@ -1356,12 +1438,51 @@ class _PostInfoCardState extends State<_PostInfoCard> {
   int? _resolvedWidth;
   int? _resolvedHeight;
   bool _resolvingDimensions = false;
+  int? _votedScore;
+  bool _isVoting = false;
 
   static final _dimensionCache = <String, (int, int)>{};
 
   static bool _isImageType(String fileType) {
     const imageTypes = {'image', 'jpeg', 'jpg', 'png', 'gif', 'webp', 'avif'};
     return imageTypes.contains(fileType.toLowerCase());
+  }
+
+  Future<void> _handleVote(int score) async {
+    final provider = widget.e621Provider;
+    if (provider == null) return;
+    if (!provider.isAuthorized) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(
+          content: Text('Для голосования на e621 настройте API-ключ в Источниках'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+    if (_isVoting) return;
+    setState(() => _isVoting = true);
+    final success = await provider.votePost(widget.post.id, score);
+    if (mounted) {
+      setState(() {
+        _isVoting = false;
+        if (success) {
+          _votedScore = (_votedScore == score) ? 0 : score;
+        }
+      });
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+                ? (score > 0
+                    ? 'Голос ЗА (+1) отправлен на e621!'
+                    : 'Голос ПРОТИВ (-1) отправлен на e621!')
+                : 'Не удалось отправить голос',
+          ),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
@@ -1591,11 +1712,59 @@ class _PostInfoCardState extends State<_PostInfoCard> {
                   label: post.fileType.toUpperCase(),
                 ),
               RatingBadge(rating: post.rating),
-              if (post.score != 0)
+              if (post.score != 0 || widget.e621Provider != null)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _SpecBadge(
+                      icon: Icons.star_rounded,
+                      label: '${post.score + (_votedScore ?? 0)}',
+                      iconColor: Colors.amber,
+                    ),
+                    if (widget.e621Provider != null) ...[
+                      const SizedBox(width: 4),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints:
+                            const BoxConstraints(minWidth: 28, minHeight: 28),
+                        icon: Icon(
+                          _votedScore == 1
+                              ? Icons.thumb_up_rounded
+                              : Icons.thumb_up_alt_outlined,
+                          size: 15,
+                          color: _votedScore == 1
+                              ? const Color(0xFF10B981)
+                              : scheme.onSurfaceVariant,
+                        ),
+                        onPressed: _isVoting ? null : () => _handleVote(1),
+                        tooltip: 'Голос ЗА (+1)',
+                      ),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints:
+                            const BoxConstraints(minWidth: 28, minHeight: 28),
+                        icon: Icon(
+                          _votedScore == -1
+                              ? Icons.thumb_down_rounded
+                              : Icons.thumb_down_alt_outlined,
+                          size: 15,
+                          color: _votedScore == -1
+                              ? const Color(0xFFEF4444)
+                              : scheme.onSurfaceVariant,
+                        ),
+                        onPressed: _isVoting ? null : () => _handleVote(-1),
+                        tooltip: 'Голос ПРОТИВ (-1)',
+                      ),
+                    ],
+                  ],
+                ),
+              if (post.favCount != null && post.favCount! > 0)
                 _SpecBadge(
-                  icon: Icons.star_rounded,
-                  label: '${post.score}',
-                  iconColor: Colors.amber,
+                  icon: Icons.favorite_rounded,
+                  label: '${post.favCount}',
+                  iconColor: const Color(0xFFEF4444),
                 ),
               if (post.source != null && post.source!.isNotEmpty)
                 InkWell(

@@ -36,6 +36,38 @@ class E621Mapper {
       for (final entry in tagsMap.entries)
         entry.key: List<String>.from((entry.value as List?) ?? const []),
     }..removeWhere((_, value) => value.isEmpty);
+
+    final relationships = Map<String, dynamic>.from((json['relationships'] as Map?) ?? const {});
+    final parentId = relationships['parent_id']?.toString();
+    if (parentId != null && parentId.isNotEmpty && parentId != 'null') {
+      tagGroups['parent_id'] = [parentId];
+    }
+    final children = (relationships['children'] as List?)
+        ?.map((e) => e?.toString() ?? '')
+        .where((s) => s.isNotEmpty && s != 'null')
+        .toList();
+    if (children != null && children.isNotEmpty) {
+      tagGroups['children'] = children;
+    }
+
+    final rawPools = (json['pools'] as List?)
+        ?.map((e) => e?.toString() ?? '')
+        .where((s) => s.isNotEmpty)
+        .toList();
+    if (rawPools != null && rawPools.isNotEmpty) {
+      tagGroups['pools'] = rawPools;
+    }
+
+    final favCount = json['fav_count'];
+    if (favCount != null) {
+      tagGroups['fav_count'] = [favCount.toString()];
+    }
+
+    final desc = _string(json['description']);
+    if (desc.isNotEmpty) {
+      tagGroups['description'] = [desc];
+    }
+
     final tags = tagGroups.values.expand((items) => items).toSet().toList();
     final fileUrl = _string(file['url']);
     return Post(

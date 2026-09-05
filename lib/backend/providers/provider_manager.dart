@@ -144,6 +144,14 @@ class ProviderManager {
     });
   }
 
+  Future<ContentProvider?> getProviderInstance(String id) async {
+    final result = await _repository.getProvider(id);
+    if (result is Success<ContentProviderConfig?> && result.data != null) {
+      return _factory.create(result.data!);
+    }
+    return null;
+  }
+
   Future<Result<List<ProviderHealth>>> checkAll({int concurrency = 3}) async {
     final providersResult = await activeProviders();
     if (providersResult is Error<List<ContentProvider>>) {

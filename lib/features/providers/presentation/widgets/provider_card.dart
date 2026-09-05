@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../backend/backend.dart';
+import 'e621_auth_dialog.dart';
 
 class ProviderCard extends StatelessWidget {
   const ProviderCard({
@@ -9,6 +10,7 @@ class ProviderCard extends StatelessWidget {
     required this.onToggle,
     required this.onEdit,
     required this.onDelete,
+    this.onSaveConfig,
     super.key,
   });
 
@@ -16,6 +18,7 @@ class ProviderCard extends StatelessWidget {
   final ValueChanged<bool> onToggle;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final ValueChanged<ContentProviderConfig>? onSaveConfig;
 
   @override
   Widget build(BuildContext context) {
@@ -164,6 +167,16 @@ class ProviderCard extends StatelessWidget {
                               color: theme.colorScheme.primary,
                               isDark: isDark,
                             ),
+                            if (config.apiType.toLowerCase() == 'e621')
+                              _GlassPill(
+                                label: (config.customHeaders['query.login']?.isNotEmpty ?? false)
+                                    ? 'e621: ${config.customHeaders['query.login']}'
+                                    : (isRu ? 'e621: Гость (макс 2 тега)' : 'e621: Guest (max 2 tags)'),
+                                color: (config.customHeaders['query.login']?.isNotEmpty ?? false)
+                                    ? const Color(0xFF10B981)
+                                    : Colors.amber,
+                                isDark: isDark,
+                              ),
                           ],
                         ),
                       ],
@@ -231,10 +244,30 @@ class ProviderCard extends StatelessWidget {
 
               const SizedBox(height: 12),
 
-              // Row 3: Action Buttons (Edit & Delete)
+              // Row 3: Action Buttons (Edit & Delete & e621 Auth)
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                  if (config.apiType.toLowerCase() == 'e621' && onSaveConfig != null) ...[
+                    _GlassActionButton(
+                      icon: Icons.vpn_key_rounded,
+                      label: (config.customHeaders['query.login']?.isNotEmpty ?? false)
+                          ? (isRu ? 'Аккаунт' : 'Account')
+                          : (isRu ? 'API Ключ' : 'API Key'),
+                      color: const Color(0xFF0077EE),
+                      isDark: isDark,
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        E621AuthDialog.show(
+                          context,
+                          config: config,
+                          onSaved: onSaveConfig!,
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+
                   // Edit Action Button
                   _GlassActionButton(
                     icon: Icons.edit_rounded,
