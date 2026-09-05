@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -191,11 +192,13 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
     if (_selectedTypes.isEmpty) return true;
     final isVid = MediaUrlSelector.isVideo(post);
     final isGif = MediaUrlSelector.isGif(post);
-    final isPhoto = !isVid && !isGif;
+    final isText = post.fileType == 'text';
+    final isPhoto = !isVid && !isGif && !isText;
 
     if (_selectedTypes.contains('video') && isVid) return true;
     if (_selectedTypes.contains('gif') && isGif) return true;
     if (_selectedTypes.contains('photo') && isPhoto) return true;
+    if (_selectedTypes.contains('text') && isText) return true;
     return false;
   }
 
@@ -205,94 +208,246 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
+      backgroundColor: theme.colorScheme.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (ctx) => DraggableScrollableSheet(
         expand: false,
-        initialChildSize: 0.6,
-        maxChildSize: 0.9,
+        initialChildSize: 0.65,
+        maxChildSize: 0.92,
         builder: (_, scroll) => Column(
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              padding: const EdgeInsets.fromLTRB(20, 4, 16, 12),
               child: Row(
                 children: [
-                  Icon(Icons.campaign_rounded, color: theme.colorScheme.primary),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Анонсы автора (${_announcements.length})',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      Icons.campaign_rounded,
+                      color: theme.colorScheme.onPrimaryContainer,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Личные сообщения и анонсы',
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${widget.artistName} • ${widget.service.toUpperCase()}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${_announcements.length}',
+                      style: TextStyle(
+                        color: theme.colorScheme.onSecondaryContainer,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            const Divider(),
+            Divider(
+              height: 1,
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+            ),
             Expanded(
-              child: ListView.separated(
-                controller: scroll,
-                padding: const EdgeInsets.all(16),
-                itemCount: _announcements.length,
-                separatorBuilder: (_, __) => const Divider(height: 24),
-                itemBuilder: (context, index) {
-                  final a = _announcements[index];
-                  final cleanContent = CloudLinkExtractor.cleanCommentary(a.content);
-                  final detectedCloudLinks = CloudLinkExtractor.extractLinks(content: a.content);
-                  final creatorLinks = CreatorLink.extractLinks(a.content);
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (a.added != null)
-                        Text(
-                          '${a.added!.year}-${a.added!.month.toString().padLeft(2, '0')}-${a.added!.day.toString().padLeft(2, '0')}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: theme.colorScheme.primary,
-                            fontWeight: FontWeight.w600,
+              child: _announcements.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.mark_email_read_outlined,
+                            size: 48,
+                            color: theme.colorScheme.outline,
                           ),
-                        ),
-                      const SizedBox(height: 6),
-                      FormattedContentText(
-                        text: cleanContent.isNotEmpty ? cleanContent : a.content,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          height: 1.45,
-                        ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Нет сообщений или рассылок',
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
-                      if (creatorLinks.isNotEmpty) ...[
-                        const SizedBox(height: 10),
-                        CreatorLinkChips(
-                          links: creatorLinks,
-                          title: 'Ссылки автора',
-                        ),
-                      ],
-                      if (detectedCloudLinks.isNotEmpty) ...[
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 6,
-                          children: detectedCloudLinks.map((link) {
-                            return ActionChip(
-                              avatar: Icon(
-                                link.iconData,
-                                size: 16,
-                                color: link.brandColor,
+                    )
+                  : ListView.separated(
+                      controller: scroll,
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                      itemCount: _announcements.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final a = _announcements[index];
+                        final cleanContent =
+                            CloudLinkExtractor.cleanCommentary(a.content);
+                        final detectedCloudLinks =
+                            CloudLinkExtractor.extractLinks(content: a.content);
+                        final creatorLinks =
+                            CreatorLink.extractLinks(a.content);
+                        final displayContent = cleanContent.isNotEmpty
+                            ? cleanContent
+                            : a.content;
+
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainer,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: theme.colorScheme.outlineVariant
+                                  .withValues(alpha: 0.45),
+                            ),
+                          ),
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.primary
+                                          .withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      (a.service.isNotEmpty
+                                              ? a.service
+                                              : widget.service)
+                                          .toUpperCase(),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: theme.colorScheme.primary,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                  if (a.added != null) ...[
+                                    const SizedBox(width: 8),
+                                    Icon(
+                                      Icons.access_time_rounded,
+                                      size: 13,
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${a.added!.day.toString().padLeft(2, '0')}.${a.added!.month.toString().padLeft(2, '0')}.${a.added!.year} ${a.added!.hour.toString().padLeft(2, '0')}:${a.added!.minute.toString().padLeft(2, '0')}',
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        color:
+                                            theme.colorScheme.onSurfaceVariant,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                  const Spacer(),
+                                  IconButton(
+                                    icon: const Icon(Icons.copy_rounded,
+                                        size: 17),
+                                    tooltip: 'Скопировать текст',
+                                    visualDensity: VisualDensity.compact,
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    onPressed: () {
+                                      Clipboard.setData(
+                                        ClipboardData(text: displayContent),
+                                      );
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content:
+                                              Text('Текст сообщения скопирован'),
+                                          duration: Duration(seconds: 2),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
                               ),
-                              label: Text(
-                                link.title.isNotEmpty ? link.title : link.serviceName,
-                                style: const TextStyle(fontSize: 12),
+                              const SizedBox(height: 10),
+                              FormattedContentText(
+                                text: displayContent,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  height: 1.5,
+                                  letterSpacing: 0.15,
+                                ),
                               ),
-                              onPressed: () => launchUrl(
-                                Uri.parse(link.url),
-                                mode: LaunchMode.externalApplication,
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                    ],
-                  );
-                },
-              ),
+                              if (creatorLinks.isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                CreatorLinkChips(
+                                  links: creatorLinks,
+                                  title: 'Ссылки из сообщения',
+                                ),
+                              ],
+                              if (detectedCloudLinks.isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 6,
+                                  children: detectedCloudLinks.map((link) {
+                                    return ActionChip(
+                                      avatar: Icon(
+                                        link.iconData,
+                                        size: 16,
+                                        color: link.brandColor,
+                                      ),
+                                      label: Text(
+                                        link.title.isNotEmpty
+                                            ? link.title
+                                            : link.serviceName,
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                      onPressed: () => launchUrl(
+                                        Uri.parse(link.url),
+                                        mode: LaunchMode.externalApplication,
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
@@ -303,10 +458,14 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
   Widget _buildMediaTypeFilters() {
     final scheme = Theme.of(context).colorScheme;
     final photoCount = _posts
-        .where((p) => !MediaUrlSelector.isVideo(p) && !MediaUrlSelector.isGif(p))
+        .where((p) =>
+            p.fileType != 'text' &&
+            !MediaUrlSelector.isVideo(p) &&
+            !MediaUrlSelector.isGif(p))
         .length;
     final videoCount = _posts.where(MediaUrlSelector.isVideo).length;
     final gifCount = _posts.where(MediaUrlSelector.isGif).length;
+    final textCount = _posts.where((p) => p.fileType == 'text').length;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
@@ -376,6 +535,27 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
                 });
               },
             ),
+            if (textCount > 0) ...[
+              const SizedBox(width: 8),
+              FilterChip(
+                selected: _selectedTypes.contains('text'),
+                avatar: Icon(Icons.article_outlined,
+                    size: 16,
+                    color: _selectedTypes.contains('text')
+                        ? scheme.onPrimaryContainer
+                        : scheme.onSurfaceVariant),
+                label: Text('Текст ($textCount)'),
+                onSelected: (selected) {
+                  setState(() {
+                    if (selected) {
+                      _selectedTypes.add('text');
+                    } else {
+                      _selectedTypes.remove('text');
+                    }
+                  });
+                },
+              ),
+            ],
           ],
         ),
       ),

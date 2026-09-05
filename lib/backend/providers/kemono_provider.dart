@@ -230,8 +230,23 @@ class KemonoProvider
 
   @override
   Future<List<ArtistAnnouncement>> getArtistAnnouncements(
-          String service, String artistId) async =>
-      const [];
+      String service, String artistId) async {
+    final path = '/api/v1/$service/user/$artistId/announcements';
+    for (final apiBase in _apiBaseCandidates()) {
+      try {
+        final response = await _getFromApiBase<dynamic>(apiBase, path);
+        final items = response.data;
+        if (items is List) {
+          return items
+              .whereType<Map>()
+              .map((item) =>
+                  ArtistAnnouncement.fromJson(Map<String, dynamic>.from(item)))
+              .toList(growable: false);
+        }
+      } catch (_) {}
+    }
+    return const [];
+  }
 
   String _creatorPath() => _isCoomer ? '/coomer' : '/kemono';
 
@@ -385,17 +400,23 @@ class KemonoProvider
     }
 
     // Support link-only posts where author uploaded files to cloud drives (MEGA, GDrive, etc.)
-    if (files.isEmpty && (cloudLinks.isNotEmpty || cleanDesc.isNotEmpty)) {
+    // or text-only posts where author wrote an announcement, status or note
+    if (files.isEmpty &&
+        (cloudLinks.isNotEmpty ||
+            cleanDesc.isNotEmpty ||
+            rawContent.trim().isNotEmpty ||
+            title.trim().isNotEmpty)) {
       final stableId = '${query.service}:${query.artistId}:$postId:0';
       final firstStreamable =
           cloudLinks.where((l) => l.isStreamable).firstOrNull;
       final firstLink = cloudLinks.isNotEmpty ? cloudLinks.first : null;
       final fileUrl = firstStreamable?.directStreamUrl ?? firstLink?.url ?? '';
+      final isTextOnly = cloudLinks.isEmpty;
       final tags = [
         query.service,
         query.artistName,
         if (title.trim().isNotEmpty) title.trim(),
-        'cloud_mirror',
+        if (!isTextOnly) 'cloud_mirror' else 'text_post',
       ];
       return [
         Post(
@@ -411,14 +432,19 @@ class KemonoProvider
           height: 0,
           source: postSource,
           createdAt: published,
-          fileType: firstStreamable != null ? 'video' : 'link',
+          fileType: firstStreamable != null
+              ? 'video'
+              : (isTextOnly ? 'text' : 'link'),
           score: 0,
           tagGroups: {
             'artist': [query.artistName],
             'meta': [query.service],
             if (title.trim().isNotEmpty) 'copyright': [title.trim()],
             if (cloudLinksJson.isNotEmpty) 'cloud_links': cloudLinksJson,
-            if (cleanDesc.isNotEmpty) 'description': [cleanDesc],
+            if (cleanDesc.isNotEmpty)
+              'description': [cleanDesc]
+            else if (rawContent.trim().isNotEmpty)
+              'description': [rawContent.trim()],
           },
         ),
       ];

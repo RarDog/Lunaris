@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/motion.dart';
 import '../../../../backend/backend.dart';
+import '../../../../shared/widgets/formatted_content_text.dart';
 
 final Map<String, VideoPlaybackSnapshot> _playbackMemory =
     <String, VideoPlaybackSnapshot>{};
@@ -251,17 +252,20 @@ class _PostMediaViewerState extends State<PostMediaViewer>
     }
 
     if (_imageUrls.isEmpty) {
-      return _CloudMediaHero(
-        post: widget.post,
-        onOpenPrimary: () {
-          final links = widget.post.cloudLinks;
-          final first = links.isNotEmpty ? links.first : null;
-          if (first != null) {
-            launchUrl(Uri.parse(first.url),
-                mode: LaunchMode.externalApplication);
-          }
-        },
-      );
+      if (widget.post.cloudLinks.isNotEmpty) {
+        return _CloudMediaHero(
+          post: widget.post,
+          onOpenPrimary: () {
+            final links = widget.post.cloudLinks;
+            final first = links.isNotEmpty ? links.first : null;
+            if (first != null) {
+              launchUrl(Uri.parse(first.url),
+                  mode: LaunchMode.externalApplication);
+            }
+          },
+        );
+      }
+      return _TextArticleHero(post: widget.post);
     }
 
     final url = _imageUrls[_imageIndex];
@@ -2504,6 +2508,172 @@ class _CloudMediaHero extends StatelessWidget {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TextArticleHero extends StatelessWidget {
+  const _TextArticleHero({required this.post});
+
+  final Post post;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final title = (post.title ?? '').trim();
+    final cleanContent =
+        CloudLinkExtractor.cleanCommentary(post.description ?? '');
+    final displayContent = cleanContent.isNotEmpty
+        ? cleanContent
+        : (title.isNotEmpty ? '' : 'Публикация автора без текста и вложений');
+    final creatorLinks = CreatorLink.extractLinks(post.description ?? '');
+    final cleanTags = post.cleanTags;
+
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 680),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.article_rounded,
+                      color: theme.colorScheme.primary,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Текстовая публикация',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: theme.colorScheme.primary,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        Text(
+                          '${post.providerName} • ${post.createdAt.day.toString().padLeft(2, '0')}.${post.createdAt.month.toString().padLeft(2, '0')}.${post.createdAt.year}',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.copy_rounded, size: 18),
+                    tooltip: 'Скопировать текст',
+                    onPressed: () {
+                      final textToCopy = [
+                        if (title.isNotEmpty) title,
+                        if (displayContent.isNotEmpty) displayContent,
+                      ].join('\n\n');
+                      Clipboard.setData(ClipboardData(text: textToCopy));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Текст скопирован в буфер обмена'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              if (title.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  title,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 14),
+              Divider(
+                height: 1,
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
+              ),
+              const SizedBox(height: 16),
+              if (displayContent.isNotEmpty)
+                FormattedContentText(
+                  text: displayContent,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    height: 1.6,
+                    letterSpacing: 0.15,
+                  ),
+                ),
+              if (creatorLinks.isNotEmpty) ...[
+                const SizedBox(height: 18),
+                CreatorLinkChips(
+                  links: creatorLinks,
+                  title: 'Ссылки из публикации',
+                ),
+              ],
+              if (cleanTags.isNotEmpty) ...[
+                const SizedBox(height: 18),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: cleanTags.take(8).map((t) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3.5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '#$t',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );

@@ -60,11 +60,21 @@ class Post {
     return null;
   }
 
+  String? get description => commentary;
+
+  String? get title {
+    final list = tagGroups['copyright'];
+    if (list != null && list.isNotEmpty) {
+      return list.first;
+    }
+    return null;
+  }
+
   List<String> get cleanTags {
     return tags.where((tag) {
       final t = tag.trim();
       if (t.isEmpty) return false;
-      if (t == 'cloud_mirror') return false;
+      if (t == 'cloud_mirror' || t == 'text_post') return false;
       if (t.startsWith('{') && t.endsWith('}')) return false;
       if (t.contains('"url"') || t.contains('"service"')) return false;
       if (t.startsWith('http://') || t.startsWith('https://')) return false;

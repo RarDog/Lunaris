@@ -418,17 +418,23 @@ class PawchiveProvider
     }
 
     // Support link-only posts where author uploaded files to cloud drives (MEGA, GDrive, etc.)
-    if (files.isEmpty && (cloudLinks.isNotEmpty || cleanDesc.isNotEmpty)) {
+    // or text-only posts where author wrote an announcement, status or note
+    if (files.isEmpty &&
+        (cloudLinks.isNotEmpty ||
+            cleanDesc.isNotEmpty ||
+            rawContent.trim().isNotEmpty ||
+            title.trim().isNotEmpty)) {
       final stableId = '${query.service}:${query.artistId}:$postId:0';
       final firstStreamable =
           cloudLinks.where((l) => l.isStreamable).firstOrNull;
       final firstLink = cloudLinks.isNotEmpty ? cloudLinks.first : null;
       final fileUrl = firstStreamable?.directStreamUrl ?? firstLink?.url ?? '';
+      final isTextOnly = cloudLinks.isEmpty;
       final tags = [
         query.service,
         query.artistName,
         if (title.trim().isNotEmpty) title.trim(),
-        'cloud_mirror',
+        if (!isTextOnly) 'cloud_mirror' else 'text_post',
       ];
       return [
         Post(
@@ -444,14 +450,19 @@ class PawchiveProvider
           height: 0,
           source: postSource,
           createdAt: published,
-          fileType: firstStreamable != null ? 'video' : 'link',
+          fileType: firstStreamable != null
+              ? 'video'
+              : (isTextOnly ? 'text' : 'link'),
           score: 0,
           tagGroups: {
             'artist': [query.artistName],
             'meta': [query.service],
             if (title.trim().isNotEmpty) 'copyright': [title.trim()],
             if (cloudLinksJson.isNotEmpty) 'cloud_links': cloudLinksJson,
-            if (cleanDesc.isNotEmpty) 'description': [cleanDesc],
+            if (cleanDesc.isNotEmpty)
+              'description': [cleanDesc]
+            else if (rawContent.trim().isNotEmpty)
+              'description': [rawContent.trim()],
           },
         ),
       ];

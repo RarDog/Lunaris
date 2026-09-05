@@ -117,9 +117,14 @@ class _PostCardState extends ConsumerState<PostCard>
   Widget build(BuildContext context) {
     final post = _resolvedPost ?? widget.post;
     final sensitive = _isSensitive(post.rating);
+    final isTextPost = post.fileType == 'text' ||
+        (post.previewUrl.trim().isEmpty &&
+            post.sampleUrl.trim().isEmpty &&
+            post.fileUrl.trim().isEmpty &&
+            !MediaUrlSelector.isVideo(post));
     final aspect = post.width > 0 && post.height > 0
         ? post.width / post.height
-        : _fallbackAspect(post.fileType);
+        : _fallbackAspect(isTextPost ? 'text' : post.fileType);
     final mobile = MediaQuery.sizeOf(context).width < 700;
     final urls = _feedUrls(post, mobile: mobile);
     final imageUrl = urls.isEmpty ? post.previewUrl : urls.first;
@@ -202,6 +207,12 @@ class _PostCardState extends ConsumerState<PostCard>
                     enabled: widget.blurExplicit && sensitive,
                     child: LayoutBuilder(
                       builder: (context, constraints) {
+                        if (isTextPost) {
+                          return _TextPostCardPreview(
+                            post: post,
+                            hovered: _hovered && !mobile,
+                          );
+                        }
                         final dpr = MediaQuery.devicePixelRatioOf(context);
                         final cacheWidth =
                             (constraints.maxWidth * dpr).round().clamp(320, 1800);
@@ -239,27 +250,28 @@ class _PostCardState extends ConsumerState<PostCard>
                     ),
                   ),
                 ),
-                // Bottom cinematic gradient overlay for badges and favorite
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  height: 64,
-                  child: IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [
-                            Colors.black.withValues(alpha: 0.72),
-                            Colors.transparent,
-                          ],
+                // Bottom cinematic gradient overlay for badges and favorite (only on media posts)
+                if (!isTextPost)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: 64,
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.72),
+                              Colors.transparent,
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
                 if (widget.showBadges) ...[
                   Positioned(
                     left: 8,
@@ -269,11 +281,14 @@ class _PostCardState extends ConsumerState<PostCard>
                   if (post.fileType.toLowerCase().contains('video') ||
                       post.fileType.toLowerCase().contains('webm') ||
                       post.fileType.toLowerCase().contains('mp4') ||
-                      post.fileType.toLowerCase().contains('gif'))
+                      post.fileType.toLowerCase().contains('gif') ||
+                      isTextPost)
                     Positioned(
                       right: 8,
                       top: 8,
-                      child: _MediaBadge(fileType: post.fileType),
+                      child: _MediaBadge(
+                        fileType: isTextPost ? 'text' : post.fileType,
+                      ),
                     ),
                   Positioned(
                     left: 8,
@@ -434,6 +449,7 @@ class _PostCardState extends ConsumerState<PostCard>
 
   double _fallbackAspect(String fileType) {
     final normalized = fileType.toLowerCase();
+    if (normalized == 'text') return 0.95;
     if (normalized.contains('video') || normalized.contains('webm')) {
       return 16 / 9;
     }
@@ -775,7 +791,7 @@ class _MediaBadge extends StatelessWidget {
           Icon(_icon(type), size: 13, color: Colors.white),
           const SizedBox(width: 3.5),
           Text(
-            type,
+            _label(type),
             style: const TextStyle(
               fontSize: 10.5,
               color: Colors.white,
@@ -796,14 +812,159 @@ class _MediaBadge extends StatelessWidget {
       return 'video';
     }
     if (value.contains('gif')) return 'gif';
+    if (value.contains('text')) return 'text';
     return 'photo';
   }
 
   IconData _icon(String type) => switch (type) {
         'video' => Icons.play_arrow_rounded,
         'gif' => Icons.gif_box_rounded,
+        'text' => Icons.article_rounded,
         _ => Icons.image_rounded,
       };
+
+  String _label(String type) => switch (type) {
+        'video' => 'VIDEO',
+        'gif' => 'GIF',
+        'text' => 'ТЕКСТ',
+        _ => 'PHOTO',
+      };
+}
+
+class _TextPostCardPreview extends StatelessWidget {
+  const _TextPostCardPreview({
+    required this.post,
+    required this.hovered,
+  });
+
+  final Post post;
+  final bool hovered;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final title = (post.title ?? '').trim();
+    final cleanContent =
+        CloudLinkExtractor.cleanCommentary(post.description ?? '');
+    final hasTitle = title.isNotEmpty;
+    final snippet = cleanContent.isNotEmpty
+        ? cleanContent
+        : (hasTitle ? '' : 'Текстовая публикация автора без вложений');
+    final cloudCount = post.cloudLinks.length;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            theme.colorScheme.surfaceContainerHigh,
+            theme.colorScheme.surfaceContainer,
+          ],
+        ),
+        border: Border.all(
+          color: hovered
+              ? theme.colorScheme.primary.withValues(alpha: 0.5)
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(5),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.14),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.notes_rounded,
+                  size: 15,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${post.createdAt.day.toString().padLeft(2, '0')}.${post.createdAt.month.toString().padLeft(2, '0')}.${post.createdAt.year}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (hasTitle) ...[
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                height: 1.25,
+              ),
+            ),
+            const SizedBox(height: 6),
+          ],
+          if (snippet.isNotEmpty)
+            Expanded(
+              child: Text(
+                snippet,
+                maxLines: hasTitle ? 5 : 7,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  height: 1.42,
+                ),
+              ),
+            )
+          else
+            const Spacer(),
+          if (cloudCount > 0) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.cloud_download_outlined,
+                        size: 12,
+                        color: theme.colorScheme.onPrimaryContainer,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Вложения ($cloudCount)',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 class _SeenBadge extends StatelessWidget {
