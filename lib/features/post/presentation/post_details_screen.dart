@@ -114,7 +114,8 @@ class PostDetailsScreen extends ConsumerWidget {
               (post.previewUrl.isEmpty &&
                   post.sampleUrl.isEmpty &&
                   post.fileUrl.isEmpty &&
-                  !MediaUrlSelector.isVideo(post));
+                  !MediaUrlSelector.isVideo(post) &&
+                  !MediaUrlSelector.isAudio(post));
           final shouldShowCloudCard = isTextOnly
               ? post.cloudLinks.isNotEmpty
               : (post.cloudLinks.isNotEmpty ||
@@ -230,17 +231,24 @@ class PostDetailsScreen extends ConsumerWidget {
                         ),
                         Expanded(
                           child: Center(
-                            child: MediaUrlSelector.isVideo(post)
+                            child: (MediaUrlSelector.isVideo(post) ||
+                                    MediaUrlSelector.isAudio(post))
                                 ? ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      maxHeight: 760,
+                                    constraints: BoxConstraints(
+                                      maxHeight: MediaUrlSelector.isAudio(post)
+                                          ? 360
+                                          : 760,
+                                      maxWidth: MediaUrlSelector.isAudio(post)
+                                          ? 620
+                                          : double.infinity,
                                     ),
                                     child: AspectRatio(
-                                      aspectRatio:
-                                          (post.width > 0 && post.height > 0)
+                                      aspectRatio: MediaUrlSelector.isAudio(post)
+                                          ? 1.4
+                                          : ((post.width > 0 && post.height > 0)
                                               ? (post.width / post.height)
                                                   .clamp(0.45, 2.4)
-                                              : (16 / 9),
+                                              : (16 / 9)),
                                       child: PostMediaViewer(
                                         key: ValueKey(post.cacheKey),
                                         post: post,
@@ -433,6 +441,7 @@ class PostDetailsScreen extends ConsumerWidget {
     List<Post>? feedPosts,
   ]) {
     final isVideo = MediaUrlSelector.isVideo(post);
+    final isAudio = MediaUrlSelector.isAudio(post);
     final localMedia =
         ref.watch(downloadedMediaByKeyProvider(post.cacheKey)).value;
     final fileSizeBytes = localMedia != null
@@ -450,7 +459,8 @@ class PostDetailsScreen extends ConsumerWidget {
         (post.previewUrl.isEmpty &&
             post.sampleUrl.isEmpty &&
             post.fileUrl.isEmpty &&
-            !MediaUrlSelector.isVideo(post));
+            !MediaUrlSelector.isVideo(post) &&
+            !MediaUrlSelector.isAudio(post));
     final shouldShowCloudCard = isTextOnly
         ? post.cloudLinks.isNotEmpty
         : (post.cloudLinks.isNotEmpty ||
@@ -479,16 +489,20 @@ class PostDetailsScreen extends ConsumerWidget {
                 ? null
                 : () =>
                     _showMobileQuickActions(context, ref, post, favoriteKeys),
-            child: isVideo
+            child: (isVideo || isAudio)
                 ? Center(
                     child: ConstrainedBox(
                       constraints: BoxConstraints(
-                        maxHeight: MediaQuery.sizeOf(context).height * 0.70,
+                        maxHeight: isAudio
+                            ? 340
+                            : MediaQuery.sizeOf(context).height * 0.70,
                       ),
                       child: AspectRatio(
-                        aspectRatio: (post.width > 0 && post.height > 0)
-                            ? (post.width / post.height).clamp(0.45, 2.4)
-                            : (16 / 9),
+                        aspectRatio: isAudio
+                            ? 1.3
+                            : ((post.width > 0 && post.height > 0)
+                                ? (post.width / post.height).clamp(0.45, 2.4)
+                                : (16 / 9)),
                         child: PostMediaViewer(
                           key: ValueKey(post.cacheKey),
                           post: post,

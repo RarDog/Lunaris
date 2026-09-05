@@ -80,7 +80,16 @@ class MediaUrlSelector {
     ]);
   }
 
+  static List<String> audio(Post post) {
+    return _compact([
+      post.fileUrl,
+      if (_looksLikeAudioUrl(post.sampleUrl)) post.sampleUrl,
+      if (_looksLikeAudioUrl(post.previewUrl)) post.previewUrl,
+    ]);
+  }
+
   static bool isVideo(Post post) => _isVideo(post);
+  static bool isAudio(Post post) => _isAudio(post);
   static bool isGif(Post post) => _isGif(post);
 
   static List<String> _compact(Iterable<String> urls) {
@@ -91,12 +100,32 @@ class MediaUrlSelector {
         .toList(growable: false);
   }
 
+  static bool _isAudio(Post post) {
+    final value = '${post.fileType} ${post.fileUrl}'.toLowerCase();
+    return value.contains('audio') ||
+        value.contains('.mp3') ||
+        value.contains('.m4a') ||
+        value.contains('.wav') ||
+        value.contains('.ogg') ||
+        value.contains('.flac') ||
+        value.contains('.aac') ||
+        value.contains('.opus') ||
+        value.contains('.wma');
+  }
+
   static bool _isVideo(Post post) {
+    if (_isAudio(post)) return false;
     final value = '${post.fileType} ${post.fileUrl}'.toLowerCase();
     return value.contains('video') ||
         value.contains('.webm') ||
         value.contains('.mp4') ||
-        value.contains('.mov');
+        value.contains('.mov') ||
+        value.contains('.mkv') ||
+        value.contains('.avi') ||
+        value.contains('.flv') ||
+        value.contains('.wmv') ||
+        value.contains('.m4v') ||
+        value.contains('.ts');
   }
 
   static bool _isGif(Post post) {
@@ -108,6 +137,24 @@ class MediaUrlSelector {
     final value = url.toLowerCase();
     return value.contains('.webm') ||
         value.contains('.mp4') ||
-        value.contains('.mov');
+        value.contains('.mov') ||
+        value.contains('.mkv') ||
+        value.contains('.avi') ||
+        value.contains('.flv') ||
+        value.contains('.wmv') ||
+        value.contains('.m4v') ||
+        value.contains('.ts');
+  }
+
+  static bool _looksLikeAudioUrl(String url) {
+    final value = url.toLowerCase();
+    return value.contains('.mp3') ||
+        value.contains('.m4a') ||
+        value.contains('.wav') ||
+        value.contains('.ogg') ||
+        value.contains('.flac') ||
+        value.contains('.aac') ||
+        value.contains('.opus') ||
+        value.contains('.wma');
   }
 }

@@ -1,8 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gel_rule_app/backend/models/artist_work_query.dart';
 import 'package:gel_rule_app/backend/models/content_provider_config.dart';
+import 'package:gel_rule_app/backend/models/post.dart';
 import 'package:gel_rule_app/backend/providers/pawchive_provider.dart';
 import 'package:gel_rule_app/backend/providers/provider_factory.dart';
+import 'package:gel_rule_app/backend/utils/media_quality.dart';
 import 'package:gel_rule_app/core/http/dio_client.dart';
 
 void main() {
@@ -47,4 +49,67 @@ void main() {
     expect(provider.id, query.providerId);
     expect(query.artistName, 'BOKABA');
   });
+
+  test('MediaUrlSelector accurately classifies audio, video and photo posts', () {
+    final audioPost = Post(
+      id: 'patreon:123:456:0',
+      providerId: 'pawchive',
+      providerName: 'Pawchive',
+      previewUrl: '',
+      sampleUrl: '',
+      fileUrl:
+          'https://file.pawchive.pw/data/ae/13/ae13adaaebee798397c5c3b07cb9690b2adc91f41815e89a3f58a447bfb56980.mp3?f=audio%20spicy%20only%204.MP3',
+      tags: const ['patreon', 'artist', 'audio'],
+      rating: 'unknown',
+      width: 0,
+      height: 0,
+      createdAt: DateTime.now(),
+      fileType: 'audio',
+      score: 0,
+    );
+
+    final videoPost = Post(
+      id: 'patreon:123:456:1',
+      providerId: 'pawchive',
+      providerName: 'Pawchive',
+      previewUrl: '',
+      sampleUrl: '',
+      fileUrl:
+          'https://file.pawchive.pw/data/84/b1/84b1d076dd6b59047bb699115e57c18a02f2ea08b54e4d20409692b58b7aac33.mp4',
+      tags: const ['patreon', 'artist'],
+      rating: 'unknown',
+      width: 1920,
+      height: 1080,
+      createdAt: DateTime.now(),
+      fileType: 'video',
+      score: 0,
+    );
+
+    final photoPost = Post(
+      id: 'patreon:123:456:2',
+      providerId: 'pawchive',
+      providerName: 'Pawchive',
+      previewUrl: 'https://img.pawchive.pw/thumbnail/data/c3/06/c3060ab6fa.png',
+      sampleUrl: 'https://img.pawchive.pw/thumbnail/data/c3/06/c3060ab6fa.png',
+      fileUrl: 'https://file.pawchive.pw/data/c3/06/c3060ab6fa.png',
+      tags: const ['patreon', 'artist'],
+      rating: 'unknown',
+      width: 1200,
+      height: 1600,
+      createdAt: DateTime.now(),
+      fileType: 'photo',
+      score: 0,
+    );
+
+    expect(MediaUrlSelector.isAudio(audioPost), isTrue);
+    expect(MediaUrlSelector.isVideo(audioPost), isFalse);
+    expect(MediaUrlSelector.audio(audioPost), contains(audioPost.fileUrl));
+
+    expect(MediaUrlSelector.isVideo(videoPost), isTrue);
+    expect(MediaUrlSelector.isAudio(videoPost), isFalse);
+
+    expect(MediaUrlSelector.isAudio(photoPost), isFalse);
+    expect(MediaUrlSelector.isVideo(photoPost), isFalse);
+  });
 }
+

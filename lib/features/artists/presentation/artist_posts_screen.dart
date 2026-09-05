@@ -191,11 +191,13 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
   bool _matchesTypeFilter(Post post) {
     if (_selectedTypes.isEmpty) return true;
     final isVid = MediaUrlSelector.isVideo(post);
+    final isAud = MediaUrlSelector.isAudio(post);
     final isGif = MediaUrlSelector.isGif(post);
     final isText = post.fileType == 'text';
-    final isPhoto = !isVid && !isGif && !isText;
+    final isPhoto = !isVid && !isAud && !isGif && !isText;
 
     if (_selectedTypes.contains('video') && isVid) return true;
+    if (_selectedTypes.contains('audio') && isAud) return true;
     if (_selectedTypes.contains('gif') && isGif) return true;
     if (_selectedTypes.contains('photo') && isPhoto) return true;
     if (_selectedTypes.contains('text') && isText) return true;
@@ -462,10 +464,12 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
 
   Widget _buildMediaTypeFilters() {
     final scheme = Theme.of(context).colorScheme;
+    final audioCount = _posts.where(MediaUrlSelector.isAudio).length;
     final photoCount = _posts
         .where((p) =>
             p.fileType != 'text' &&
             !MediaUrlSelector.isVideo(p) &&
+            !MediaUrlSelector.isAudio(p) &&
             !MediaUrlSelector.isGif(p))
         .length;
     final videoCount = _posts.where(MediaUrlSelector.isVideo).length;
@@ -489,8 +493,8 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
               avatar: Icon(Icons.photo_outlined,
                   size: 16,
                   color: _selectedTypes.contains('photo')
-                      ? scheme.onPrimaryContainer
-                      : scheme.onSurfaceVariant),
+                        ? scheme.onPrimaryContainer
+                        : scheme.onSurfaceVariant),
               label: Text('Фото ($photoCount)'),
               onSelected: (selected) {
                 setState(() {
@@ -508,8 +512,8 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
               avatar: Icon(Icons.videocam_outlined,
                   size: 16,
                   color: _selectedTypes.contains('video')
-                      ? scheme.onPrimaryContainer
-                      : scheme.onSurfaceVariant),
+                        ? scheme.onPrimaryContainer
+                        : scheme.onSurfaceVariant),
               label: Text('Видео ($videoCount)'),
               onSelected: (selected) {
                 setState(() {
@@ -521,14 +525,35 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
                 });
               },
             ),
+            if (audioCount > 0) ...[
+              const SizedBox(width: 8),
+              FilterChip(
+                selected: _selectedTypes.contains('audio'),
+                avatar: Icon(Icons.audiotrack_rounded,
+                    size: 16,
+                    color: _selectedTypes.contains('audio')
+                        ? scheme.onPrimaryContainer
+                        : scheme.onSurfaceVariant),
+                label: Text('Аудио ($audioCount)'),
+                onSelected: (selected) {
+                  setState(() {
+                    if (selected) {
+                      _selectedTypes.add('audio');
+                    } else {
+                      _selectedTypes.remove('audio');
+                    }
+                  });
+                },
+              ),
+            ],
             const SizedBox(width: 8),
             FilterChip(
               selected: _selectedTypes.contains('gif'),
               avatar: Icon(Icons.gif_rounded,
                   size: 20,
                   color: _selectedTypes.contains('gif')
-                      ? scheme.onPrimaryContainer
-                      : scheme.onSurfaceVariant),
+                        ? scheme.onPrimaryContainer
+                        : scheme.onSurfaceVariant),
               label: Text('GIF ($gifCount)'),
               onSelected: (selected) {
                 setState(() {

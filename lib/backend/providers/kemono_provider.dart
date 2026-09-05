@@ -600,14 +600,47 @@ class KemonoProvider
   }
 
   String _fileType(String value) {
-    final lower = value.toLowerCase().split('?').first;
-    if (lower.endsWith('.webm') || lower.endsWith('.mp4')) return 'video';
+    final lower = value.toLowerCase().split('?').first.trim();
+    if (lower.endsWith('.webm') ||
+        lower.endsWith('.mp4') ||
+        lower.endsWith('.mov') ||
+        lower.endsWith('.mkv') ||
+        lower.endsWith('.avi') ||
+        lower.endsWith('.flv') ||
+        lower.endsWith('.wmv') ||
+        lower.endsWith('.m4v') ||
+        lower.endsWith('.ts')) {
+      return 'video';
+    }
+    if (lower.endsWith('.mp3') ||
+        lower.endsWith('.m4a') ||
+        lower.endsWith('.wav') ||
+        lower.endsWith('.ogg') ||
+        lower.endsWith('.flac') ||
+        lower.endsWith('.aac') ||
+        lower.endsWith('.opus') ||
+        lower.endsWith('.wma')) {
+      return 'audio';
+    }
     if (lower.endsWith('.gif')) return 'gif';
     if (lower.endsWith('.swf')) return 'swf';
-    if (lower.endsWith('.png')) return 'png';
-    if (lower.endsWith('.jpg') ||
+    if (lower.endsWith('.zip') ||
+        lower.endsWith('.rar') ||
+        lower.endsWith('.7z') ||
+        lower.endsWith('.tar') ||
+        lower.endsWith('.gz') ||
+        lower.endsWith('.pdf') ||
+        lower.endsWith('.txt')) {
+      return 'archive';
+    }
+    if (lower.endsWith('.png') ||
+        lower.endsWith('.jpg') ||
         lower.endsWith('.jpeg') ||
-        lower.endsWith('.webp')) {
+        lower.endsWith('.webp') ||
+        lower.endsWith('.avif') ||
+        lower.endsWith('.bmp') ||
+        lower.endsWith('.heic') ||
+        lower.endsWith('.tiff')) {
       return 'photo';
     }
     return 'unknown';

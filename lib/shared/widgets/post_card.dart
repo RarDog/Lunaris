@@ -117,14 +117,19 @@ class _PostCardState extends ConsumerState<PostCard>
   Widget build(BuildContext context) {
     final post = _resolvedPost ?? widget.post;
     final sensitive = _isSensitive(post.rating);
+    final isAudioPost =
+        MediaUrlSelector.isAudio(post) || post.fileType == 'audio';
+    final isVideoPost = MediaUrlSelector.isVideo(post);
     final isTextPost = post.fileType == 'text' ||
         (post.previewUrl.trim().isEmpty &&
             post.sampleUrl.trim().isEmpty &&
             post.fileUrl.trim().isEmpty &&
-            !MediaUrlSelector.isVideo(post));
+            !isVideoPost &&
+            !isAudioPost);
     final aspect = post.width > 0 && post.height > 0
         ? post.width / post.height
-        : _fallbackAspect(isTextPost ? 'text' : post.fileType);
+        : _fallbackAspect(
+            isTextPost ? 'text' : (isAudioPost ? 'audio' : post.fileType));
     final mobile = MediaQuery.sizeOf(context).width < 700;
     final urls = _feedUrls(post, mobile: mobile);
     final imageUrl = urls.isEmpty ? post.previewUrl : urls.first;
@@ -213,6 +218,18 @@ class _PostCardState extends ConsumerState<PostCard>
                             hovered: _hovered && !mobile,
                           );
                         }
+                        if (isAudioPost && (imageUrl.isEmpty || !imageUrl.startsWith('http'))) {
+                          return _AudioPostCardPreview(
+                            post: post,
+                            hovered: _hovered && !mobile,
+                          );
+                        }
+                        if (isVideoPost && (imageUrl.isEmpty || !imageUrl.startsWith('http'))) {
+                          return _VideoPostCardPreview(
+                            post: post,
+                            hovered: _hovered && !mobile,
+                          );
+                        }
                         final dpr = MediaQuery.devicePixelRatioOf(context);
                         final cacheWidth =
                             (constraints.maxWidth * dpr).round().clamp(320, 1800);
@@ -241,8 +258,14 @@ class _PostCardState extends ConsumerState<PostCard>
                             color: Theme.of(context)
                                 .colorScheme
                                 .surfaceContainerHighest,
-                            child: const Center(
-                              child: Icon(Icons.broken_image_rounded),
+                            child: Center(
+                              child: Icon(
+                                isVideoPost
+                                    ? Icons.videocam_outlined
+                                    : (isAudioPost
+                                        ? Icons.music_note_rounded
+                                        : Icons.broken_image_rounded),
+                              ),
                             ),
                           ),
                         );
@@ -282,12 +305,15 @@ class _PostCardState extends ConsumerState<PostCard>
                       post.fileType.toLowerCase().contains('webm') ||
                       post.fileType.toLowerCase().contains('mp4') ||
                       post.fileType.toLowerCase().contains('gif') ||
+                      isAudioPost ||
                       isTextPost)
                     Positioned(
                       right: 8,
                       top: 8,
                       child: _MediaBadge(
-                        fileType: isTextPost ? 'text' : post.fileType,
+                        fileType: isAudioPost
+                            ? 'audio'
+                            : (isTextPost ? 'text' : post.fileType),
                       ),
                     ),
                   Positioned(
@@ -450,6 +476,7 @@ class _PostCardState extends ConsumerState<PostCard>
   double _fallbackAspect(String fileType) {
     final normalized = fileType.toLowerCase();
     if (normalized == 'text') return 0.95;
+    if (normalized == 'audio' || normalized.contains('mp3')) return 1.25;
     if (normalized.contains('video') || normalized.contains('webm')) {
       return 16 / 9;
     }
@@ -806,6 +833,14 @@ class _MediaBadge extends StatelessWidget {
 
   String _type(String raw) {
     final value = raw.toLowerCase();
+    if (value.contains('audio') ||
+        value.contains('mp3') ||
+        value.contains('wav') ||
+        value.contains('flac') ||
+        value.contains('ogg') ||
+        value.contains('m4a')) {
+      return 'audio';
+    }
     if (value.contains('video') ||
         value.contains('webm') ||
         value.contains('mp4')) {
@@ -817,6 +852,7 @@ class _MediaBadge extends StatelessWidget {
   }
 
   IconData _icon(String type) => switch (type) {
+        'audio' => Icons.music_note_rounded,
         'video' => Icons.play_arrow_rounded,
         'gif' => Icons.gif_box_rounded,
         'text' => Icons.article_rounded,
@@ -824,6 +860,7 @@ class _MediaBadge extends StatelessWidget {
       };
 
   String _label(String type) => switch (type) {
+        'audio' => 'AUDIO',
         'video' => 'VIDEO',
         'gif' => 'GIF',
         'text' => 'ТЕКСТ',
@@ -961,6 +998,251 @@ class _TextPostCardPreview extends StatelessWidget {
               ],
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+class _AudioPostCardPreview extends StatelessWidget {
+  const _AudioPostCardPreview({
+    required this.post,
+    required this.hovered,
+  });
+
+  final Post post;
+  final bool hovered;
+
+  String _deriveAudioTitle() {
+    final title = (post.title ?? '').trim();
+    if (title.isNotEmpty) return title;
+    final uri = Uri.tryParse(post.fileUrl);
+    if (uri != null) {
+      final queryParam = uri.queryParameters['f'];
+      if (queryParam != null && queryParam.trim().isNotEmpty) {
+        return queryParam.trim();
+      }
+      final lastSeg = uri.pathSegments.lastOrNull;
+      if (lastSeg != null && lastSeg.isNotEmpty) {
+        return lastSeg;
+      }
+    }
+    final artist = post.tagGroups['artist']?.firstOrNull;
+    if (artist != null && artist.isNotEmpty) return 'Аудиозапись от $artist';
+    return 'Аудиозапись';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final audioTitle = _deriveAudioTitle();
+    final artistName = post.tagGroups['artist']?.firstOrNull ?? post.providerName;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            theme.colorScheme.primaryContainer.withValues(alpha: 0.85),
+            theme.colorScheme.surfaceContainerHighest,
+          ],
+        ),
+        border: Border.all(
+          color: hovered
+              ? theme.colorScheme.primary.withValues(alpha: 0.6)
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.audiotrack_rounded,
+                  size: 20,
+                  color: theme.colorScheme.onPrimary,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      artistName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      '${post.createdAt.day.toString().padLeft(2, '0')}.${post.createdAt.month.toString().padLeft(2, '0')}.${post.createdAt.year}',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Text(
+            audioTitle,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              height: 1.25,
+              letterSpacing: -0.1,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.play_circle_filled_rounded,
+                      size: 14,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Воспроизвести',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _VideoPostCardPreview extends StatelessWidget {
+  const _VideoPostCardPreview({
+    required this.post,
+    required this.hovered,
+  });
+
+  final Post post;
+  final bool hovered;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final title = (post.title ?? '').trim();
+    final artistName = post.tagGroups['artist']?.firstOrNull ?? post.providerName;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            theme.colorScheme.surfaceContainerHighest,
+            theme.colorScheme.surfaceContainer,
+          ],
+        ),
+        border: Border.all(
+          color: hovered
+              ? theme.colorScheme.primary.withValues(alpha: 0.6)
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
+          width: 1,
+        ),
+      ),
+      child: Stack(
+        children: [
+          Center(
+            child: Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.85),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.play_arrow_rounded,
+                size: 32,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (title.isNotEmpty)
+                  Text(
+                    title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      height: 1.2,
+                    ),
+                  )
+                else
+                  Text(
+                    artistName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+              ],
+            ),
+          ),
         ],
       ),
     );
