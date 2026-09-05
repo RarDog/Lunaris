@@ -12,7 +12,7 @@ permissions:
 jobs:
   build-windows:
     name: Build Windows x64
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     steps:
       - name: Checkout Code
@@ -24,6 +24,9 @@ jobs:
           flutter-version: '3.27.4'
           channel: 'stable'
           cache: true
+
+      - name: Enable Windows Desktop
+        run: flutter config --enable-windows-desktop
 
       - name: Install Dependencies
         run: flutter pub get
@@ -68,6 +71,9 @@ jobs:
           flutter-version: '3.27.4'
           channel: 'stable'
           cache: true
+
+      - name: Enable macOS Desktop
+        run: flutter config --enable-macos-desktop
 
       - name: Install Dependencies
         run: flutter pub get
