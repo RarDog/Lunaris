@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/app.dart';
-import '../../app/motion.dart';
 import '../../app/responsive.dart';
 import '../../app/router.dart';
 import '../../backend/backend.dart';
@@ -385,9 +384,54 @@ class _DesktopShell extends StatefulWidget {
   State<_DesktopShell> createState() => _DesktopShellState();
 }
 
-class _DesktopShellState extends State<_DesktopShell> {
+class _DesktopShellState extends State<_DesktopShell>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
   bool _hovered = false;
   bool _pinned = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+    );
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleHover(bool hovered) {
+    if (_hovered == hovered) return;
+    setState(() => _hovered = hovered);
+    if (_pinned) return;
+    if (hovered) {
+      _controller.forward();
+    } else {
+      _controller.reverse();
+    }
+  }
+
+  void _togglePinned() {
+    setState(() {
+      _pinned = !_pinned;
+      if (_pinned) {
+        _controller.forward();
+      } else if (!_hovered) {
+        _controller.reverse();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -400,256 +444,354 @@ class _DesktopShellState extends State<_DesktopShell> {
     final selected = widget.destinations.indexWhere(
       (item) => AppShell.branchIndexForLocation(item.location) == activeBranch,
     );
-    final isExpanded = _pinned || _hovered;
 
     return Scaffold(
       body: Row(
         children: [
           MouseRegion(
-            onEnter: (_) => setState(() => _hovered = true),
-            onExit: (_) => setState(() => _hovered = false),
-            child: AnimatedContainer(
-              duration: AppMotion.duration(context, 200),
-              curve: Curves.easeOutCubic,
-              width: isExpanded ? 260 : 74,
-              decoration: BoxDecoration(
-                color: isDark
-                    ? scheme.surfaceContainerHigh.withValues(alpha: 0.75)
-                    : scheme.surface.withValues(alpha: 0.85),
-                border: Border(
-                  right: BorderSide(
+            onEnter: (_) => _handleHover(true),
+            onExit: (_) => _handleHover(false),
+            child: AnimatedBuilder(
+              animation: _animation,
+              builder: (context, _) {
+                final progress = _animation.value;
+                final width = lerpDouble(74.0, 260.0, progress)!;
+                final contentOpacity =
+                    (progress - 0.25).clamp(0.0, 0.75) / 0.75;
+                final isFullyExpanded = progress > 0.85;
+
+                return Container(
+                  width: width,
+                  decoration: BoxDecoration(
                     color: isDark
-                        ? Colors.white.withValues(alpha: 0.12)
-                        : scheme.outlineVariant.withValues(alpha: 0.35),
-                    width: 1,
+                        ? scheme.surfaceContainerHigh
+                        : scheme.surface,
+                    border: Border(
+                      right: BorderSide(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : scheme.outlineVariant.withValues(alpha: 0.35),
+                        width: 1,
+                      ),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color:
+                            Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                        blurRadius: 16,
+                        offset: const Offset(3, 0),
+                      ),
+                    ],
                   ),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
-                    blurRadius: 18,
-                    offset: const Offset(4, 0),
-                  ),
-                ],
-              ),
-              child: ClipRect(
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                  child: SafeArea(
-                    child: Column(
-                      children: [
-                        // App Brand Header
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 16, 12, 14),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 44,
-                                height: 44,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [
-                                      scheme.primary,
-                                      scheme.tertiary,
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(14),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: scheme.primary.withValues(alpha: 0.35),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
-                                ),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.auto_awesome_rounded,
-                                    color: Colors.white,
-                                    size: 24,
-                                  ),
-                                ),
-                              ),
-                              if (isExpanded) ...[
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        'Lunaris',
-                                        style: theme.textTheme.titleMedium?.copyWith(
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: 0.2,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 1.5,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: scheme.primary.withValues(alpha: 0.15),
-                                          borderRadius: BorderRadius.circular(6),
-                                          border: Border.all(
-                                            color: scheme.primary.withValues(alpha: 0.3),
-                                            width: 0.8,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          'v3.6.0',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                            color: scheme.primary,
-                                            letterSpacing: 0.4,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                IconButton(
-                                  visualDensity: VisualDensity.compact,
-                                  tooltip: _pinned
-                                      ? (widget.ru ? 'Открепить панель' : 'Unpin panel')
-                                      : (widget.ru ? 'Закрепить панель' : 'Pin panel'),
-                                  onPressed: () {
-                                    setState(() => _pinned = !_pinned);
-                                  },
-                                  icon: Icon(
-                                    _pinned
-                                        ? Icons.push_pin_rounded
-                                        : Icons.push_pin_outlined,
-                                    size: 19,
-                                    color: _pinned ? scheme.primary : scheme.onSurfaceVariant,
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                        const Divider(height: 1),
-                        const SizedBox(height: 8),
-
-                        // Destinations List
-                        Expanded(
-                          child: ListView(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            children: [
-                              for (var index = 0;
-                                  index < widget.destinations.length;
-                                  index++)
-                                _RailButton(
-                                  destination: widget.destinations[index],
-                                  ru: widget.ru,
-                                  selected: (selected < 0 ? 0 : selected) == index,
-                                  expanded: isExpanded,
-                                  shortcutKey: 'Ctrl+${index + 1}',
-                                  onTap: () {
-                                    widget.onNavigate(
-                                        widget.destinations[index].location);
-                                  },
-                                ),
-                            ],
-                          ),
-                        ),
-
-                        // Bottom Actions
-                        const Divider(height: 1),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 8),
+                  child: ClipRect(
+                    child: OverflowBox(
+                      minWidth: 260,
+                      maxWidth: 260,
+                      alignment: Alignment.topLeft,
+                      child: SizedBox(
+                        width: 260,
+                        child: SafeArea(
                           child: Column(
                             children: [
-                              // Shortcuts helper button
-                              Tooltip(
-                                message: isExpanded
-                                    ? ''
-                                    : (widget.ru
-                                        ? 'Горячие клавиши (F1 / ?)'
-                                        : 'Keyboard Shortcuts (F1 / ?)'),
-                                waitDuration: const Duration(milliseconds: 350),
-                                child: Material(
-                                  color: Colors.transparent,
-                                  borderRadius: BorderRadius.circular(14),
-                                  clipBehavior: Clip.antiAlias,
-                                  child: InkWell(
-                                    onTap: () => DesktopShortcutsDialog.show(context),
-                                    child: SizedBox(
-                                      height: 44,
-                                      child: Row(
-                                        children: [
-                                          SizedBox(
-                                            width: 58,
-                                            child: Icon(
-                                              Icons.keyboard_rounded,
-                                              size: 22,
-                                              color: scheme.onSurfaceVariant,
-                                            ),
+                              // App Brand Header
+                              Padding(
+                                padding:
+                                    const EdgeInsets.fromLTRB(15, 16, 12, 14),
+                                child: SizedBox(
+                                  height: 44,
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 44,
+                                        height: 44,
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                            colors: [
+                                              scheme.primary,
+                                              scheme.tertiary,
+                                            ],
                                           ),
-                                          if (isExpanded) ...[
-                                            Expanded(
-                                              child: Text(
-                                                widget.ru
-                                                    ? 'Горячие клавиши'
-                                                    : 'Shortcuts',
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 13,
-                                                  color: scheme.onSurface,
-                                                ),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
+                                          borderRadius:
+                                              BorderRadius.circular(14),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: scheme.primary
+                                                  .withValues(alpha: 0.35),
+                                              blurRadius: 12,
+                                              offset: const Offset(0, 3),
                                             ),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 6,
-                                                vertical: 2,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: isDark
-                                                    ? Colors.white.withValues(alpha: 0.1)
-                                                    : Colors.black.withValues(alpha: 0.06),
-                                                borderRadius: BorderRadius.circular(6),
-                                              ),
-                                              child: const Text(
-                                                '?',
-                                                style: TextStyle(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontFamily: 'monospace',
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
                                           ],
-                                        ],
+                                        ),
+                                        child: const Center(
+                                          child: Icon(
+                                            Icons.auto_awesome_rounded,
+                                            color: Colors.white,
+                                            size: 24,
+                                          ),
+                                        ),
                                       ),
-                                    ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Opacity(
+                                          opacity: contentOpacity,
+                                          child: Row(
+                                            children: [
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Text(
+                                                      'Lunaris',
+                                                      maxLines: 1,
+                                                      softWrap: false,
+                                                      style: theme
+                                                          .textTheme
+                                                          .titleMedium
+                                                          ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                        letterSpacing: 0.2,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 2),
+                                                    Container(
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                        horizontal: 6,
+                                                        vertical: 1.5,
+                                                      ),
+                                                      decoration: BoxDecoration(
+                                                        color: scheme.primary
+                                                            .withValues(
+                                                                alpha: 0.15),
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(6),
+                                                        border: Border.all(
+                                                          color: scheme.primary
+                                                              .withValues(
+                                                                  alpha: 0.3),
+                                                          width: 0.8,
+                                                        ),
+                                                      ),
+                                                      child: Text(
+                                                        'v3.6.1',
+                                                        style: TextStyle(
+                                                          fontSize: 10,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color: scheme.primary,
+                                                          letterSpacing: 0.4,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              IconButton(
+                                                visualDensity:
+                                                    VisualDensity.compact,
+                                                tooltip: _pinned
+                                                    ? (widget.ru
+                                                        ? 'Открепить панель'
+                                                        : 'Unpin panel')
+                                                    : (widget.ru
+                                                        ? 'Закрепить панель'
+                                                        : 'Pin panel'),
+                                                onPressed: _togglePinned,
+                                                icon: Icon(
+                                                  _pinned
+                                                      ? Icons.push_pin_rounded
+                                                      : Icons.push_pin_outlined,
+                                                  size: 19,
+                                                  color: _pinned
+                                                      ? scheme.primary
+                                                      : scheme
+                                                          .onSurfaceVariant,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
+                              const Divider(height: 1),
+                              const SizedBox(height: 8),
 
-                              // Quick pin toggle button when collapsed
-                              if (!isExpanded)
-                                IconButton(
-                                  tooltip: widget.ru ? 'Закрепить панель' : 'Pin sidebar',
-                                  onPressed: () => setState(() => _pinned = true),
-                                  icon: const Icon(Icons.chevron_right_rounded, size: 20),
+                              // Destinations List
+                              Expanded(
+                                child: ListView(
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 8),
+                                  children: [
+                                    for (var index = 0;
+                                        index < widget.destinations.length;
+                                        index++)
+                                      _RailButton(
+                                        destination: widget.destinations[index],
+                                        ru: widget.ru,
+                                        selected: (selected < 0 ? 0 : selected) ==
+                                            index,
+                                        contentOpacity: contentOpacity,
+                                        isFullyExpanded: isFullyExpanded,
+                                        shortcutKey: 'Ctrl+${index + 1}',
+                                        onTap: () {
+                                          widget.onNavigate(
+                                              widget.destinations[index]
+                                                  .location);
+                                        },
+                                      ),
+                                  ],
                                 ),
+                              ),
+
+                              // Bottom Actions
+                              const Divider(height: 1),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 8),
+                                child: SizedBox(
+                                  width: 244,
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Tooltip(
+                                          message: isFullyExpanded
+                                              ? ''
+                                              : (widget.ru
+                                                  ? 'Горячие клавиши (F1 / ?)'
+                                                  : 'Keyboard Shortcuts (F1 / ?)'),
+                                          waitDuration: const Duration(
+                                              milliseconds: 350),
+                                          child: Material(
+                                            color: Colors.transparent,
+                                            borderRadius:
+                                                BorderRadius.circular(14),
+                                            clipBehavior: Clip.antiAlias,
+                                            child: InkWell(
+                                              onTap: () =>
+                                                  DesktopShortcutsDialog.show(
+                                                      context),
+                                              child: SizedBox(
+                                                height: 44,
+                                                child: Row(
+                                                  children: [
+                                                    SizedBox(
+                                                      width: 58,
+                                                      child: Icon(
+                                                        Icons.keyboard_rounded,
+                                                        size: 22,
+                                                        color: scheme
+                                                            .onSurfaceVariant,
+                                                      ),
+                                                    ),
+                                                    Expanded(
+                                                      child: Opacity(
+                                                        opacity: contentOpacity,
+                                                        child: Row(
+                                                          children: [
+                                                            Expanded(
+                                                              child: Text(
+                                                                widget.ru
+                                                                    ? 'Горячие клавиши'
+                                                                    : 'Shortcuts',
+                                                                maxLines: 1,
+                                                                softWrap: false,
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .ellipsis,
+                                                                style:
+                                                                    TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w600,
+                                                                  fontSize: 13,
+                                                                  color: scheme
+                                                                      .onSurface,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            Container(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .symmetric(
+                                                                horizontal: 6,
+                                                                vertical: 2,
+                                                              ),
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: isDark
+                                                                    ? Colors
+                                                                        .white
+                                                                        .withValues(
+                                                                            alpha:
+                                                                                0.1)
+                                                                    : Colors
+                                                                        .black
+                                                                        .withValues(
+                                                                            alpha:
+                                                                                0.06),
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            6),
+                                                              ),
+                                                              child: const Text(
+                                                                '?',
+                                                                style:
+                                                                    TextStyle(
+                                                                  fontSize: 11,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  fontFamily:
+                                                                      'monospace',
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            const SizedBox(
+                                                                width: 8),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      if (!_pinned && progress < 0.4)
+                                        IconButton(
+                                          tooltip: widget.ru
+                                              ? 'Закрепить панель'
+                                              : 'Pin sidebar',
+                                          onPressed: _togglePinned,
+                                          icon: const Icon(
+                                              Icons.chevron_right_rounded,
+                                              size: 20),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
           ),
           Expanded(child: widget.child),
@@ -663,7 +805,8 @@ class _RailButton extends StatelessWidget {
   const _RailButton({
     required this.destination,
     required this.selected,
-    required this.expanded,
+    required this.contentOpacity,
+    required this.isFullyExpanded,
     required this.ru,
     required this.shortcutKey,
     required this.onTap,
@@ -671,7 +814,8 @@ class _RailButton extends StatelessWidget {
 
   final _Destination destination;
   final bool selected;
-  final bool expanded;
+  final double contentOpacity;
+  final bool isFullyExpanded;
   final bool ru;
   final String shortcutKey;
   final VoidCallback onTap;
@@ -686,7 +830,7 @@ class _RailButton extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Tooltip(
-        message: expanded ? '' : '$label ($shortcutKey)',
+        message: isFullyExpanded ? '' : '$label ($shortcutKey)',
         waitDuration: const Duration(milliseconds: 350),
         child: Material(
           color: selected
@@ -696,95 +840,113 @@ class _RailButton extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: onTap,
-            child: Container(
+            child: SizedBox(
+              width: 244,
               height: 46,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                border: selected
-                    ? Border.all(
-                        color: scheme.primary.withValues(alpha: isDark ? 0.45 : 0.28),
-                        width: 1.1,
-                      )
-                    : null,
-              ),
-              child: Row(
-                children: [
-                  // Active left indicator bar
-                  Container(
-                    width: 3.5,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      color: selected ? scheme.primary : Colors.transparent,
-                      borderRadius: BorderRadius.circular(2),
-                      boxShadow: selected
-                          ? [
-                              BoxShadow(
-                                color: scheme.primary.withValues(alpha: 0.6),
-                                blurRadius: 6,
-                              ),
-                            ]
-                          : null,
-                    ),
-                  ),
-                  SizedBox(
-                    width: 54.5,
-                    child: Center(
-                      child: Icon(
-                        destination.icon,
-                        size: 22,
-                        color: selected
-                            ? scheme.primary
-                            : (isDark
-                                ? scheme.onSurfaceVariant.withValues(alpha: 0.85)
-                                : scheme.onSurfaceVariant),
-                      ),
-                    ),
-                  ),
-                  if (expanded) ...[
-                    Expanded(
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                          color: selected ? scheme.primary : scheme.onSurface,
-                        ),
-                      ),
-                    ),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: selected
+                      ? Border.all(
+                          color: scheme.primary
+                              .withValues(alpha: isDark ? 0.45 : 0.28),
+                          width: 1.1,
+                        )
+                      : null,
+                ),
+                child: Row(
+                  children: [
+                    // Active left indicator bar
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 5.5,
-                        vertical: 2,
-                      ),
+                      width: 3.5,
+                      height: 22,
                       decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.08)
-                            : Colors.black.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.12)
-                              : Colors.black.withValues(alpha: 0.08),
-                          width: 0.8,
-                        ),
+                        color: selected ? scheme.primary : Colors.transparent,
+                        borderRadius: BorderRadius.circular(2),
+                        boxShadow: selected
+                            ? [
+                                BoxShadow(
+                                  color: scheme.primary.withValues(alpha: 0.6),
+                                  blurRadius: 6,
+                                ),
+                              ]
+                            : null,
                       ),
-                      child: Text(
-                        shortcutKey,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          fontFamily: 'monospace',
+                    ),
+                    SizedBox(
+                      width: 54.5,
+                      child: Center(
+                        child: Icon(
+                          destination.icon,
+                          size: 22,
                           color: selected
                               ? scheme.primary
-                              : scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                              : (isDark
+                                  ? scheme.onSurfaceVariant
+                                      .withValues(alpha: 0.85)
+                                  : scheme.onSurfaceVariant),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Opacity(
+                        opacity: contentOpacity,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                label,
+                                maxLines: 1,
+                                softWrap: false,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: selected
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  color: selected
+                                      ? scheme.primary
+                                      : scheme.onSurface,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5.5,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.08)
+                                    : Colors.black.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: isDark
+                                      ? Colors.white.withValues(alpha: 0.12)
+                                      : Colors.black.withValues(alpha: 0.08),
+                                  width: 0.8,
+                                ),
+                              ),
+                              child: Text(
+                                shortcutKey,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'monospace',
+                                  color: selected
+                                      ? scheme.primary
+                                      : scheme.onSurfaceVariant
+                                          .withValues(alpha: 0.8),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
-                ],
+                ),
               ),
             ),
           ),

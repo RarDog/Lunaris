@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
@@ -2190,29 +2189,6 @@ class _ZoomableImageState extends State<_ZoomableImage> {
                     )
                   : widget.child;
               return Listener(
-                onPointerSignal: (signal) {
-                  if (signal is PointerScrollEvent) {
-                    final scaleDelta = signal.scrollDelta.dy < 0 ? 1.15 : 0.85;
-                    final currentScale = _controller.value.getMaxScaleOnAxis();
-                    final newScale = (currentScale * scaleDelta).clamp(1.0, 6.0);
-                    if (newScale <= 1.02) {
-                      _controller.value = Matrix4.identity();
-                      if (mounted) setState(() => _zoomed = false);
-                      _setLocked(false);
-                    } else {
-                      final focalPoint = signal.localPosition;
-                      _controller.value = Matrix4.identity()
-                        ..translateByDouble(
-                            -focalPoint.dx * (newScale - 1),
-                            -focalPoint.dy * (newScale - 1),
-                            0,
-                            1)
-                        ..scaleByDouble(newScale, newScale, 1, 1);
-                      if (mounted) setState(() => _zoomed = true);
-                      _setLocked(true);
-                    }
-                  }
-                },
                 onPointerDown: (_) {
                   _pointerCount++;
                   if (_pointerCount >= 2 || _zoomed) {
