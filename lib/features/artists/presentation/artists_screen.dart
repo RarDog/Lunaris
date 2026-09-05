@@ -554,28 +554,29 @@ class _ArtistsHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final scheme = theme.colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 6),
       child: _ArtistsLiquidCard(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Glass search bar
+            // Glass search bar (completely transparent inside, no unwanted background tint)
             Container(
+              height: 44,
               decoration: BoxDecoration(
                 color: isDark
-                    ? Colors.black.withValues(alpha: 0.22)
-                    : Colors.white.withValues(alpha: 0.65),
-                borderRadius: BorderRadius.circular(16),
+                    ? Colors.black.withValues(alpha: 0.28)
+                    : Colors.black.withValues(alpha: 0.045),
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: isDark
-                      ? Colors.white.withValues(alpha: 0.10)
-                      : scheme.outlineVariant.withValues(alpha: 0.35),
+                      ? Colors.white.withValues(alpha: 0.12)
+                      : Colors.black.withValues(alpha: 0.08),
+                  width: 1.0,
                 ),
               ),
               child: Row(
@@ -584,155 +585,244 @@ class _ArtistsHeader extends StatelessWidget {
                   Icon(
                     Icons.search_rounded,
                     size: 20,
-                    color: isDark ? Colors.white70 : scheme.primary,
+                    color: isDark
+                        ? Colors.white70
+                        : const Color(0xFF64748B),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: TextField(
                       controller: searchController,
                       textInputAction: TextInputAction.search,
-                      decoration: const InputDecoration(
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      ),
+                      decoration: InputDecoration(
                         hintText: 'Поиск авторов...',
+                        hintStyle: TextStyle(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.45)
+                              : const Color(0xFF94A3B8),
+                          fontSize: 14,
+                          fontWeight: FontWeight.normal,
+                        ),
                         border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        filled: false,
+                        fillColor: Colors.transparent,
                         isDense: true,
-                        contentPadding: EdgeInsets.symmetric(vertical: 11),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       onSubmitted: (_) => onSearch(),
                     ),
                   ),
-                  if (searchController.text.isNotEmpty)
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 18),
-                      visualDensity: VisualDensity.compact,
-                      onPressed: () {
-                        searchController.clear();
-                        onSearch();
-                      },
-                    ),
-                  Container(
-                    margin: const EdgeInsets.only(right: 6),
-                    decoration: BoxDecoration(
-                      color: scheme.primary.withValues(alpha: isDark ? 0.25 : 0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: IconButton(
-                      visualDensity: VisualDensity.compact,
-                      tooltip: 'Найти',
-                      onPressed: onSearch,
-                      icon: Icon(
-                        Icons.arrow_forward_rounded,
-                        size: 18,
-                        color: scheme.primary,
+                  ValueListenableBuilder<TextEditingValue>(
+                    valueListenable: searchController,
+                    builder: (context, value, _) {
+                      if (value.text.isEmpty) return const SizedBox.shrink();
+                      return IconButton(
+                        icon: const Icon(Icons.cancel_rounded, size: 18),
+                        color: isDark ? Colors.white60 : const Color(0xFF94A3B8),
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints:
+                            const BoxConstraints(minWidth: 32, minHeight: 32),
+                        tooltip: 'Очистить',
+                        onPressed: () {
+                          searchController.clear();
+                          onSearch();
+                        },
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 4),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(11),
+                      onTap: onSearch,
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 5),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.10)
+                              : Colors.black.withValues(alpha: 0.06),
+                          borderRadius: BorderRadius.circular(11),
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.12)
+                                : Colors.black.withValues(alpha: 0.08),
+                            width: 1.0,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Найти',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF0F172A),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 14,
+                              color: isDark
+                                  ? Colors.white70
+                                  : const Color(0xFF334155),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 10),
-            // Providers horizontal selector
-            if (providers.isNotEmpty)
-              SizedBox(
-                height: 36,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: providers.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    final provider = providers[index];
-                    final isSelected = provider.id == selectedProviderId;
-                    return InkWell(
-                      borderRadius: BorderRadius.circular(18),
-                      onTap: () => onProviderChanged(provider.id),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? scheme.primary.withValues(alpha: isDark ? 0.28 : 0.18)
-                              : (isDark
-                                  ? Colors.white.withValues(alpha: 0.05)
-                                  : Colors.black.withValues(alpha: 0.04)),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(
-                            color: isSelected
-                                ? scheme.primary.withValues(alpha: 0.7)
-                                : (isDark
-                                    ? Colors.white.withValues(alpha: 0.08)
-                                    : Colors.black.withValues(alpha: 0.06)),
-                            width: 1.2,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.person_search_rounded,
-                              size: 16,
-                              color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              provider.name,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                color: isSelected ? scheme.primary : scheme.onSurface,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
             const SizedBox(height: 8),
-            // Services horizontal filter pills
+            // Unified single-row filter bar: providers + separator + platforms
             SizedBox(
-              height: 34,
+              height: 32,
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: [
+                  // Providers
+                  for (final provider in providers) ...[
+                    Builder(
+                      builder: (context) {
+                        final isSelected = provider.id == selectedProviderId;
+                        return InkWell(
+                          borderRadius: BorderRadius.circular(16),
+                          onTap: () => onProviderChanged(provider.id),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? (isDark
+                                      ? Colors.white.withValues(alpha: 0.20)
+                                      : const Color(0xFF0F172A))
+                                  : (isDark
+                                      ? Colors.white.withValues(alpha: 0.05)
+                                      : Colors.black.withValues(alpha: 0.04)),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isSelected
+                                    ? (isDark
+                                        ? Colors.white.withValues(alpha: 0.40)
+                                        : const Color(0xFF0F172A))
+                                    : (isDark
+                                        ? Colors.white.withValues(alpha: 0.08)
+                                        : Colors.black.withValues(alpha: 0.06)),
+                                width: 1.1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.dns_rounded,
+                                  size: 14,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : (isDark
+                                          ? Colors.white70
+                                          : const Color(0xFF64748B)),
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  provider.name,
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : (isDark
+                                            ? Colors.white
+                                            : const Color(0xFF1E293B)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(width: 6),
+                  ],
+                  // Vertical divider between provider and platforms
+                  if (providers.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 2, vertical: 4),
+                      child: Container(
+                        width: 1,
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.15)
+                            : Colors.black.withValues(alpha: 0.12),
+                      ),
+                    ),
+                  const SizedBox(width: 6),
+                  // "All platforms" chip
                   InkWell(
                     borderRadius: BorderRadius.circular(16),
                     onTap: onClearServices,
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
                         color: selectedServices.isEmpty
-                            ? scheme.primary.withValues(alpha: isDark ? 0.28 : 0.18)
+                            ? (isDark
+                                ? Colors.white.withValues(alpha: 0.20)
+                                : const Color(0xFF0F172A))
                             : (isDark
                                 ? Colors.white.withValues(alpha: 0.05)
                                 : Colors.black.withValues(alpha: 0.04)),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: selectedServices.isEmpty
-                              ? scheme.primary.withValues(alpha: 0.7)
+                              ? (isDark
+                                  ? Colors.white.withValues(alpha: 0.40)
+                                  : const Color(0xFF0F172A))
                               : (isDark
                                   ? Colors.white.withValues(alpha: 0.08)
                                   : Colors.black.withValues(alpha: 0.06)),
-                          width: 1.2,
+                          width: 1.1,
                         ),
                       ),
                       child: Center(
                         child: Text(
                           'Все платформы',
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 11.5,
                             fontWeight: selectedServices.isEmpty
                                 ? FontWeight.w700
                                 : FontWeight.w500,
                             color: selectedServices.isEmpty
-                                ? scheme.primary
-                                : scheme.onSurface,
+                                ? Colors.white
+                                : (isDark
+                                    ? Colors.white
+                                    : const Color(0xFF1E293B)),
                           ),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
+                  // Platform chips
                   for (final service in _availableServices) ...[
                     Builder(
                       builder: (context) {
@@ -744,51 +834,58 @@ class _ArtistsHeader extends StatelessWidget {
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 6),
+                                horizontal: 9, vertical: 5),
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? sColor.withValues(alpha: isDark ? 0.25 : 0.16)
+                                  ? sColor.withValues(
+                                      alpha: isDark ? 0.26 : 0.14)
                                   : (isDark
                                       ? Colors.white.withValues(alpha: 0.05)
-                                      : Colors.black.withValues(alpha: 0.04)),
+                                      : Colors.black.withValues(alpha: 0.035)),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
                                 color: isSelected
                                     ? sColor.withValues(alpha: 0.75)
                                     : (isDark
                                         ? Colors.white.withValues(alpha: 0.08)
-                                        : Colors.black.withValues(alpha: 0.06)),
-                                width: 1.2,
+                                        : Colors.black
+                                            .withValues(alpha: 0.06)),
+                                width: 1.1,
                               ),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Container(
-                                  width: 7,
-                                  height: 7,
+                                  width: 6,
+                                  height: 6,
                                   decoration: BoxDecoration(
                                     color: sColor,
                                     shape: BoxShape.circle,
                                     boxShadow: isSelected
                                         ? [
                                             BoxShadow(
-                                              color: sColor.withValues(alpha: 0.6),
-                                              blurRadius: 6,
+                                              color: sColor.withValues(
+                                                  alpha: 0.6),
+                                              blurRadius: 4,
                                             ),
                                           ]
                                         : null,
                                   ),
                                 ),
-                                const SizedBox(width: 6),
+                                const SizedBox(width: 5),
                                 Text(
                                   _formatServiceName(service),
                                   style: TextStyle(
-                                    fontSize: 12,
+                                    fontSize: 11.5,
                                     fontWeight: isSelected
                                         ? FontWeight.w700
                                         : FontWeight.w500,
-                                    color: isSelected ? sColor : scheme.onSurface,
+                                    color: isSelected
+                                        ? sColor
+                                        : (isDark
+                                            ? Colors.white70
+                                            : const Color(0xFF334155)),
                                   ),
                                 ),
                               ],
@@ -797,7 +894,7 @@ class _ArtistsHeader extends StatelessWidget {
                         );
                       },
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                   ],
                 ],
               ),
@@ -865,20 +962,32 @@ class _ArtistCard extends StatelessWidget {
                     if (artist.postCount != null)
                       _LiquidMiniBadge(
                         label: '${artist.postCount} постов',
-                        color: scheme.primary,
+                        color: isDark
+                            ? Colors.white70
+                            : const Color(0xFF64748B),
                       ),
                   ],
                 ),
                 if (artist.updatedAt != null) ...[
                   const SizedBox(height: 5),
-                  Text(
-                    'Обновлено: ${artist.updatedAt!.toLocal().toString().split('.').first}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
-                      fontSize: 11,
-                    ),
+                  Builder(
+                    builder: (_) {
+                      final dt = artist.updatedAt!.toLocal();
+                      final d = dt.day.toString().padLeft(2, '0');
+                      final m = dt.month.toString().padLeft(2, '0');
+                      final y = dt.year;
+                      final hr = dt.hour.toString().padLeft(2, '0');
+                      final min = dt.minute.toString().padLeft(2, '0');
+                      return Text(
+                        'Обновлено: $d.$m.$y $hr:$min',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                          fontSize: 11,
+                        ),
+                      );
+                    },
                   ),
                 ],
               ],
