@@ -180,3 +180,13 @@ lib/
   <a href="https://github.com/RarDog"><img src="https://img.shields.io/badge/Developer-RarDog-blue?style=for-the-badge&logo=github&logoColor=white" alt="RarDog" /></a>
   <a href="https://deepmind.google/technologies/gemini/"><img src="https://img.shields.io/badge/AI%20Pair-Antigravity%20(Gemini)-8A2BE2?style=for-the-badge&logo=google&logoColor=white" alt="Antigravity" /></a>
 </p>
+
+---
+
+## ⚠️ Disclaimer & Vibe Coding
+
+> [!NOTE]
+> This project is 100% **vibe coding** built in tandem with an AI coding partner. I have zero background in Dart and Flutter — this entire project is powered purely by enthusiasm, curiosity, and vibes.
+>
+> Although every build is personally and thoroughly tested in daily use before being published, the codebase may still contain quirks, bugs, or sub-optimal patterns. This is a passion project built for personal fun and convenience, which means development could slow down or be abandoned at any moment without prior notice. Community contributions, advice, and pull requests are always welcome!
+

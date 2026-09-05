@@ -180,3 +180,13 @@ lib/
   <a href="https://github.com/RarDog"><img src="https://img.shields.io/badge/Developer-RarDog-blue?style=for-the-badge&logo=github&logoColor=white" alt="RarDog" /></a>
   <a href="https://deepmind.google/technologies/gemini/"><img src="https://img.shields.io/badge/AI%20Pair-Antigravity%20(Gemini)-8A2BE2?style=for-the-badge&logo=google&logoColor=white" alt="Antigravity" /></a>
 </p>
+
+---
+
+## ⚠️ Важное примечание / Vibe Coding
+
+> [!NOTE]
+> Этот проект — чистый **vibe coding** в связке с AI-ассистентом. Я полный ноль в Dart и Flutter, проект пишется на чистом энтузиазме и вайбе.
+>
+> Несмотря на то, что каждое обновление лично и тщательно тестируется перед релизом, приложение может содержать баги, шероховатости или неоптимальные решения. Проект создаётся для души и личного удобства, поэтому разработка может быть замедлена или заброшена в любой момент. Пулл-реквесты, советы и помощь сообщества всегда приветствуются!
+
