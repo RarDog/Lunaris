@@ -100,61 +100,115 @@ class MediaUrlSelector {
         .toList(growable: false);
   }
 
+  static const _videoExtensions = {
+    '.mp4',
+    '.webm',
+    '.mov',
+    '.mkv',
+    '.avi',
+    '.flv',
+    '.wmv',
+    '.m4v',
+    '.ts',
+  };
+
+  static const _audioExtensions = {
+    '.mp3',
+    '.m4a',
+    '.wav',
+    '.ogg',
+    '.flac',
+    '.aac',
+    '.opus',
+    '.wma',
+  };
+
+  static String _extractExtension(String url) {
+    if (url.isEmpty) return '';
+    try {
+      final uri = Uri.parse(url);
+      final filenameParam =
+          uri.queryParameters['f'] ?? uri.queryParameters['filename'];
+      if (filenameParam != null && filenameParam.isNotEmpty) {
+        final cleanParam = filenameParam.split('?').first.split('#').first;
+        final dot = cleanParam.lastIndexOf('.');
+        if (dot != -1 && dot < cleanParam.length - 1) {
+          final ext = cleanParam.substring(dot).toLowerCase();
+          if (ext.length <= 6) return ext;
+        }
+      }
+      final path = uri.path;
+      final dot = path.lastIndexOf('.');
+      if (dot != -1 && dot < path.length - 1) {
+        final ext = path.substring(dot).toLowerCase();
+        if (ext.length <= 6) return ext;
+      }
+    } catch (_) {
+      // Uri parsing failed, fallback below
+    }
+
+    final clean = url.split('?').first.split('#').first;
+    final dot = clean.lastIndexOf('.');
+    if (dot != -1 && dot < clean.length - 1) {
+      final ext = clean.substring(dot).toLowerCase();
+      if (ext.length <= 6) return ext;
+    }
+    return '';
+  }
+
   static bool _isAudio(Post post) {
-    final value = '${post.fileType} ${post.fileUrl}'.toLowerCase();
-    return value.contains('audio') ||
-        value.contains('.mp3') ||
-        value.contains('.m4a') ||
-        value.contains('.wav') ||
-        value.contains('.ogg') ||
-        value.contains('.flac') ||
-        value.contains('.aac') ||
-        value.contains('.opus') ||
-        value.contains('.wma');
+    final type = post.fileType.toLowerCase().trim();
+    if (type == 'audio') return true;
+    if (type == 'video' || type == 'photo' || type == 'archive' || type == 'gif') {
+      return false;
+    }
+
+    final fileExt = _extractExtension(post.fileUrl);
+    if (_audioExtensions.contains(fileExt)) return true;
+    if (_videoExtensions.contains(fileExt)) return false;
+
+    final sampleExt = _extractExtension(post.sampleUrl);
+    if (_audioExtensions.contains(sampleExt)) return true;
+    if (_videoExtensions.contains(sampleExt)) return false;
+
+    return false;
   }
 
   static bool _isVideo(Post post) {
-    if (_isAudio(post)) return false;
-    final value = '${post.fileType} ${post.fileUrl}'.toLowerCase();
-    return value.contains('video') ||
-        value.contains('.webm') ||
-        value.contains('.mp4') ||
-        value.contains('.mov') ||
-        value.contains('.mkv') ||
-        value.contains('.avi') ||
-        value.contains('.flv') ||
-        value.contains('.wmv') ||
-        value.contains('.m4v') ||
-        value.contains('.ts');
+    final type = post.fileType.toLowerCase().trim();
+    if (type == 'video') return true;
+    if (type == 'audio' || type == 'photo' || type == 'archive' || type == 'gif') {
+      return false;
+    }
+
+    final fileExt = _extractExtension(post.fileUrl);
+    if (_videoExtensions.contains(fileExt)) return true;
+    if (_audioExtensions.contains(fileExt)) return false;
+
+    final sampleExt = _extractExtension(post.sampleUrl);
+    if (_videoExtensions.contains(sampleExt)) return true;
+    if (_audioExtensions.contains(sampleExt)) return false;
+
+    return false;
   }
 
   static bool _isGif(Post post) {
-    final value = '${post.fileType} ${post.fileUrl}'.toLowerCase();
-    return value.contains('gif') || value.contains('.gif');
+    final type = post.fileType.toLowerCase().trim();
+    if (type == 'gif') return true;
+    final fileExt = _extractExtension(post.fileUrl);
+    if (fileExt == '.gif') return true;
+    final sampleExt = _extractExtension(post.sampleUrl);
+    return sampleExt == '.gif';
   }
 
   static bool _looksLikeVideoUrl(String url) {
-    final value = url.toLowerCase();
-    return value.contains('.webm') ||
-        value.contains('.mp4') ||
-        value.contains('.mov') ||
-        value.contains('.mkv') ||
-        value.contains('.avi') ||
-        value.contains('.flv') ||
-        value.contains('.wmv') ||
-        value.contains('.m4v') ||
-        value.contains('.ts');
+    final ext = _extractExtension(url);
+    return _videoExtensions.contains(ext);
   }
 
   static bool _looksLikeAudioUrl(String url) {
-    final value = url.toLowerCase();
-    return value.contains('.mp3') ||
-        value.contains('.m4a') ||
-        value.contains('.wav') ||
-        value.contains('.ogg') ||
-        value.contains('.flac') ||
-        value.contains('.aac') ||
-        value.contains('.opus') ||
-        value.contains('.wma');
+    final ext = _extractExtension(url);
+    return _audioExtensions.contains(ext);
   }
 }
+

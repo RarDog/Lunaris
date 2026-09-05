@@ -111,5 +111,28 @@ void main() {
     expect(MediaUrlSelector.isAudio(photoPost), isFalse);
     expect(MediaUrlSelector.isVideo(photoPost), isFalse);
   });
+
+  test('MediaUrlSelector classifies mp4 containing "audio" in query parameter as video and not audio', () {
+    final trickyVideoPost = Post(
+      id: 'patreon:123:456:3',
+      providerId: 'pawchive',
+      providerName: 'Pawchive',
+      previewUrl: '',
+      sampleUrl: '',
+      fileUrl:
+          'https://file.pawchive.pw/data/b4/65/b465cb03ab7b26c0a677db3ae43500d1ef71e3e25151f160cda244c1fb40cfae.mp4?f=nsfw%202%20-%20audio%20spicy.mp4',
+      tags: const ['patreon', 'artist', 'nsfw 2 - audio spicy'],
+      rating: 'unknown',
+      width: 1920,
+      height: 1080,
+      createdAt: DateTime.now(),
+      fileType: 'video',
+      score: 0,
+    );
+
+    expect(MediaUrlSelector.isVideo(trickyVideoPost), isTrue);
+    expect(MediaUrlSelector.isAudio(trickyVideoPost), isFalse);
+    expect(MediaUrlSelector.video(trickyVideoPost), contains(trickyVideoPost.fileUrl));
+  });
 }
 

@@ -481,7 +481,7 @@ class PawchiveProvider
     for (final f in files) {
       final p = (f['path'] ?? '').toString();
       final n = (f['name'] ?? '').toString();
-      if (_isPhotoType('$n $p') && p.isNotEmpty) {
+      if (_isPhotoType(p, n) && p.isNotEmpty) {
         postCoverUrl = _thumbnailUrl(p);
         break;
       }
@@ -494,8 +494,8 @@ class PawchiveProvider
           final fileName = (fileMap['name'] ?? '').toString();
           final previewOnly = fileMap['preview_only'] == true;
 
-          final type = _fileType('$fileName $rawPath');
-          final isPhoto = _isPhotoType('$fileName $rawPath');
+          final type = _fileTypeFor(rawPath, fileName);
+          final isPhoto = type == 'photo' || type == 'gif';
 
           // img.pawchive.pw/thumbnail only generates thumbnails for images/gifs.
           // Non-image files (audio, video, archive) return 404 from thumbnail server.
@@ -626,55 +626,81 @@ class PawchiveProvider
     return '${message.substring(0, 160)}...';
   }
 
+  String _extractExtension(String value) {
+    if (value.isEmpty) return '';
+    final clean = value.split('?').first.split('#').first.trim();
+    final dot = clean.lastIndexOf('.');
+    if (dot != -1 && dot < clean.length - 1) {
+      final ext = clean.substring(dot).toLowerCase();
+      if (ext.length <= 6) return ext;
+    }
+    return '';
+  }
+
   String _fileType(String value) {
-    final lower = value.toLowerCase().split('?').first.trim();
-    if (lower.endsWith('.webm') ||
-        lower.endsWith('.mp4') ||
-        lower.endsWith('.mov') ||
-        lower.endsWith('.mkv') ||
-        lower.endsWith('.avi') ||
-        lower.endsWith('.flv') ||
-        lower.endsWith('.wmv') ||
-        lower.endsWith('.m4v') ||
-        lower.endsWith('.ts')) {
+    final ext = _extractExtension(value);
+    if (const {
+      '.webm',
+      '.mp4',
+      '.mov',
+      '.mkv',
+      '.avi',
+      '.flv',
+      '.wmv',
+      '.m4v',
+      '.ts',
+    }.contains(ext)) {
       return 'video';
     }
-    if (lower.endsWith('.mp3') ||
-        lower.endsWith('.m4a') ||
-        lower.endsWith('.wav') ||
-        lower.endsWith('.ogg') ||
-        lower.endsWith('.flac') ||
-        lower.endsWith('.aac') ||
-        lower.endsWith('.opus') ||
-        lower.endsWith('.wma')) {
+    if (const {
+      '.mp3',
+      '.m4a',
+      '.wav',
+      '.ogg',
+      '.flac',
+      '.aac',
+      '.opus',
+      '.wma',
+    }.contains(ext)) {
       return 'audio';
     }
-    if (lower.endsWith('.gif')) return 'gif';
-    if (lower.endsWith('.swf')) return 'swf';
-    if (lower.endsWith('.zip') ||
-        lower.endsWith('.rar') ||
-        lower.endsWith('.7z') ||
-        lower.endsWith('.tar') ||
-        lower.endsWith('.gz') ||
-        lower.endsWith('.pdf') ||
-        lower.endsWith('.txt')) {
+    if (ext == '.gif') return 'gif';
+    if (ext == '.swf') return 'swf';
+    if (const {
+      '.zip',
+      '.rar',
+      '.7z',
+      '.tar',
+      '.gz',
+      '.pdf',
+      '.txt',
+    }.contains(ext)) {
       return 'archive';
     }
-    if (lower.endsWith('.png') ||
-        lower.endsWith('.jpg') ||
-        lower.endsWith('.jpeg') ||
-        lower.endsWith('.webp') ||
-        lower.endsWith('.avif') ||
-        lower.endsWith('.bmp') ||
-        lower.endsWith('.heic') ||
-        lower.endsWith('.tiff')) {
+    if (const {
+      '.png',
+      '.jpg',
+      '.jpeg',
+      '.webp',
+      '.avif',
+      '.bmp',
+      '.heic',
+      '.tiff',
+    }.contains(ext)) {
       return 'photo';
     }
     return 'unknown';
   }
 
-  bool _isPhotoType(String value) {
-    final type = _fileType(value);
+  String _fileTypeFor(String path, String fileName) {
+    final extName = _extractExtension(fileName);
+    final extPath = _extractExtension(path);
+    final ext = extName.isNotEmpty ? extName : extPath;
+    return _fileType(ext);
+  }
+
+  bool _isPhotoType(String path, [String fileName = '']) {
+    final type = _fileTypeFor(path, fileName);
     return type == 'photo' || type == 'gif';
   }
 

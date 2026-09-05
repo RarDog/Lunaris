@@ -730,18 +730,23 @@ class ProviderManager {
 
   static bool _isArtistConfig(ContentProviderConfig config) {
     final type = config.apiType.toLowerCase();
-    return type == 'kemono' || type == 'coomer' || type == 'pawchive';
+    return type == 'pawchive';
   }
 
   static bool _isFeedConfig(ContentProviderConfig config) {
     final type = config.apiType.toLowerCase();
-    return type != 'kemono' && type != 'coomer';
+    return type != 'pawchive';
   }
 
   static bool _isLegacyRemovedConfig(ContentProviderConfig config) {
     final id = config.id.toLowerCase();
     final type = config.apiType.toLowerCase();
-    return id == 'cosbooru' || type == 'realbooru';
+    return id == 'cosbooru' ||
+        type == 'realbooru' ||
+        type == 'kemono' ||
+        type == 'coomer' ||
+        id == 'kemono' ||
+        id == 'coomer';
   }
 }
 

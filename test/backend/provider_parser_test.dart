@@ -6,7 +6,6 @@ import 'package:gel_rule_app/backend/mappers/moebooru_mapper.dart';
 import 'package:gel_rule_app/backend/mappers/rule34_mapper.dart';
 import 'package:gel_rule_app/backend/models/content_provider_config.dart';
 import 'package:gel_rule_app/backend/providers/custom_provider.dart';
-import 'package:gel_rule_app/backend/providers/kemono_provider.dart';
 import 'package:gel_rule_app/backend/providers/provider_factory.dart';
 import 'package:gel_rule_app/backend/providers/realbooru_html_provider.dart';
 import 'package:gel_rule_app/backend/repositories/provider_repository.dart';
@@ -307,7 +306,7 @@ void main() {
     expect(provider, isA<RealbooruHtmlProvider>());
   });
 
-  test('provider factory creates Kemono and Coomer artist providers', () {
+  test('provider factory treats removed Kemono and Coomer as unsupported', () {
     final now = DateTime(2026);
     for (final apiType in ['kemono', 'coomer']) {
       final provider = ProviderFactory().create(ContentProviderConfig(
@@ -323,7 +322,7 @@ void main() {
         updatedAt: now,
       ));
 
-      expect(provider, isA<KemonoProvider>());
+      expect(provider, isA<UnsupportedCustomProvider>());
     }
   });
 }

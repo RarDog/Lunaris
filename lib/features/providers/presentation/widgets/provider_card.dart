@@ -305,16 +305,6 @@ class ProviderCard extends StatelessWidget {
           Icons.pets_rounded,
           'e621 / e926',
         ),
-      'kemono' => (
-          const Color(0xFFEC4899),
-          Icons.palette_rounded,
-          'Kemono',
-        ),
-      'coomer' => (
-          const Color(0xFF06B6D4),
-          Icons.collections_rounded,
-          'Coomer',
-        ),
       _ => (
           const Color(0xFF6366F1),
           Icons.hub_rounded,

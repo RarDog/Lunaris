@@ -289,14 +289,6 @@ class _ProviderFormScreenState extends ConsumerState<ProviderFormScreen> {
                           child: Text('Realbooru HTML'),
                         ),
                         DropdownMenuItem(
-                          value: 'kemono',
-                          child: Text('Kemono Party artists'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'coomer',
-                          child: Text('Coomer Party artists'),
-                        ),
-                        DropdownMenuItem(
                           value: 'custom',
                           child: Text('Custom REST API'),
                         ),
