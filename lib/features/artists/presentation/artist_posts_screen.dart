@@ -307,7 +307,12 @@ class _ArtistPostsScreenState extends ConsumerState<ArtistPostsScreen> {
                     )
                   : ListView.separated(
                       controller: scroll,
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                      padding: EdgeInsets.fromLTRB(
+                        16,
+                        16,
+                        16,
+                        120 + MediaQuery.paddingOf(context).bottom,
+                      ),
                       itemCount: _announcements.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {

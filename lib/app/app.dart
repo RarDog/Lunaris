@@ -40,7 +40,7 @@ class GelRuleApp extends ConsumerWidget {
         return DynamicColorBuilder(
           builder: (lightDynamic, darkDynamic) {
             return MaterialApp.router(
-              title: 'Lunaris',
+              title: 'Prisma',
               debugShowCheckedModeBanner: false,
               theme: buildTheme(
                 Brightness.light,

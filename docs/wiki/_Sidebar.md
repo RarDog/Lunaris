@@ -1,4 +1,4 @@
-### 🌙 Lunaris Wiki
+### 🌙 Prisma Wiki
 
 - **[Главная](Home)**
 - **[Быстрый старт и установка](Getting-Started)**
@@ -12,5 +12,5 @@
 
 ---
 
-**[Скачать Lunaris](https://github.com/RarDog/Lunaris/releases)**  
-**[Репозиторий GitHub](https://github.com/RarDog/Lunaris)**
+**[Скачать Prisma](https://github.com/RarDog/Prisma/releases)**  
+**[Репозиторий GitHub](https://github.com/RarDog/Prisma)**

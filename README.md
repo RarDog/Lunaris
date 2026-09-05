@@ -1,7 +1,7 @@
-# 🌙 Lunaris
+# 💎 Prisma
 
 <p align="center">
-  <img src="android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" width="128" height="128" alt="Lunaris Logo" style="border-radius: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.35);" />
+  <img src="android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" width="128" height="128" alt="Prisma Logo" style="border-radius: 28px; box-shadow: 0 10px 30px rgba(0,0,0,0.35);" />
 </p>
 
 <p align="center">
@@ -10,16 +10,16 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/RarDog/Lunaris/releases"><img src="https://img.shields.io/badge/Version-3.3.1-8A2BE2?style=for-the-badge&logo=semver&logoColor=white" alt="Version 3.3.1" /></a>
+  <a href="https://github.com/RarDog/Prisma/releases"><img src="https://img.shields.io/badge/Version-3.4.0-8A2BE2?style=for-the-badge&logo=semver&logoColor=white" alt="Version 3.4.0" /></a>
   <img src="https://img.shields.io/badge/Flutter-3.47+-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter" />
   <img src="https://img.shields.io/badge/Platform-Android%20%7C%20Linux%20%7C%20Windows-00C853?style=for-the-badge" alt="Platforms" />
-  <a href="https://github.com/RarDog/Lunaris/wiki"><img src="https://img.shields.io/badge/Wiki-Documentation-FF6F00?style=for-the-badge&logo=gitbook&logoColor=white" alt="Wiki" /></a>
+  <a href="https://github.com/RarDog/Prisma/wiki"><img src="https://img.shields.io/badge/Wiki-Documentation-FF6F00?style=for-the-badge&logo=gitbook&logoColor=white" alt="Wiki" /></a>
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License MIT" />
 </p>
 
 ---
 
-## 🚀 Что нового в Lunaris 3.0 (Major Release)
+## 🚀 Что нового в Prisma 3.0 (Major Release)
 
 ### 🎨 Дизайн 2.0
 - **Современный визуальный стиль**: Полный переход на squircle-карточки, адаптивную цветовую палитру и улучшенную Material You динамическую тему.
@@ -28,7 +28,7 @@
 
 ### 🐾 Глубокая интеграция Pawchive 2.0
 - **Мульти-аккаунты**: Поддержка авторизации по логину и паролю, а также прямому вводу `Session Cookie`.
-- **Двусторонняя синхронизация (Two-Way Sync)**: Автоматическая синхронизация избранного между локальной базой Lunaris и профилем Pawchive. Новые авторы с сервера добавляются в приложение, а локальные авторы выгружаются на сервер в один тап.
+- **Двусторонняя синхронизация (Two-Way Sync)**: Автоматическая синхронизация избранного между локальной базой Prisma и профилем Pawchive. Новые авторы с сервера добавляются в приложение, а локальные авторы выгружаются на сервер в один тап.
 - **Моментальная синхронизация**: При нажатии кнопки «В избранное» у любого автора (Fanbox, Patreon, Fantia, Boosty, Gumroad, DLsite, Discord) статус синхронизируется с сервером на лету.
 
 ### 🎬 Умный медиаплеер и определение разрешения
@@ -43,7 +43,7 @@
 
 ## 📚 Документация и Вики (Руководство пользователя)
 
-Подробные иллюстрированные руководства доступны в **[Lunaris Wiki](https://github.com/RarDog/Lunaris/wiki)** и прямо в репозитории:
+Подробные иллюстрированные руководства доступны в **[Prisma Wiki](https://github.com/RarDog/Prisma/wiki)** и прямо в репозитории:
 
 - 🚀 **[Быстрый старт и установка](docs/wiki/Getting-Started.md)** — выбор правильного APK под процессор, запуск на Linux.
 - 🌐 **[Провайдеры контента](docs/wiki/Providers.md)** — особенности Booru (Gelbooru, Rule34, Realbooru, e621) и архивов Pawchive.
@@ -81,7 +81,7 @@
 
 ## 📥 Загрузка (Скачать сборки)
 
-Релизы доступны на странице **[GitHub Releases](https://github.com/RarDog/Lunaris/releases)**.
+Релизы доступны на странице **[GitHub Releases](https://github.com/RarDog/Prisma/releases)**.
 
 | Платформа | Архитектура | Формат | Описание |
 |---|---|---|---|
@@ -105,8 +105,8 @@
 
 ```bash
 # Клонирование репозитория
-git clone https://github.com/RarDog/Lunaris.git
-cd Lunaris
+git clone https://github.com/RarDog/Prisma.git
+cd Prisma
 
 # Установка зависимостей
 flutter pub get
@@ -155,7 +155,7 @@ lib/
 ## 🔒 Безопасность и конфиденциальность
 
 - **100% локальное хранение**: Вся история, закладки, локальные авторы и конфигурации хранятся только в вашей локальной базе на устройстве.
-- **Никакой телеметрии**: Lunaris не собирает аналитику, не отправляет логи и уважает вашу приватность.
+- **Никакой телеметрии**: Prisma не собирает аналитику, не отправляет логи и уважает вашу приватность.
 - **Прямое соединение**: Запросы отправляются напрямую к выбранным API без прокси-серверов посредников.
 
 ---

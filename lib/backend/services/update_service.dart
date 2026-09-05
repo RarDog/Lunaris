@@ -18,14 +18,14 @@ class UpdateService {
   UpdateService(this._dio, this._settingsService);
 
   static const giteaLatestReleaseUrl =
-      'https://gitea.rardogsynapse.online/api/v1/repos/RarDog/Lunaris/releases/latest';
+      'https://gitea.rardogsynapse.online/api/v1/repos/RarDog/Prisma/releases/latest';
   static const giteaReleasesUrl =
-      'https://gitea.rardogsynapse.online/api/v1/repos/RarDog/Lunaris/releases';
+      'https://gitea.rardogsynapse.online/api/v1/repos/RarDog/Prisma/releases';
 
   static const githubLatestReleaseUrl =
-      'https://api.github.com/repos/RarDog/Lunaris/releases/latest';
+      'https://api.github.com/repos/RarDog/Prisma/releases/latest';
   static const githubReleasesUrl =
-      'https://api.github.com/repos/RarDog/Lunaris/releases';
+      'https://api.github.com/repos/RarDog/Prisma/releases';
 
   static const latestReleaseUrl = githubLatestReleaseUrl;
   static const releasesUrl = githubReleasesUrl;
