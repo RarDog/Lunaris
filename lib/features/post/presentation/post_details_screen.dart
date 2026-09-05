@@ -172,6 +172,8 @@ class PostDetailsScreen extends ConsumerWidget {
               LogicalKeySet(LogicalKeyboardKey.keyC):
                   const _AddCollectionIntent(),
               LogicalKeySet(LogicalKeyboardKey.keyS): const _DownloadIntent(),
+              LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyS):
+                  const _DownloadIntent(),
               LogicalKeySet(LogicalKeyboardKey.escape): const _CloseIntent(),
             },
             child: Actions(

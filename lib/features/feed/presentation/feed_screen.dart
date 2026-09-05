@@ -144,7 +144,11 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
 
     return Shortcuts(
       shortcuts: {
-        LogicalKeySet(LogicalKeyboardKey.keyR): const _RefreshIntent(),
+        LogicalKeySet(LogicalKeyboardKey.keyR): const _RandomPostIntent(),
+        LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyR):
+            const _RefreshIntent(),
+        LogicalKeySet(LogicalKeyboardKey.f5): const _RefreshIntent(),
+        LogicalKeySet(LogicalKeyboardKey.keyV): const _ToggleSelectionIntent(),
         LogicalKeySet(LogicalKeyboardKey.escape): const _ClearSelectionIntent(),
         LogicalKeySet(LogicalKeyboardKey.delete): const _ClearSelectionIntent(),
         LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyA):
@@ -155,6 +159,24 @@ class _FeedScreenState extends ConsumerState<FeedScreen>
           _RefreshIntent: CallbackAction<_RefreshIntent>(
             onInvoke: (_) {
               ref.read(feedControllerProvider.notifier).refresh();
+              return null;
+            },
+          ),
+          _RandomPostIntent: CallbackAction<_RandomPostIntent>(
+            onInvoke: (_) {
+              final posts = feed.value?.posts;
+              if (posts != null && posts.isNotEmpty) {
+                _openRandom(posts);
+              }
+              return null;
+            },
+          ),
+          _ToggleSelectionIntent: CallbackAction<_ToggleSelectionIntent>(
+            onInvoke: (_) {
+              setState(() {
+                _selectionMode = !_selectionMode;
+                if (!_selectionMode) _selectedKeys.clear();
+              });
               return null;
             },
           ),
@@ -680,6 +702,14 @@ class _ClearSelectionIntent extends Intent {
 
 class _SelectVisibleIntent extends Intent {
   const _SelectVisibleIntent();
+}
+
+class _RandomPostIntent extends Intent {
+  const _RandomPostIntent();
+}
+
+class _ToggleSelectionIntent extends Intent {
+  const _ToggleSelectionIntent();
 }
 
 class _BatchActionBar extends StatelessWidget {

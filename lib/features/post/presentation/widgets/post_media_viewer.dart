@@ -383,16 +383,54 @@ class _PostMediaViewerState extends State<PostMediaViewer>
           ),
       ],
     );
+
+    final interactiveChild = _imageUrls.length > 1
+        ? Shortcuts(
+            shortcuts: {
+              LogicalKeySet(LogicalKeyboardKey.arrowLeft):
+                  const _PrevImageIntent(),
+              LogicalKeySet(LogicalKeyboardKey.keyA): const _PrevImageIntent(),
+              LogicalKeySet(LogicalKeyboardKey.arrowRight):
+                  const _NextImageIntent(),
+              LogicalKeySet(LogicalKeyboardKey.keyD): const _NextImageIntent(),
+            },
+            child: Actions(
+              actions: {
+                _PrevImageIntent: CallbackAction<_PrevImageIntent>(
+                  onInvoke: (_) {
+                    if (_imageIndex > 0) {
+                      setState(() => _imageIndex--);
+                    }
+                    return null;
+                  },
+                ),
+                _NextImageIntent: CallbackAction<_NextImageIntent>(
+                  onInvoke: (_) {
+                    if (_imageIndex < _imageUrls.length - 1) {
+                      setState(() => _imageIndex++);
+                    }
+                    return null;
+                  },
+                ),
+              },
+              child: Focus(
+                autofocus: true,
+                child: child,
+              ),
+            ),
+          )
+        : child;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.hasBoundedWidth && constraints.hasBoundedHeight) {
           return SizedBox(
             width: constraints.maxWidth,
             height: constraints.maxHeight,
-            child: child,
+            child: interactiveChild,
           );
         }
-        return child;
+        return interactiveChild;
       },
     );
   }
@@ -739,6 +777,48 @@ class _TogglePlayIntent extends Intent {
   const _TogglePlayIntent();
 }
 
+class _SeekVideoIntent extends Intent {
+  const _SeekVideoIntent(this.seconds);
+  final int seconds;
+}
+
+class _VolumeVideoIntent extends Intent {
+  const _VolumeVideoIntent(this.deltaY);
+  final double deltaY;
+}
+
+class _MuteVideoIntent extends Intent {
+  const _MuteVideoIntent();
+}
+
+class _FullscreenVideoIntent extends Intent {
+  const _FullscreenVideoIntent();
+}
+
+class _LoopVideoIntent extends Intent {
+  const _LoopVideoIntent();
+}
+
+class _ZoomInIntent extends Intent {
+  const _ZoomInIntent();
+}
+
+class _ZoomOutIntent extends Intent {
+  const _ZoomOutIntent();
+}
+
+class _ResetZoomIntent extends Intent {
+  const _ResetZoomIntent();
+}
+
+class _PrevImageIntent extends Intent {
+  const _PrevImageIntent();
+}
+
+class _NextImageIntent extends Intent {
+  const _NextImageIntent();
+}
+
 class _UnsupportedSwfPanel extends StatelessWidget {
   const _UnsupportedSwfPanel();
 
@@ -911,6 +991,8 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
           shortcuts: {
             LogicalKeySet(LogicalKeyboardKey.escape): const _CloseVideoIntent(),
             LogicalKeySet(LogicalKeyboardKey.space): const _TogglePlayIntent(),
+            LogicalKeySet(LogicalKeyboardKey.keyK): const _TogglePlayIntent(),
+            LogicalKeySet(LogicalKeyboardKey.keyF): const _CloseVideoIntent(),
           },
           child: Actions(
             actions: {
@@ -1771,16 +1853,87 @@ class _VideoSurfaceState extends State<_VideoSurface> {
       },
     );
 
-    return MouseRegion(
-      onHover: (_) => widget.onInteract(),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(widget.fullscreen ? 0 : 10),
-        child: widget.fullscreen
-            ? SizedBox.expand(child: child)
-            : AspectRatio(
-                aspectRatio: widget.aspectRatio.clamp(0.35, 2.4),
-                child: child,
-              ),
+    return Shortcuts(
+      shortcuts: {
+        LogicalKeySet(LogicalKeyboardKey.space): const _TogglePlayIntent(),
+        LogicalKeySet(LogicalKeyboardKey.keyK): const _TogglePlayIntent(),
+        LogicalKeySet(LogicalKeyboardKey.arrowLeft): const _SeekVideoIntent(-5),
+        LogicalKeySet(LogicalKeyboardKey.keyJ): const _SeekVideoIntent(-5),
+        LogicalKeySet(LogicalKeyboardKey.arrowRight): const _SeekVideoIntent(5),
+        LogicalKeySet(LogicalKeyboardKey.keyL): const _SeekVideoIntent(5),
+        LogicalKeySet(LogicalKeyboardKey.shift, LogicalKeyboardKey.arrowLeft):
+            const _SeekVideoIntent(-15),
+        LogicalKeySet(LogicalKeyboardKey.shift, LogicalKeyboardKey.arrowRight):
+            const _SeekVideoIntent(15),
+        LogicalKeySet(LogicalKeyboardKey.arrowUp): const _VolumeVideoIntent(-10),
+        LogicalKeySet(LogicalKeyboardKey.arrowDown): const _VolumeVideoIntent(10),
+        LogicalKeySet(LogicalKeyboardKey.keyM): const _MuteVideoIntent(),
+        LogicalKeySet(LogicalKeyboardKey.keyF): const _FullscreenVideoIntent(),
+        LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyL):
+            const _LoopVideoIntent(),
+      },
+      child: Actions(
+        actions: {
+          _TogglePlayIntent: CallbackAction<_TogglePlayIntent>(
+            onInvoke: (_) {
+              if (widget.player.state.playing) {
+                widget.player.pause();
+              } else {
+                if (widget.player.state.completed) {
+                  widget.player.seek(Duration.zero);
+                }
+                widget.player.play();
+              }
+              widget.onInteract();
+              return null;
+            },
+          ),
+          _SeekVideoIntent: CallbackAction<_SeekVideoIntent>(
+            onInvoke: (intent) {
+              _seekBy(Duration(seconds: intent.seconds));
+              return null;
+            },
+          ),
+          _VolumeVideoIntent: CallbackAction<_VolumeVideoIntent>(
+            onInvoke: (intent) {
+              _adjustVolume(intent.deltaY);
+              return null;
+            },
+          ),
+          _MuteVideoIntent: CallbackAction<_MuteVideoIntent>(
+            onInvoke: (_) {
+              widget.onToggleMute();
+              return null;
+            },
+          ),
+          _FullscreenVideoIntent: CallbackAction<_FullscreenVideoIntent>(
+            onInvoke: (_) {
+              widget.onFullscreen();
+              return null;
+            },
+          ),
+          _LoopVideoIntent: CallbackAction<_LoopVideoIntent>(
+            onInvoke: (_) {
+              widget.onToggleLoop();
+              return null;
+            },
+          ),
+        },
+        child: Focus(
+          autofocus: true,
+          child: MouseRegion(
+            onHover: (_) => widget.onInteract(),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(widget.fullscreen ? 0 : 10),
+              child: widget.fullscreen
+                  ? SizedBox.expand(child: child)
+                  : AspectRatio(
+                      aspectRatio: widget.aspectRatio.clamp(0.35, 2.4),
+                      child: child,
+                    ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1959,80 +2112,147 @@ class _ZoomableImageState extends State<_ZoomableImage> {
     super.dispose();
   }
 
+  void _zoomIn() {
+    final currentScale = _controller.value.getMaxScaleOnAxis();
+    final newScale = (currentScale * 1.35).clamp(1.0, 6.0);
+    _controller.value = Matrix4.identity()..scaleByDouble(newScale, newScale, 1, 1);
+    if (mounted) setState(() => _zoomed = newScale > 1.02);
+    _setLocked(_zoomed);
+  }
+
+  void _zoomOut() {
+    final currentScale = _controller.value.getMaxScaleOnAxis();
+    final newScale = (currentScale / 1.35).clamp(1.0, 6.0);
+    if (newScale <= 1.02) {
+      _controller.value = Matrix4.identity();
+      if (mounted) setState(() => _zoomed = false);
+      _setLocked(false);
+    } else {
+      _controller.value = Matrix4.identity()..scaleByDouble(newScale, newScale, 1, 1);
+      if (mounted) setState(() => _zoomed = true);
+      _setLocked(true);
+    }
+  }
+
+  void _resetZoom() {
+    _controller.value = Matrix4.identity();
+    if (mounted) setState(() => _zoomed = false);
+    _setLocked(false);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final hasFrame =
-            constraints.hasBoundedWidth && constraints.hasBoundedHeight;
-        final child = hasFrame
-            ? SizedBox(
-                width: constraints.maxWidth,
-                height: constraints.maxHeight,
-                child: widget.child,
-              )
-            : widget.child;
-        return Listener(
-          onPointerSignal: (signal) {
-            if (signal is PointerScrollEvent) {
-              final scaleDelta = signal.scrollDelta.dy < 0 ? 1.15 : 0.85;
-              final currentScale = _controller.value.getMaxScaleOnAxis();
-              final newScale = (currentScale * scaleDelta).clamp(1.0, 6.0);
-              if (newScale <= 1.02) {
-                _controller.value = Matrix4.identity();
-                if (mounted) setState(() => _zoomed = false);
-                _setLocked(false);
-              } else {
-                final focalPoint = signal.localPosition;
-                _controller.value = Matrix4.identity()
-                  ..translateByDouble(
-                      -focalPoint.dx * (newScale - 1),
-                      -focalPoint.dy * (newScale - 1),
-                      0,
-                      1)
-                  ..scaleByDouble(newScale, newScale, 1, 1);
-                if (mounted) setState(() => _zoomed = true);
-                _setLocked(true);
-              }
-            }
-          },
-          onPointerDown: (_) {
-            _pointerCount++;
-            if (_pointerCount >= 2 || _zoomed) {
-              _setLocked(true);
-            }
-          },
-          onPointerUp: (_) => _releasePointer(),
-          onPointerCancel: (_) => _releasePointer(),
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onDoubleTapDown: (details) => _doubleTapDetails = details,
-            onDoubleTap: _toggleZoom,
-            child: InteractiveViewer(
-              transformationController: _controller,
-              minScale: 1,
-              maxScale: 6,
-              boundaryMargin: const EdgeInsets.all(160),
-              panEnabled: _zoomed,
-              scaleEnabled: true,
-              clipBehavior: Clip.none,
-              onInteractionStart: (_) {
-                if (_pointerCount >= 2 || _zoomed) _setLocked(true);
-              },
-              onInteractionEnd: (_) {
-                final scale = _controller.value.getMaxScaleOnAxis();
-                final nextZoomed = scale > 1.03;
-                if (!nextZoomed) {
-                  _controller.value = Matrix4.identity();
-                }
-                if (mounted) setState(() => _zoomed = nextZoomed);
-                _setLocked(nextZoomed || _pointerCount >= 2);
-              },
-              child: child,
-            ),
-          ),
-        );
+    return Shortcuts(
+      shortcuts: {
+        LogicalKeySet(LogicalKeyboardKey.equal): const _ZoomInIntent(),
+        LogicalKeySet(LogicalKeyboardKey.add): const _ZoomInIntent(),
+        LogicalKeySet(LogicalKeyboardKey.numpadAdd): const _ZoomInIntent(),
+        LogicalKeySet(LogicalKeyboardKey.minus): const _ZoomOutIntent(),
+        LogicalKeySet(LogicalKeyboardKey.numpadSubtract): const _ZoomOutIntent(),
+        LogicalKeySet(LogicalKeyboardKey.digit0): const _ResetZoomIntent(),
+        LogicalKeySet(LogicalKeyboardKey.numpad0): const _ResetZoomIntent(),
+        LogicalKeySet(LogicalKeyboardKey.escape): const _ResetZoomIntent(),
       },
+      child: Actions(
+        actions: {
+          _ZoomInIntent: CallbackAction<_ZoomInIntent>(
+            onInvoke: (_) {
+              _zoomIn();
+              return null;
+            },
+          ),
+          _ZoomOutIntent: CallbackAction<_ZoomOutIntent>(
+            onInvoke: (_) {
+              _zoomOut();
+              return null;
+            },
+          ),
+          _ResetZoomIntent: CallbackAction<_ResetZoomIntent>(
+            onInvoke: (_) {
+              if (_zoomed) {
+                _resetZoom();
+              }
+              return null;
+            },
+          ),
+        },
+        child: Focus(
+          autofocus: true,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final hasFrame =
+                  constraints.hasBoundedWidth && constraints.hasBoundedHeight;
+              final child = hasFrame
+                  ? SizedBox(
+                      width: constraints.maxWidth,
+                      height: constraints.maxHeight,
+                      child: widget.child,
+                    )
+                  : widget.child;
+              return Listener(
+                onPointerSignal: (signal) {
+                  if (signal is PointerScrollEvent) {
+                    final scaleDelta = signal.scrollDelta.dy < 0 ? 1.15 : 0.85;
+                    final currentScale = _controller.value.getMaxScaleOnAxis();
+                    final newScale = (currentScale * scaleDelta).clamp(1.0, 6.0);
+                    if (newScale <= 1.02) {
+                      _controller.value = Matrix4.identity();
+                      if (mounted) setState(() => _zoomed = false);
+                      _setLocked(false);
+                    } else {
+                      final focalPoint = signal.localPosition;
+                      _controller.value = Matrix4.identity()
+                        ..translateByDouble(
+                            -focalPoint.dx * (newScale - 1),
+                            -focalPoint.dy * (newScale - 1),
+                            0,
+                            1)
+                        ..scaleByDouble(newScale, newScale, 1, 1);
+                      if (mounted) setState(() => _zoomed = true);
+                      _setLocked(true);
+                    }
+                  }
+                },
+                onPointerDown: (_) {
+                  _pointerCount++;
+                  if (_pointerCount >= 2 || _zoomed) {
+                    _setLocked(true);
+                  }
+                },
+                onPointerUp: (_) => _releasePointer(),
+                onPointerCancel: (_) => _releasePointer(),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onDoubleTapDown: (details) => _doubleTapDetails = details,
+                  onDoubleTap: _toggleZoom,
+                  child: InteractiveViewer(
+                    transformationController: _controller,
+                    minScale: 1,
+                    maxScale: 6,
+                    boundaryMargin: const EdgeInsets.all(160),
+                    panEnabled: _zoomed,
+                    scaleEnabled: true,
+                    clipBehavior: Clip.none,
+                    onInteractionStart: (_) {
+                      if (_pointerCount >= 2 || _zoomed) _setLocked(true);
+                    },
+                    onInteractionEnd: (_) {
+                      final scale = _controller.value.getMaxScaleOnAxis();
+                      final nextZoomed = scale > 1.03;
+                      if (!nextZoomed) {
+                        _controller.value = Matrix4.identity();
+                      }
+                      if (mounted) setState(() => _zoomed = nextZoomed);
+                      _setLocked(nextZoomed || _pointerCount >= 2);
+                    },
+                    child: child,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
     );
   }
 

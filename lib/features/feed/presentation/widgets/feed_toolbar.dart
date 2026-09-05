@@ -110,7 +110,7 @@ class _FeedToolbarState extends State<FeedToolbar> {
               ),
               const SizedBox(width: 8),
               IconButton.filledTonal(
-                tooltip: widget.selectionMode ? 'Выйти из выбора' : 'Выбрать посты',
+                tooltip: widget.selectionMode ? 'Выйти из выбора (Esc)' : 'Выбрать посты (V)',
                 onPressed: widget.onToggleSelectionMode,
                 icon: Icon(widget.selectionMode
                     ? Icons.check_box_rounded
@@ -139,13 +139,13 @@ class _FeedToolbarState extends State<FeedToolbar> {
               ),
               const SizedBox(width: 4),
               IconButton(
-                tooltip: 'Обновить',
+                tooltip: 'Обновить (Ctrl+R / F5)',
                 onPressed: widget.onRefresh,
                 icon: const Icon(Icons.refresh_rounded),
               ),
               const SizedBox(width: 4),
               IconButton.filledTonal(
-                tooltip: 'Случайный пост',
+                tooltip: 'Случайный пост (R)',
                 onPressed: widget.onRandom,
                 icon: const Icon(Icons.casino_rounded),
               ),
@@ -163,41 +163,36 @@ class _FeedToolbarState extends State<FeedToolbar> {
             const SizedBox(height: 8),
           ],
           _HorizontalWheelScroller(
-            height: 36,
+            height: 38,
             builder: (controller) => ListView(
               controller: controller,
               scrollDirection: Axis.horizontal,
               primary: false,
               children: [
+                _LiquidPeriodTabs(
+                  selectedPeriod: widget.topPeriodFilter,
+                  onChanged: widget.onTopPeriodChanged,
+                ),
+                const SizedBox(width: 8),
+                const _ToolbarDivider(),
+                const SizedBox(width: 8),
                 if (widget.providers.isNotEmpty) ...[
-                  FilterChip(
-                    selected: widget.selectedProviderIds.isEmpty,
-                    label: const Text('Все источники'),
-                    onSelected: (_) => widget.onQuickProviderToggle('__all__'),
+                  _LiquidProviderPill(
+                    label: 'Все источники',
+                    isSelected: widget.selectedProviderIds.isEmpty,
+                    icon: Icons.all_inclusive_rounded,
+                    onTap: () => widget.onQuickProviderToggle('__all__'),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   for (final provider in widget.providers) ...[
-                    FilterChip(
-                      selected:
-                          widget.selectedProviderIds.contains(provider.id),
-                      avatar: const Icon(Icons.hub_rounded, size: 15),
-                      label: Text(provider.name),
-                      onSelected: (_) =>
-                          widget.onQuickProviderToggle(provider.id),
+                    _LiquidProviderPill(
+                      label: provider.name,
+                      isSelected: widget.selectedProviderIds.contains(provider.id),
+                      icon: Icons.hub_rounded,
+                      onTap: () => widget.onQuickProviderToggle(provider.id),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                   ],
-                  const SizedBox(width: 4),
-                  const _ToolbarDivider(),
-                  const SizedBox(width: 10),
-                ],
-                for (final period in TopPeriodFilter.values) ...[
-                  ChoiceChip(
-                    selected: widget.topPeriodFilter == period,
-                    label: Text(period.label),
-                    onSelected: (_) => widget.onTopPeriodChanged(period),
-                  ),
-                  const SizedBox(width: 8),
                 ],
               ],
             ),
@@ -289,64 +284,56 @@ class _FeedToolbarState extends State<FeedToolbar> {
               primary: false,
               children: [
                 if (hasActiveFilters || widget.selectedTags.isNotEmpty) ...[
-                  ActionChip(
-                    visualDensity: VisualDensity.compact,
-                    avatar: const Icon(Icons.filter_alt_off_rounded, size: 15),
-                    label: const Text('Сбросить'),
-                    onPressed: widget.onClearFilters,
+                  _LiquidProviderPill(
+                    label: 'Сбросить',
+                    isSelected: false,
+                    icon: Icons.filter_alt_off_rounded,
+                    onTap: widget.onClearFilters,
                   ),
                   const SizedBox(width: 6),
                 ],
-                ActionChip(
-                  visualDensity: VisualDensity.compact,
-                  avatar: const Icon(Icons.refresh_rounded, size: 15),
-                  label: const Text('Обновить'),
-                  onPressed: widget.onRefresh,
+                _LiquidProviderPill(
+                  label: 'Обновить',
+                  isSelected: false,
+                  icon: Icons.refresh_rounded,
+                  onTap: widget.onRefresh,
                 ),
                 const SizedBox(width: 6),
                 const _ToolbarDivider(),
                 const SizedBox(width: 6),
-                FilterChip(
-                  visualDensity: VisualDensity.compact,
-                  selected: widget.rating != null,
-                  avatar: const Icon(Icons.shield_outlined, size: 15),
-                  label: Text(widget.rating ?? 'Рейтинг'),
-                  onSelected: (_) => widget.onRatingFilter(),
+                _LiquidProviderPill(
+                  label: widget.rating ?? 'Рейтинг',
+                  isSelected: widget.rating != null,
+                  icon: Icons.shield_outlined,
+                  onTap: widget.onRatingFilter,
                 ),
                 const SizedBox(width: 6),
                 const _ToolbarDivider(),
                 const SizedBox(width: 6),
+                _LiquidPeriodTabs(
+                  selectedPeriod: widget.topPeriodFilter,
+                  onChanged: widget.onTopPeriodChanged,
+                ),
                 if (widget.providers.isNotEmpty) ...[
-                  FilterChip(
-                    visualDensity: VisualDensity.compact,
-                    selected: widget.selectedProviderIds.isEmpty,
-                    label: const Text('Все'),
-                    onSelected: (_) => widget.onQuickProviderToggle('__all__'),
+                  const SizedBox(width: 6),
+                  const _ToolbarDivider(),
+                  const SizedBox(width: 6),
+                  _LiquidProviderPill(
+                    label: 'Все',
+                    isSelected: widget.selectedProviderIds.isEmpty,
+                    icon: Icons.all_inclusive_rounded,
+                    onTap: () => widget.onQuickProviderToggle('__all__'),
                   ),
                   const SizedBox(width: 6),
                   for (final provider in widget.providers) ...[
-                    FilterChip(
-                      visualDensity: VisualDensity.compact,
-                      selected:
-                          widget.selectedProviderIds.contains(provider.id),
-                      label: Text(provider.name),
-                      onSelected: (_) =>
-                          widget.onQuickProviderToggle(provider.id),
+                    _LiquidProviderPill(
+                      label: provider.name,
+                      isSelected: widget.selectedProviderIds.contains(provider.id),
+                      icon: Icons.hub_rounded,
+                      onTap: () => widget.onQuickProviderToggle(provider.id),
                     ),
                     const SizedBox(width: 6),
                   ],
-                  const SizedBox(width: 2),
-                  const _ToolbarDivider(),
-                  const SizedBox(width: 6),
-                ],
-                for (final period in TopPeriodFilter.values) ...[
-                  ChoiceChip(
-                    visualDensity: VisualDensity.compact,
-                    selected: widget.topPeriodFilter == period,
-                    label: Text(period.label),
-                    onSelected: (_) => widget.onTopPeriodChanged(period),
-                  ),
-                  const SizedBox(width: 6),
                 ],
               ],
             ),
@@ -367,6 +354,227 @@ class _ToolbarDivider extends StatelessWidget {
       height: 20,
       margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
       color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.4),
+    );
+  }
+}
+
+class _LiquidPeriodTabs extends StatelessWidget {
+  const _LiquidPeriodTabs({
+    required this.selectedPeriod,
+    required this.onChanged,
+  });
+
+  final TopPeriodFilter selectedPeriod;
+  final ValueChanged<TopPeriodFilter> onChanged;
+
+  IconData _iconFor(TopPeriodFilter period) {
+    return switch (period) {
+      TopPeriodFilter.none => Icons.auto_awesome_rounded,
+      TopPeriodFilter.month => Icons.calendar_month_rounded,
+      TopPeriodFilter.year => Icons.calendar_today_rounded,
+      TopPeriodFilter.allTime => Icons.workspace_premium_rounded,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(2.5),
+      decoration: BoxDecoration(
+        color: isDark
+            ? scheme.surfaceContainerHigh.withValues(alpha: 0.55)
+            : scheme.surfaceContainerHighest.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.1)
+              : Colors.black.withValues(alpha: 0.06),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final period in TopPeriodFilter.values) ...[
+            _LiquidPeriodTabItem(
+              period: period,
+              icon: _iconFor(period),
+              isSelected: selectedPeriod == period,
+              onTap: () => onChanged(period),
+            ),
+            if (period != TopPeriodFilter.values.last) const SizedBox(width: 3),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _LiquidPeriodTabItem extends StatelessWidget {
+  const _LiquidPeriodTabItem({
+    required this.period,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final TopPeriodFilter period;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(13),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? (isDark
+                    ? scheme.primary.withValues(alpha: 0.28)
+                    : scheme.primaryContainer.withValues(alpha: 0.85))
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(13),
+            border: isSelected
+                ? Border.all(
+                    color: scheme.primary.withValues(alpha: isDark ? 0.45 : 0.3),
+                    width: 1,
+                  )
+                : null,
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: scheme.primary.withValues(alpha: isDark ? 0.25 : 0.12),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 14,
+                color: isSelected
+                    ? (isDark ? scheme.primary : scheme.onPrimaryContainer)
+                    : scheme.onSurfaceVariant.withValues(alpha: 0.85),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                period.label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected
+                      ? (isDark ? scheme.primary : scheme.onPrimaryContainer)
+                      : scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LiquidProviderPill extends StatelessWidget {
+  const _LiquidProviderPill({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+    this.icon,
+  });
+
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? (isDark
+                    ? scheme.secondaryContainer.withValues(alpha: 0.35)
+                    : scheme.secondaryContainer.withValues(alpha: 0.7))
+                : (isDark
+                    ? scheme.surfaceContainerHigh.withValues(alpha: 0.4)
+                    : scheme.surfaceContainerHighest.withValues(alpha: 0.35)),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: isSelected
+                  ? scheme.secondary.withValues(alpha: isDark ? 0.6 : 0.4)
+                  : (isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : Colors.black.withValues(alpha: 0.05)),
+              width: 1,
+            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: scheme.secondary.withValues(alpha: isDark ? 0.2 : 0.08),
+                      blurRadius: 6,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  size: 14,
+                  color: isSelected
+                      ? (isDark ? scheme.secondary : scheme.onSecondaryContainer)
+                      : scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                ),
+                const SizedBox(width: 5),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected
+                      ? (isDark ? scheme.secondary : scheme.onSecondaryContainer)
+                      : scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -10,6 +10,8 @@ import '../../app/responsive.dart';
 import '../../app/router.dart';
 import '../../backend/backend.dart';
 import '../../core/utils/result.dart';
+import '../../features/feed/presentation/feed_controller.dart';
+import 'desktop_shortcuts_dialog.dart';
 
 class AppShell extends ConsumerStatefulWidget {
   const AppShell({
@@ -249,21 +251,54 @@ class _AppShellState extends ConsumerState<AppShell> {
           LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyF):
               const _NavigateIntent('/search'),
           LogicalKeySet(LogicalKeyboardKey.escape): const _BackIntent(),
-          LogicalKeySet(LogicalKeyboardKey.digit1): const _NavigateIntent('/'),
-          LogicalKeySet(LogicalKeyboardKey.digit2):
+          // Ctrl + 1..8
+          LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.digit1):
+              const _NavigateIntent('/'),
+          LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.digit2):
               const _NavigateIntent('/search'),
-          LogicalKeySet(LogicalKeyboardKey.digit3):
+          LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.digit3):
               const _NavigateIntent('/favorites'),
-          LogicalKeySet(LogicalKeyboardKey.digit4):
+          LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.digit4):
               const _NavigateIntent('/viewed'),
-          LogicalKeySet(LogicalKeyboardKey.digit5):
+          LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.digit5):
               const _NavigateIntent('/collections'),
-          LogicalKeySet(LogicalKeyboardKey.digit6):
+          LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.digit6):
               const _NavigateIntent('/artists'),
-          LogicalKeySet(LogicalKeyboardKey.digit7):
+          LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.digit7):
               const _NavigateIntent('/providers'),
-          LogicalKeySet(LogicalKeyboardKey.digit8):
+          LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.digit8):
               const _NavigateIntent('/settings'),
+          // Alt + 1..8
+          LogicalKeySet(LogicalKeyboardKey.alt, LogicalKeyboardKey.digit1):
+              const _NavigateIntent('/'),
+          LogicalKeySet(LogicalKeyboardKey.alt, LogicalKeyboardKey.digit2):
+              const _NavigateIntent('/search'),
+          LogicalKeySet(LogicalKeyboardKey.alt, LogicalKeyboardKey.digit3):
+              const _NavigateIntent('/favorites'),
+          LogicalKeySet(LogicalKeyboardKey.alt, LogicalKeyboardKey.digit4):
+              const _NavigateIntent('/viewed'),
+          LogicalKeySet(LogicalKeyboardKey.alt, LogicalKeyboardKey.digit5):
+              const _NavigateIntent('/collections'),
+          LogicalKeySet(LogicalKeyboardKey.alt, LogicalKeyboardKey.digit6):
+              const _NavigateIntent('/artists'),
+          LogicalKeySet(LogicalKeyboardKey.alt, LogicalKeyboardKey.digit7):
+              const _NavigateIntent('/providers'),
+          LogicalKeySet(LogicalKeyboardKey.alt, LogicalKeyboardKey.digit8):
+              const _NavigateIntent('/settings'),
+          // Tab cycling
+          LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.tab):
+              const _CycleTabIntent(forward: true),
+          LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.shift, LogicalKeyboardKey.tab):
+              const _CycleTabIntent(forward: false),
+          // Refresh
+          LogicalKeySet(LogicalKeyboardKey.control, LogicalKeyboardKey.keyR):
+              const _RefreshIntent(),
+          LogicalKeySet(LogicalKeyboardKey.f5): const _RefreshIntent(),
+          // Shortcuts help cheat sheet
+          LogicalKeySet(LogicalKeyboardKey.question): const _HelpIntent(),
+          LogicalKeySet(LogicalKeyboardKey.f1): const _HelpIntent(),
+          LogicalKeySet(LogicalKeyboardKey.shift, LogicalKeyboardKey.slash):
+              const _HelpIntent(),
         },
         child: Actions(
           actions: {
@@ -276,6 +311,33 @@ class _AppShellState extends ConsumerState<AppShell> {
             _BackIntent: CallbackAction<_BackIntent>(
               onInvoke: (_) {
                 _handleBack();
+                return null;
+              },
+            ),
+            _CycleTabIntent: CallbackAction<_CycleTabIntent>(
+              onInvoke: (intent) {
+                if (destinations.isEmpty) return null;
+                final currentBranch = widget.navigationShell?.currentIndex ?? 0;
+                final currentIdx = destinations.indexWhere(
+                  (d) => AppShell.branchIndexForLocation(d.location) == currentBranch,
+                );
+                final safeIdx = currentIdx < 0 ? 0 : currentIdx;
+                final nextIdx = intent.forward
+                    ? ((safeIdx + 1) % destinations.length)
+                    : ((safeIdx - 1 + destinations.length) % destinations.length);
+                _onNavigate(destinations[nextIdx].location);
+                return null;
+              },
+            ),
+            _RefreshIntent: CallbackAction<_RefreshIntent>(
+              onInvoke: (_) {
+                ref.read(feedControllerProvider.notifier).refresh();
+                return null;
+              },
+            ),
+            _HelpIntent: CallbackAction<_HelpIntent>(
+              onInvoke: (_) {
+                DesktopShortcutsDialog.show(context);
                 return null;
               },
             ),
@@ -312,6 +374,7 @@ class _DesktopShell extends StatefulWidget {
     required this.onNavigate,
     this.currentBranchIndex,
   });
+
   final Widget child;
   final List<_Destination> destinations;
   final bool ru;
@@ -324,15 +387,21 @@ class _DesktopShell extends StatefulWidget {
 
 class _DesktopShellState extends State<_DesktopShell> {
   bool _hovered = false;
+  bool _pinned = false;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
     final location = GoRouterState.of(context).uri.path;
     final activeBranch = widget.currentBranchIndex ??
         AppShell.branchIndexForLocation(location);
     final selected = widget.destinations.indexWhere(
       (item) => AppShell.branchIndexForLocation(item.location) == activeBranch,
     );
+    final isExpanded = _pinned || _hovered;
+
     return Scaffold(
       body: Row(
         children: [
@@ -340,36 +409,249 @@ class _DesktopShellState extends State<_DesktopShell> {
             onEnter: (_) => setState(() => _hovered = true),
             onExit: (_) => setState(() => _hovered = false),
             child: AnimatedContainer(
-              duration: AppMotion.duration(context, 180),
+              duration: AppMotion.duration(context, 200),
               curve: Curves.easeOutCubic,
-              width: _hovered ? 256 : 72,
-              color: Theme.of(context).navigationRailTheme.backgroundColor,
-              child: SafeArea(
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                  child: Column(
-                    children: [
-                      for (var index = 0;
-                          index < widget.destinations.length;
-                          index++)
-                        _RailButton(
-                          destination: widget.destinations[index],
-                          ru: widget.ru,
-                          selected: (selected < 0 ? 0 : selected) == index,
-                          expanded: _hovered,
-                          onTap: () {
-                            widget.onNavigate(widget.destinations[index].location);
-                          },
+              width: isExpanded ? 260 : 74,
+              decoration: BoxDecoration(
+                color: isDark
+                    ? scheme.surfaceContainerHigh.withValues(alpha: 0.75)
+                    : scheme.surface.withValues(alpha: 0.85),
+                border: Border(
+                  right: BorderSide(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.12)
+                        : scheme.outlineVariant.withValues(alpha: 0.35),
+                    width: 1,
+                  ),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                    blurRadius: 18,
+                    offset: const Offset(4, 0),
+                  ),
+                ],
+              ),
+              child: ClipRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                  child: SafeArea(
+                    child: Column(
+                      children: [
+                        // App Brand Header
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 16, 12, 14),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      scheme.primary,
+                                      scheme.tertiary,
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(14),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: scheme.primary.withValues(alpha: 0.35),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.auto_awesome_rounded,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
+                                ),
+                              ),
+                              if (isExpanded) ...[
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Lunaris',
+                                        style: theme.textTheme.titleMedium?.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 0.2,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 1.5,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: scheme.primary.withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(
+                                            color: scheme.primary.withValues(alpha: 0.3),
+                                            width: 0.8,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'v3.6.0',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: scheme.primary,
+                                            letterSpacing: 0.4,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  visualDensity: VisualDensity.compact,
+                                  tooltip: _pinned
+                                      ? (widget.ru ? 'Открепить панель' : 'Unpin panel')
+                                      : (widget.ru ? 'Закрепить панель' : 'Pin panel'),
+                                  onPressed: () {
+                                    setState(() => _pinned = !_pinned);
+                                  },
+                                  icon: Icon(
+                                    _pinned
+                                        ? Icons.push_pin_rounded
+                                        : Icons.push_pin_outlined,
+                                    size: 19,
+                                    color: _pinned ? scheme.primary : scheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
-                      const Spacer(),
-                    ],
+                        const Divider(height: 1),
+                        const SizedBox(height: 8),
+
+                        // Destinations List
+                        Expanded(
+                          child: ListView(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            children: [
+                              for (var index = 0;
+                                  index < widget.destinations.length;
+                                  index++)
+                                _RailButton(
+                                  destination: widget.destinations[index],
+                                  ru: widget.ru,
+                                  selected: (selected < 0 ? 0 : selected) == index,
+                                  expanded: isExpanded,
+                                  shortcutKey: 'Ctrl+${index + 1}',
+                                  onTap: () {
+                                    widget.onNavigate(
+                                        widget.destinations[index].location);
+                                  },
+                                ),
+                            ],
+                          ),
+                        ),
+
+                        // Bottom Actions
+                        const Divider(height: 1),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 8),
+                          child: Column(
+                            children: [
+                              // Shortcuts helper button
+                              Tooltip(
+                                message: isExpanded
+                                    ? ''
+                                    : (widget.ru
+                                        ? 'Горячие клавиши (F1 / ?)'
+                                        : 'Keyboard Shortcuts (F1 / ?)'),
+                                waitDuration: const Duration(milliseconds: 350),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  borderRadius: BorderRadius.circular(14),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: InkWell(
+                                    onTap: () => DesktopShortcutsDialog.show(context),
+                                    child: SizedBox(
+                                      height: 44,
+                                      child: Row(
+                                        children: [
+                                          SizedBox(
+                                            width: 58,
+                                            child: Icon(
+                                              Icons.keyboard_rounded,
+                                              size: 22,
+                                              color: scheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                          if (isExpanded) ...[
+                                            Expanded(
+                                              child: Text(
+                                                widget.ru
+                                                    ? 'Горячие клавиши'
+                                                    : 'Shortcuts',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 13,
+                                                  color: scheme.onSurface,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 6,
+                                                vertical: 2,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: isDark
+                                                    ? Colors.white.withValues(alpha: 0.1)
+                                                    : Colors.black.withValues(alpha: 0.06),
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: const Text(
+                                                '?',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontFamily: 'monospace',
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              // Quick pin toggle button when collapsed
+                              if (!isExpanded)
+                                IconButton(
+                                  tooltip: widget.ru ? 'Закрепить панель' : 'Pin sidebar',
+                                  onPressed: () => setState(() => _pinned = true),
+                                  icon: const Icon(Icons.chevron_right_rounded, size: 20),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-          const VerticalDivider(width: 1),
           Expanded(child: widget.child),
         ],
       ),
@@ -383,6 +665,7 @@ class _RailButton extends StatelessWidget {
     required this.selected,
     required this.expanded,
     required this.ru,
+    required this.shortcutKey,
     required this.onTap,
   });
 
@@ -390,65 +673,117 @@ class _RailButton extends StatelessWidget {
   final bool selected;
   final bool expanded;
   final bool ru;
+  final String shortcutKey;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final label = destination.labelFor(ru);
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(vertical: 2),
       child: Tooltip(
-        message: expanded ? '' : destination.labelFor(ru),
-        waitDuration: const Duration(milliseconds: 450),
+        message: expanded ? '' : '$label ($shortcutKey)',
+        waitDuration: const Duration(milliseconds: 350),
         child: Material(
-          color: selected ? colors.primaryContainer : Colors.transparent,
-          borderRadius: BorderRadius.circular(28),
+          color: selected
+              ? scheme.primary.withValues(alpha: isDark ? 0.22 : 0.12)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: onTap,
-            child: SizedBox(
-              height: 48,
+            child: Container(
+              height: 46,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                border: selected
+                    ? Border.all(
+                        color: scheme.primary.withValues(alpha: isDark ? 0.45 : 0.28),
+                        width: 1.1,
+                      )
+                    : null,
+              ),
               child: Row(
                 children: [
-                  SizedBox(
-                    width: 56,
-                    child: Icon(
-                      destination.icon,
-                      color: selected
-                          ? colors.onPrimaryContainer
-                          : colors.onSurfaceVariant,
+                  // Active left indicator bar
+                  Container(
+                    width: 3.5,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: selected ? scheme.primary : Colors.transparent,
+                      borderRadius: BorderRadius.circular(2),
+                      boxShadow: selected
+                          ? [
+                              BoxShadow(
+                                color: scheme.primary.withValues(alpha: 0.6),
+                                blurRadius: 6,
+                              ),
+                            ]
+                          : null,
                     ),
                   ),
-                  if (expanded)
+                  SizedBox(
+                    width: 54.5,
+                    child: Center(
+                      child: Icon(
+                        destination.icon,
+                        size: 22,
+                        color: selected
+                            ? scheme.primary
+                            : (isDark
+                                ? scheme.onSurfaceVariant.withValues(alpha: 0.85)
+                                : scheme.onSurfaceVariant),
+                      ),
+                    ),
+                  ),
+                  if (expanded) ...[
                     Expanded(
-                      child: ClipRect(
-                        child: AnimatedOpacity(
-                          opacity: 1,
-                          duration: AppMotion.duration(context, 120),
-                          curve: Curves.easeOut,
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              destination.labelFor(ru),
-                              maxLines: 1,
-                              overflow: TextOverflow.clip,
-                              softWrap: false,
-                              style: TextStyle(
-                                fontWeight: selected
-                                    ? FontWeight.w700
-                                    : FontWeight.w600,
-                                color: selected
-                                    ? colors.onPrimaryContainer
-                                    : colors.onSurface,
-                              ),
-                            ),
-                          ),
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                          color: selected ? scheme.primary : scheme.onSurface,
                         ),
                       ),
-                    )
-                  else
-                    const SizedBox.shrink(),
-                  if (expanded) const SizedBox(width: 12),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5.5,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : Colors.black.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white.withValues(alpha: 0.12)
+                              : Colors.black.withValues(alpha: 0.08),
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Text(
+                        shortcutKey,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'monospace',
+                          color: selected
+                              ? scheme.primary
+                              : scheme.onSurfaceVariant.withValues(alpha: 0.8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                  ],
                 ],
               ),
             ),
@@ -944,4 +1279,17 @@ class _NavigateIntent extends Intent {
 
 class _BackIntent extends Intent {
   const _BackIntent();
+}
+
+class _CycleTabIntent extends Intent {
+  const _CycleTabIntent({required this.forward});
+  final bool forward;
+}
+
+class _RefreshIntent extends Intent {
+  const _RefreshIntent();
+}
+
+class _HelpIntent extends Intent {
+  const _HelpIntent();
 }
