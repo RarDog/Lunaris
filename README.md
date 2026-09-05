@@ -1,3 +1,7 @@
+<p align="center">
+  <strong>English</strong> • <a href="README_RU.md">Русский</a>
+</p>
+
 # 💎 Prisma
 
 <p align="center">
@@ -5,124 +9,127 @@
 </p>
 
 <p align="center">
-  <strong>Современный кроссплатформенный клиент для Booru и Creator-архивов нового поколения</strong><br>
-  Плавный Pinterest-стиль, интеграция Pawchive 2.0, двусторонняя синхронизация, интеллектуальное автообновление и воспроизведение медиа без задержек.
+  <strong>A modern, next-generation cross-platform client for Booru imageboards and Creator archives</strong><br>
+  Smooth Pinterest-style masonry feed, Pawchive 2.0 two-way synchronization, intelligent in-app updates, dynamic aspect ratio detection, and buttery-smooth media playback.
 </p>
 
 <p align="center">
-  <a href="https://github.com/RarDog/Prisma/releases"><img src="https://img.shields.io/badge/Version-3.4.1-8A2BE2?style=for-the-badge&logo=semver&logoColor=white" alt="Version 3.4.1" /></a>
+  <a href="https://github.com/RarDog/Prisma/releases"><img src="https://img.shields.io/badge/Version-3.5.2-8A2BE2?style=for-the-badge&logo=semver&logoColor=white" alt="Version 3.5.2" /></a>
   <img src="https://img.shields.io/badge/Flutter-3.47+-02569B?style=for-the-badge&logo=flutter&logoColor=white" alt="Flutter" />
-  <img src="https://img.shields.io/badge/Platform-Android%20%7C%20Linux%20%7C%20Windows-00C853?style=for-the-badge" alt="Platforms" />
+  <img src="https://img.shields.io/badge/Platform-Android%20%7C%20Linux%20%7C%20Windows%20%7C%20macOS-00C853?style=for-the-badge" alt="Platforms" />
   <a href="https://github.com/RarDog/Prisma/wiki"><img src="https://img.shields.io/badge/Wiki-Documentation-FF6F00?style=for-the-badge&logo=gitbook&logoColor=white" alt="Wiki" /></a>
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License MIT" />
 </p>
 
 ---
 
-## 🚀 Что нового в Prisma 3.0 (Major Release)
+## 🚀 What's New in Prisma 3.5
 
-### 🎨 Дизайн 2.0
-- **Современный визуальный стиль**: Полный переход на squircle-карточки, адаптивную цветовую палитру и улучшенную Material You динамическую тему.
-- **Интеллектуальный Action Dock 2.0**: Компактный док ключевых действий под контентом с быстрым доступом к скачиванию, шерингу, тегам и инфо.
-- **Плавные анимации и микро-взаимодействия**: Открытие медиа с эффектом Hero, интерактивное листание свайпами и анимированный лайк по двойному тапу.
+### 🎨 Design 2.0 & Interface Optimization
+- **Modern Visual Style**: Squircle cards, adaptive dynamic Material You color palette, and refined glassmorphic surfaces.
+- **Intelligent Action Dock 2.0**: Compact quick-action dock placed beneath posts for one-tap downloading, sharing, tag inspection, and source viewing.
+- **Smooth Animations & Micro-Interactions**: Hero media transitions, interactive drag gestures, and animated double-tap likes.
+- **Keyboard-Adaptive Layout**: Floating action buttons and navigation dock automatically minimize when the on-screen keyboard appears; search lists support dismiss-on-scroll.
 
-### 🐾 Глубокая интеграция Pawchive 2.0
-- **Мульти-аккаунты**: Поддержка авторизации по логину и паролю, а также прямому вводу `Session Cookie`.
-- **Двусторонняя синхронизация (Two-Way Sync)**: Автоматическая синхронизация избранного между локальной базой Prisma и профилем Pawchive. Новые авторы с сервера добавляются в приложение, а локальные авторы выгружаются на сервер в один тап.
-- **Моментальная синхронизация**: При нажатии кнопки «В избранное» у любого автора (Fanbox, Patreon, Fantia, Boosty, Gumroad, DLsite, Discord) статус синхронизируется с сервером на лету.
+### 🐾 Deep Pawchive 2.0 Integration
+- **Flexible Authentication**: Sign in via username/password or direct `Session Cookie`.
+- **Two-Way Synchronization**: Automatically synchronize your favorites between Prisma's local database and your Pawchive account. Local creators can be pushed to the server with a single tap.
+- **Instant Cloud Sync**: Favoriting any creator across Patreon, Fanbox, Fantia, Boosty, Gumroad, DLsite, or Discord synchronizes with the server in real-time.
 
-### 🎬 Умный медиаплеер и определение разрешения
-- **Ленивое вычисление габаритов (1920×1080 и др.)**: Определение точного разрешения картинок и видео без полной предварительной загрузки тяжелых файлов.
-- **Автоповорот в полноэкранном режиме**: Видеоплеер автоматически ориентирует экран (альбомный или портретный режим) в зависимости от аспектного соотношения медиа.
+### 🎬 Smart Media Player & Dimension Detection
+- **Lazy Dimension Resolution**: Instant 1920×1080 (and custom) aspect-ratio discovery without needing to pre-download large media files.
+- **Fullscreen Auto-Orientation**: Video player automatically adjusts screen orientation (landscape or portrait) to match the media's native aspect ratio.
 
-### 📦 Разделение APK и умное автообновление по ABI
-- Сборка облегчённых APK с разделением по архитектурам процессора (`arm64-v8a`, `armeabi-v7a`, `x86_64`).
-- Встроенная система обновлений автоматически определяет архитектуру вашего Android-устройства и скачивает только нужный APK, экономя трафик и ускоряя загрузку.
-
----
-
-## 📚 Документация и Вики (Руководство пользователя)
-
-Подробные иллюстрированные руководства доступны в **[Prisma Wiki](https://github.com/RarDog/Prisma/wiki)** и прямо в репозитории:
-
-- 🚀 **[Быстрый старт и установка](docs/wiki/Getting-Started.md)** — выбор правильного APK под процессор, запуск на Linux.
-- 🌐 **[Провайдеры контента](docs/wiki/Providers.md)** — особенности Booru (Gelbooru, Rule34, Realbooru, e621) и архивов Pawchive.
-- 🔍 **[Умный поиск и теги](docs/wiki/Search-and-Tags.md)** — оператор `and`, общие модификаторы и подсказки за 0 мс.
-- 🐾 **[Интеграция с Pawchive](docs/wiki/Pawchive-Sync.md)** — вход по паролю/куки, двусторонняя синхронизация и выгрузка авторов.
-- 🎬 **[Медиаплеер и просмотр](docs/wiki/Media-Viewer.md)** — жесты, автоповорот видео, разрешение 1920×1080 и Action Dock 2.0.
-- 💾 **[Офлайн-режим и загрузки](docs/wiki/Offline-and-Downloads.md)** — Sync Hub, шаблоны папок и сохранение оригиналов.
-- 🛡️ **[Черный список и фильтрация](docs/wiki/Safety-and-Blacklist.md)** — настройка Blacklist, Safe Mode и очистка кэша.
-- ❓ **[Часто задаваемые вопросы (FAQ)](docs/wiki/FAQ.md)** — автообновление, звук в видео и решение проблем.
+### 📦 Split APKs & ABI-Aware Auto-Updates
+- Optimized per-ABI APK builds (`arm64-v8a`, `armeabi-v7a`, `x86_64`) for drastically reduced package sizes.
+- Built-in update engine automatically detects the device CPU architecture and fetches only the required binary.
 
 ---
 
-## ✨ Ключевые возможности
+## 📚 Documentation & User Guides
 
-- **📱 Плавная лента в стиле Pinterest**: Masonry-сетка с переключением режима отображения (Masonry, 1:1 Сетка, Компактный список).
-- **💾 Офлайн 2.0 и Sync Hub**: Просмотр фото и видео прямо из локального хранилища без запросов в сеть, аналитика занятого места и пакетная выгрузка.
-- **🔍 Поиск 2.0 с операторами**: Быстрые подсказки тегов со скоростью отклика 0 мс, оператор `and` для мульти-поиска, фильтры `type:video`, `rating:safe`.
-- **🛡️ Продвинутый Blacklist / Whitelist**: Фильтрация нежелательного контента по тегам, категориям, рейтингу и минимальному score.
-- **📁 Умный менеджер загрузок**: Шаблоны поддиректорий (`{Artist}`, `{Provider}`, `{Service}`, `{ID}`, `{Date}`) для аккуратного архива.
-- **🌑 AMOLED Pure Black**: Истинно черный фон для максимальной энергоэффективности на OLED/AMOLED дисплеях.
+Comprehensive illustrated documentation is available in the **[Prisma Wiki](https://github.com/RarDog/Prisma/wiki)**:
+
+- 🚀 **[Getting Started & Installation](docs/wiki/Getting-Started.md)** — Selecting the proper APK for your device architecture, running on Linux, Windows, or macOS.
+- 🌐 **[Content Providers](docs/wiki/Providers.md)** — Using Booru sources (Gelbooru, Rule34, Realbooru, e621) and Pawchive creator archives.
+- 🔍 **[Smart Search & Tags](docs/wiki/Search-and-Tags.md)** — `and` operators, syntax modifiers, and 0 ms autocomplete.
+- 🐾 **[Pawchive Integration](docs/wiki/Pawchive-Sync.md)** — Login, session cookies, two-way sync, and creator cloud exports.
+- 🎬 **[Media Viewer & Player](docs/wiki/Media-Viewer.md)** — Gesture navigation, automatic rotation, and Action Dock 2.0.
+- 💾 **[Offline Mode & Downloads](docs/wiki/Offline-and-Downloads.md)** — Sync Hub, directory naming templates, and original quality preservation.
+- 🛡️ **[Safety & Blacklist](docs/wiki/Safety-and-Blacklist.md)** — Custom blacklist rules, Safe Mode, and cache management.
+- ❓ **[Frequently Asked Questions (FAQ)](docs/wiki/FAQ.md)** — Troubleshooting, updater, audio playback, and common solutions.
 
 ---
 
-## 🌐 Поддерживаемые провайдеры
+## ✨ Key Features
 
-| Провайдер | Тип API | Поддерживаемый контент |
+- **📱 Pinterest-Style Masonry Feed**: Staggered grid layout with instant mode switching (Masonry, 1:1 Square Grid, Compact List).
+- **💾 Offline 2.0 & Sync Hub**: Browse saved media directly from local storage with zero network requests, storage analytics, and batch export.
+- **🔍 Search 2.0**: Instant tag autocomplete, multi-tag queries with `and`, and modifiers such as `type:video` or `rating:safe`.
+- **🛡️ Advanced Blacklist / Whitelist**: Filter undesirable content by tags, categories, age ratings, or minimum score thresholds.
+- **📁 Smart Download Manager**: Flexible directory and filename templates (`{Artist}`, `{Provider}`, `{Service}`, `{ID}`, `{Date}`).
+- **🌑 AMOLED Pure Black**: True deep black background optimized for OLED/AMOLED display power efficiency.
+
+---
+
+## 🌐 Supported Providers
+
+| Provider | API Type | Supported Content |
 |---|---|---|
 | **Pawchive** | REST API v1 | Patreon, Pixiv Fanbox, Fantia, Boosty, Gumroad, DLsite, Discord |
-| **Gelbooru** | JSON / XML API | Аниме-арты, теги, авторы, рейтинги |
-| **Rule34** | Booru API | Огромная база booru-контента, видео и GIF |
-| **Realbooru** | Scraper / API | Фотосессии и реалистичный контент |
-| **e621 / e926** | REST JSON API | Фурри- и антро-арт с богатейшей таксономией тегов |
+| **Gelbooru** | JSON / XML API | Anime artworks, tag taxonomy, creator profiles, ratings |
+| **Rule34** | Booru API | Expansive booru database, animated WebM/MP4 and GIF |
+| **Realbooru** | Scraper / API | Cosplay photography and realistic media |
+| **e621 / e926** | REST JSON API | Furry and anthropomorphic art with granular tag search |
 
 ---
 
-## 📥 Загрузка (Скачать сборки)
+## 📥 Downloads & Releases
 
-Релизы доступны на странице **[GitHub Releases](https://github.com/RarDog/Prisma/releases)**.
+Pre-compiled production releases are available on the **[GitHub Releases](https://github.com/RarDog/Prisma/releases)** page.
 
-| Платформа | Архитектура | Формат | Описание |
+| Platform | Architecture | Format | Notes |
 |---|---|---|---|
-| **Android** | `arm64-v8a` | `.apk` | Оптимизировано для современных смартфонов (64-bit) |
-| **Android** | `armeabi-v7a` | `.apk` | Для более старых Android-устройств (32-bit) |
-| **Android** | `x86_64` | `.apk` | Для эмуляторов Android и x86-планшетов |
-| **Linux** | `x86_64` | `.tar.gz` | Портативный архив для Linux-дистрибутивов |
-| **Windows** | `x64` | `.zip` / `.exe` | Портативная и установочная сборка для Windows 10/11 |
+| **Android** | `arm64-v8a` | `.apk` | Recommended for all modern 64-bit Android smartphones |
+| **Android** | `armeabi-v7a` | `.apk` | Legacy 32-bit Android devices |
+| **Android** | `x86_64` | `.apk` | Android emulators, Chromebooks & x86 tablets |
+| **Linux** | `x86_64` | `.tar.gz` | Portable standalone package for Linux distributions |
+| **Windows** | `x64` | `.zip` | Portable release for Windows 10 & 11 |
+| **macOS** | `Universal` | `.zip` | Portable build for macOS |
 
 ---
 
-## 🛠️ Сборка из исходников
+## 🛠️ Building from Source
 
-### Требования
+### Prerequisites
 - **Flutter SDK**: `>= 3.22.0` (Dart `>= 3.4.0`)
-- **Android SDK**: Build-Tools & Platform-Tools (для Android)
+- **Android SDK**: Build-Tools & Platform-Tools (for Android targets)
 - **Linux**: `clang`, `cmake`, `ninja-build`, `pkg-config`, `libgtk-3-dev`
-- **Windows**: Visual Studio 2022 с компонентом «Desktop development with C++»
+- **Windows**: Visual Studio 2022 with "Desktop development with C++"
+- **macOS**: Xcode 15+
 
-### Быстрый старт
+### Quick Start
 
 ```bash
-# Клонирование репозитория
+# Clone repository
 git clone https://github.com/RarDog/Prisma.git
 cd Prisma
 
-# Установка зависимостей
+# Fetch dependencies
 flutter pub get
 
-# Проверка анализатора и запуск тестов
+# Run static analysis and tests
 flutter analyze
 flutter test
 
-# Запуск в режиме разработки
+# Launch in debug mode
 flutter run
 ```
 
-### Сборка релизных пакетов
+### Building Release Packages
 
 ```bash
-# Android (раздельные APK по архитектурам)
+# Android (Split APKs by ABI)
 flutter build apk --release --split-per-abi
 
 # Linux (Desktop bundle)
@@ -130,40 +137,43 @@ flutter build linux --release
 
 # Windows (Desktop bundle)
 flutter build windows --release
+
+# macOS (Desktop bundle)
+flutter build macos --release
 ```
 
 ---
 
-## 🏛️ Архитектура проекта
+## 🏛️ Project Architecture
 
 ```text
 lib/
- ├── app/               # Роутер (GoRouter), темы, локализация (RU/EN), анимации
+ ├── app/               # Routing (GoRouter), theme configuration, l10n (EN/RU), animations
  ├── backend/
- │    ├── di/           # Внедрение зависимостей (Riverpod providers)
+ │    ├── di/           # Riverpod dependency injection & providers
  │    ├── models/       # Post, ArtistProfile, PawchiveAccount, AppSettings
- │    ├── providers/    # Клиенты API (Gelbooru, Rule34, Pawchive, e621)
- │    ├── repositories/ # Локальная база данных Isar и кэширование
- │    └── services/     # Сервисы: PawchiveSync, Feed, Search, Downloads, Updates
- ├── core/              # Сетевой клиент (Dio), база данных, утилиты
- ├── features/          # Модули экранов: feed, post, artists, favorites, settings
- └── shared/widgets/    # Переиспользуемые компоненты (PostCard, MasonryGrid, Dock)
+ │    ├── providers/    # API integrations (Gelbooru, Rule34, Pawchive, e621)
+ │    ├── repositories/ # Local Isar database storage & cache layer
+ │    └── services/     # Core services: PawchiveSync, Feed, Search, Downloads, Updates
+ ├── core/              # Network client (Dio), database engine, utilities
+ ├── features/          # Feature screens: feed, post, artists, favorites, settings
+ └── shared/widgets/    # Reusable UI components (PostCard, MasonryGrid, Dock)
 ```
 
 ---
 
-## 🔒 Безопасность и конфиденциальность
+## 🔒 Privacy & Security
 
-- **100% локальное хранение**: Вся история, закладки, локальные авторы и конфигурации хранятся только в вашей локальной базе на устройстве.
-- **Никакой телеметрии**: Prisma не собирает аналитику, не отправляет логи и уважает вашу приватность.
-- **Прямое соединение**: Запросы отправляются напрямую к выбранным API без прокси-серверов посредников.
+- **100% On-Device Storage**: Your browsing history, bookmarks, favorite creators, and credentials stay strictly on your device.
+- **Zero Telemetry**: No background tracking, no third-party analytic SDKs, and no user profiling.
+- **Direct Network Requests**: Communication occurs directly between your client and selected provider endpoints without intermediary proxies.
 
 ---
 
-## 👥 Разработчики
+## 👥 Authors & Credits
 
 <p align="center">
-  <strong>Разработчики:</strong> <a href="https://github.com/RarDog">RarDog</a> & <a href="https://deepmind.google/technologies/gemini/">Antigravity (Gemini)</a>
+  <strong>Authors:</strong> <a href="https://github.com/RarDog">RarDog</a> & <a href="https://deepmind.google/technologies/gemini/">Antigravity (Gemini)</a>
 </p>
 
 <p align="center">
