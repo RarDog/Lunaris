@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
+import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -590,7 +591,15 @@ class _FeedVideoPreviewState extends State<_FeedVideoPreview> {
     super.initState();
     MediaKit.ensureInitialized();
     _player = Player();
-    _controller = VideoController(_player);
+    final isDesktop =
+        Platform.isLinux || Platform.isWindows || Platform.isMacOS;
+    _controller = VideoController(
+      _player,
+      configuration: VideoControllerConfiguration(
+        enableHardwareAcceleration: !isDesktop,
+        hwdec: isDesktop ? 'no' : 'auto-safe',
+      ),
+    );
     _player.stream.error.listen((_) {
       if (mounted) setState(() => _failed = true);
     });
@@ -633,15 +642,13 @@ class _FeedVideoPreviewState extends State<_FeedVideoPreview> {
         AnimatedOpacity(
           opacity: _ready ? 1 : 0,
           duration: AppMotion.duration(context, 180),
-          child: ColoredBox(
-            color: Colors.black,
-            child: Video(
-              controller: _controller,
-              fit: BoxFit.cover,
-              controls: null,
-              pauseUponEnteringBackgroundMode: false,
-              resumeUponEnteringForegroundMode: false,
-            ),
+          child: Video(
+            controller: _controller,
+            fit: BoxFit.cover,
+            fill: Colors.transparent,
+            controls: null,
+            pauseUponEnteringBackgroundMode: false,
+            resumeUponEnteringForegroundMode: false,
           ),
         ),
       ],
