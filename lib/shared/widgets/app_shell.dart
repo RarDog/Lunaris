@@ -352,19 +352,23 @@ class _MobileShell extends StatelessWidget {
           ? location == '/'
           : location.startsWith(item.location),
     );
-    final bottomInset = 76.0 + MediaQuery.paddingOf(context).bottom;
+    final isKeyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final bottomInset = isKeyboardOpen
+        ? 0.0
+        : 76.0 + MediaQuery.paddingOf(context).bottom;
 
     return Scaffold(
       extendBody: true,
       body: MediaQuery(
         data: MediaQuery.of(context).copyWith(
+          viewInsets: MediaQuery.of(context).viewInsets.copyWith(bottom: 0),
           padding: MediaQuery.of(context).padding.copyWith(
                 bottom: bottomInset,
               ),
         ),
         child: child,
       ),
-      floatingActionButton: location == '/settings'
+      floatingActionButton: (location == '/settings' || isKeyboardOpen)
           ? null
           : Padding(
               padding: const EdgeInsets.only(bottom: 0, right: 2),
@@ -374,12 +378,15 @@ class _MobileShell extends StatelessWidget {
               ),
             ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      bottomNavigationBar: _LiquidGlassBottomBar(
-        selectedIndex: selected < 0 ? 0 : selected,
-        onDestinationSelected: (index) => context.go(items[index].location),
-        items: items,
-        ru: ru,
-      ),
+      bottomNavigationBar: isKeyboardOpen
+          ? null
+          : _LiquidGlassBottomBar(
+              selectedIndex: selected < 0 ? 0 : selected,
+              onDestinationSelected: (index) =>
+                  context.go(items[index].location),
+              items: items,
+              ru: ru,
+            ),
     );
   }
 }

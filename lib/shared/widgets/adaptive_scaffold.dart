@@ -9,6 +9,7 @@ class AdaptiveScaffold extends StatelessWidget {
     this.titleWidget,
     this.actions = const [],
     this.floatingActionButton,
+    this.resizeToAvoidBottomInset = false,
     super.key,
   });
 
@@ -17,11 +18,13 @@ class AdaptiveScaffold extends StatelessWidget {
   final Widget body;
   final List<Widget> actions;
   final Widget? floatingActionButton;
+  final bool resizeToAvoidBottomInset;
 
   @override
   Widget build(BuildContext context) {
     if (Responsive.isMobile(context)) {
       return Scaffold(
+        resizeToAvoidBottomInset: resizeToAvoidBottomInset,
         appBar: AppBar(
           title: titleWidget ?? Text(title),
           actions: actions,
@@ -35,6 +38,7 @@ class AdaptiveScaffold extends StatelessWidget {
       );
     }
     return Scaffold(
+      resizeToAvoidBottomInset: resizeToAvoidBottomInset,
       appBar: AppBar(title: titleWidget ?? Text(title), actions: actions),
       body: body,
       floatingActionButton: floatingActionButton,

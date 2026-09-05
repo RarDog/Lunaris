@@ -97,7 +97,11 @@ class _ArtistsScreenState extends ConsumerState<ArtistsScreen> {
   void initState() {
     super.initState();
     _scroll.addListener(() {
-      if (_scroll.position.extentAfter < 500) _loadMore();
+      if (_scroll.hasClients &&
+          _scroll.position.hasContentDimensions &&
+          _scroll.position.extentAfter < 500) {
+        _loadMore();
+      }
     });
   }
 
@@ -128,6 +132,7 @@ class _ArtistsScreenState extends ConsumerState<ArtistsScreen> {
 
     return AdaptiveScaffold(
       title: 'Artists',
+      resizeToAvoidBottomInset: false,
       actions: [
         IconButton(
           tooltip: 'Синхронизация Pawchive',
@@ -252,6 +257,8 @@ class _ArtistsScreenState extends ConsumerState<ArtistsScreen> {
                                           : 1;
                               return GridView.builder(
                                 controller: _scroll,
+                                keyboardDismissBehavior:
+                                    ScrollViewKeyboardDismissBehavior.onDrag,
                                 padding:
                                     const EdgeInsets.fromLTRB(16, 10, 16, 18),
                                 gridDelegate:
@@ -594,6 +601,7 @@ class _ArtistsHeader extends StatelessWidget {
                     child: TextField(
                       controller: searchController,
                       textInputAction: TextInputAction.search,
+                      autocorrect: false,
                       style: TextStyle(
                         fontSize: 14,
                         color: isDark ? Colors.white : const Color(0xFF0F172A),
