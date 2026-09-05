@@ -642,13 +642,15 @@ class _FeedVideoPreviewState extends State<_FeedVideoPreview> {
         AnimatedOpacity(
           opacity: _ready ? 1 : 0,
           duration: AppMotion.duration(context, 180),
-          child: Video(
-            controller: _controller,
-            fit: BoxFit.cover,
-            fill: Colors.transparent,
-            controls: null,
-            pauseUponEnteringBackgroundMode: false,
-            resumeUponEnteringForegroundMode: false,
+          child: ColoredBox(
+            color: Colors.black,
+            child: Video(
+              controller: _controller,
+              fit: BoxFit.cover,
+              controls: null,
+              pauseUponEnteringBackgroundMode: false,
+              resumeUponEnteringForegroundMode: false,
+            ),
           ),
         ),
       ],

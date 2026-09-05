@@ -230,9 +230,6 @@ class _PostMediaViewerState extends State<PostMediaViewer>
               aspectRatio: widget.post.width > 0 && widget.post.height > 0
                   ? widget.post.width / widget.post.height
                   : 16 / 9,
-              previewUrl: widget.post.previewUrl.isNotEmpty
-                  ? widget.post.previewUrl
-                  : widget.post.sampleUrl,
               isSoftwareDecoding: _useSoftwareDecoding,
               onToggleDecoder: _toggleDecoderMode,
               controlsVisible: _controlsVisible,
@@ -720,9 +717,6 @@ class _PostMediaViewerState extends State<PostMediaViewer>
           halfVolume: _halfVolume,
           coverVideo: _coverVideo,
           initialVolume: _currentVolume,
-          previewUrl: widget.post.previewUrl.isNotEmpty
-              ? widget.post.previewUrl
-              : widget.post.sampleUrl,
           isSoftwareDecoding: _useSoftwareDecoding,
           onToggleDecoder: _toggleDecoderMode,
           errorMessage: _videoError,
@@ -921,7 +915,6 @@ class _FullscreenVideoPage extends StatefulWidget {
     required this.halfVolume,
     required this.coverVideo,
     this.initialVolume = 100.0,
-    this.previewUrl,
     required this.isSoftwareDecoding,
     required this.onToggleDecoder,
     required this.errorMessage,
@@ -938,7 +931,6 @@ class _FullscreenVideoPage extends StatefulWidget {
   final bool halfVolume;
   final bool coverVideo;
   final double initialVolume;
-  final String? previewUrl;
   final bool isSoftwareDecoding;
   final VoidCallback onToggleDecoder;
   final String? errorMessage;
@@ -1065,7 +1057,6 @@ class _FullscreenVideoPageState extends State<_FullscreenVideoPage> {
                 player: widget.player,
                 controller: widget.controller,
                 aspectRatio: widget.aspectRatio,
-                previewUrl: widget.previewUrl,
                 isSoftwareDecoding: widget.isSoftwareDecoding,
                 onToggleDecoder: widget.onToggleDecoder,
                 controlsVisible: _controlsVisible,
@@ -1619,7 +1610,6 @@ class _VideoSurface extends StatefulWidget {
     required this.player,
     required this.controller,
     required this.aspectRatio,
-    this.previewUrl,
     required this.isSoftwareDecoding,
     required this.onToggleDecoder,
     required this.controlsVisible,
@@ -1646,7 +1636,6 @@ class _VideoSurface extends StatefulWidget {
   final Player player;
   final VideoController controller;
   final double aspectRatio;
-  final String? previewUrl;
   final bool isSoftwareDecoding;
   final VoidCallback onToggleDecoder;
   final bool controlsVisible;
@@ -1807,22 +1796,15 @@ class _VideoSurfaceState extends State<_VideoSurface> {
         return Stack(
           fit: StackFit.expand,
           children: [
-            if (widget.previewUrl != null && widget.previewUrl!.isNotEmpty)
-              Positioned.fill(
-                child: CachedNetworkImage(
-                  imageUrl: widget.previewUrl!,
-                  fit: widget.coverVideo ? BoxFit.cover : BoxFit.contain,
-                  memCacheWidth: 1920,
-                  memCacheHeight: 1080,
-                ),
+            ColoredBox(
+              color: Colors.black,
+              child: Video(
+                controller: widget.controller,
+                fit: widget.coverVideo ? BoxFit.cover : BoxFit.contain,
+                controls: null,
+                pauseUponEnteringBackgroundMode: false,
+                resumeUponEnteringForegroundMode: false,
               ),
-            Video(
-              controller: widget.controller,
-              fit: widget.coverVideo ? BoxFit.cover : BoxFit.contain,
-              fill: Colors.transparent,
-              controls: null,
-              pauseUponEnteringBackgroundMode: false,
-              resumeUponEnteringForegroundMode: false,
             ),
             if (_currentBrightness < 0.99)
               Positioned.fill(
