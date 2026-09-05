@@ -12,3 +12,4 @@ android/local.properties
 *.log
 *.apk
 *.tar.gz
+*.zip
