@@ -280,7 +280,36 @@ class _E621PoolSheetState extends State<E621PoolSheet> {
                       ),
                     ],
 
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
+
+                    // Big "Read Full Comic" Button
+                    FilledButton.icon(
+                      onPressed: () {
+                        HapticFeedback.mediumImpact();
+                        Navigator.of(context).pop();
+                        final startId = pool.postIds.contains(widget.currentPost.id)
+                            ? widget.currentPost.id
+                            : pool.postIds.first;
+                        widget.onSelectPostId(startId);
+                      },
+                      icon: const Icon(Icons.auto_stories_rounded, size: 18),
+                      label: Text(
+                        isRu
+                            ? 'Читать весь комикс (${pool.postCount} стр.)'
+                            : 'Read Full Comic (${pool.postCount} pages)',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFF0055AA),
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(double.infinity, 46),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
 
                     // Quick Page Navigator Banner
                     Container(

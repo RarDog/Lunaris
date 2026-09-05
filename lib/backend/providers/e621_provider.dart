@@ -123,6 +123,52 @@ class E621Provider
     return null;
   }
 
+  Future<List<Post>> getPoolPosts(String poolId) async {
+    final pool = await getPool(poolId);
+    if (pool == null || pool.postIds.isEmpty) return const [];
+
+    final fetchedMap = <String, Post>{};
+    int page = 1;
+    while (true) {
+      await _throttle();
+      try {
+        final response = await _dio.get<dynamic>(
+          '/posts.json',
+          queryParameters: {
+            'page': page,
+            'limit': isAuthorized ? 320 : 75,
+            'tags': 'pool:$poolId',
+            ..._queryParameters,
+          },
+        );
+        final items = E621Mapper.postsFromResponse(
+          response.data,
+          providerId: id,
+          providerName: name,
+        );
+        if (items.isEmpty) break;
+        for (final item in items) {
+          fetchedMap[item.id] = item;
+        }
+        if (items.length < (isAuthorized ? 320 : 75) ||
+            fetchedMap.length >= pool.postIds.length) {
+          break;
+        }
+        page++;
+      } catch (_) {
+        break;
+      }
+    }
+
+    final ordered = <Post>[];
+    for (final id in pool.postIds) {
+      if (fetchedMap.containsKey(id)) {
+        ordered.add(fetchedMap[id]!);
+      }
+    }
+    return ordered.isNotEmpty ? ordered : fetchedMap.values.toList();
+  }
+
   Future<bool> votePost(String postId, int score) async {
     await _throttle();
     try {

@@ -390,6 +390,9 @@ class PostDetailsScreen extends ConsumerWidget {
                       PostPoolsCard(
                         post: post,
                         provider: e621Provider,
+                        onOpenComic: (poolId, currentPost, [targetId]) =>
+                            _openComic(context, e621Provider, poolId,
+                                currentPost, targetId),
                         onOpenPostId: (targetId) =>
                             _openPostById(context, post.providerId, targetId),
                       ),
@@ -648,6 +651,8 @@ class PostDetailsScreen extends ConsumerWidget {
             PostPoolsCard(
               post: post,
               provider: e621Provider,
+              onOpenComic: (poolId, currentPost, [targetId]) =>
+                  _openComic(context, e621Provider, poolId, currentPost, targetId),
               onOpenPostId: (targetId) =>
                   _openPostById(context, post.providerId, targetId),
             ),
@@ -885,6 +890,64 @@ class PostDetailsScreen extends ConsumerWidget {
     ref.invalidate(favoritesControllerProvider);
   }
 
+  Future<void> _openComic(
+    BuildContext context,
+    E621Provider provider,
+    String poolId,
+    Post currentPost, [
+    String? targetId,
+  ]) async {
+    final isRu = Localizations.maybeLocaleOf(context)?.languageCode == 'ru';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: Colors.white),
+            ),
+            const SizedBox(width: 12),
+            Text(isRu ? 'Загрузка комикса...' : 'Loading comic...'),
+          ],
+        ),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+
+    final poolPosts = await provider.getPoolPosts(poolId);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+    if (poolPosts.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isRu
+              ? 'Не удалось загрузить страницы комикса'
+              : 'Could not load comic pages'),
+        ),
+      );
+      return;
+    }
+
+    final idToFind = targetId ?? currentPost.id;
+    final targetIndex = poolPosts.indexWhere((p) => p.id == idToFind);
+    final startPost =
+        targetIndex >= 0 ? poolPosts[targetIndex] : poolPosts.first;
+
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (ctx) => PostDetailsScreen(
+          providerId: provider.id,
+          postId: startPost.id,
+          initialPost: startPost,
+          postsList: poolPosts,
+        ),
+      ),
+    );
+  }
+
   void _openPostById(
       BuildContext context, String providerId, String targetId) {
     Navigator.of(context).push(
@@ -1053,10 +1116,12 @@ class _MobilePostPager extends StatefulWidget {
 class _MobilePostPagerState extends State<_MobilePostPager> {
   late final PageController _controller;
   bool _mediaGestureLocked = false;
+  late int _currentPage = widget.initialIndex;
 
   @override
   void initState() {
     super.initState();
+    _currentPage = widget.initialIndex;
     _controller = PageController(initialPage: widget.initialIndex);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _prefetchAround(widget.initialIndex);
@@ -1066,10 +1131,10 @@ class _MobilePostPagerState extends State<_MobilePostPager> {
   @override
   void didUpdateWidget(covariant _MobilePostPager oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Исправленная проверка: сравниваем старый и новый initialIndex, а не текущий свайп
     if (oldWidget.initialIndex != widget.initialIndex &&
         widget.initialIndex >= 0 &&
         widget.initialIndex < widget.posts.length) {
+      _currentPage = widget.initialIndex;
       if (_controller.hasClients) {
         _controller.jumpToPage(widget.initialIndex);
       }
@@ -1087,7 +1152,7 @@ class _MobilePostPagerState extends State<_MobilePostPager> {
 
   @override
   Widget build(BuildContext context) {
-    return ScrollConfiguration(
+    final pager = ScrollConfiguration(
       behavior: ScrollConfiguration.of(context).copyWith(
         dragDevices: {
           PointerDeviceKind.touch,
@@ -1103,6 +1168,7 @@ class _MobilePostPagerState extends State<_MobilePostPager> {
             : const PageScrollPhysics(),
         itemCount: widget.posts.length,
         onPageChanged: (index) {
+          setState(() => _currentPage = index);
           _prefetchAround(index);
         },
         itemBuilder: (context, index) {
@@ -1135,7 +1201,64 @@ class _MobilePostPagerState extends State<_MobilePostPager> {
       },
     ),
   );
-}
+
+    if (widget.posts.length <= 1) return pager;
+
+    final isComic = widget.posts.first.hasPools;
+    return Stack(
+      children: [
+        pager,
+        Positioned(
+          top: MediaQuery.paddingOf(context).top + 10,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: IgnorePointer(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.60),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isComic) ...[
+                          const Icon(Icons.auto_stories_rounded,
+                              size: 14, color: Colors.white),
+                          const SizedBox(width: 6),
+                        ],
+                        Text(
+                          isComic
+                              ? 'Комикс • Стр. ${_currentPage + 1} из ${widget.posts.length}'
+                              : '${_currentPage + 1} / ${widget.posts.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
   void _setMediaGestureLocked(bool locked) {
     if (_mediaGestureLocked == locked) return;

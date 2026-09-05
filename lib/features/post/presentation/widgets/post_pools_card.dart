@@ -9,12 +9,15 @@ class PostPoolsCard extends StatelessWidget {
   const PostPoolsCard({
     required this.post,
     required this.provider,
+    required this.onOpenComic,
     required this.onOpenPostId,
     super.key,
   });
 
   final Post post;
   final E621Provider provider;
+  final void Function(String poolId, Post currentPost, [String? targetId])
+      onOpenComic;
   final ValueChanged<String> onOpenPostId;
 
   @override
@@ -83,62 +86,83 @@ class PostPoolsCard extends StatelessWidget {
             runSpacing: 8,
             children: [
               for (final poolId in pools)
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      E621PoolSheet.show(
-                        context,
-                        currentPost: post,
-                        poolId: poolId,
-                        provider: provider,
-                        onSelectPostId: onOpenPostId,
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF0055AA), Color(0xFF0077EE)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          onOpenComic(poolId, post);
+                        },
                         borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color:
-                                const Color(0xFF0055AA).withValues(alpha: 0.25),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.auto_stories_rounded,
-                              size: 15, color: Colors.white),
-                          const SizedBox(width: 6),
-                          Text(
-                            isRu
-                                ? 'Открыть комикс (Пул #$poolId)'
-                                : 'Open Pool #$poolId',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 9),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF0055AA), Color(0xFF0077EE)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF0055AA)
+                                    .withValues(alpha: 0.25),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.arrow_forward_ios_rounded,
-                              size: 10, color: Colors.white),
-                        ],
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.auto_stories_rounded,
+                                  size: 16, color: Colors.white),
+                              const SizedBox(width: 7),
+                              Text(
+                                isRu
+                                    ? 'Читать весь комикс (#$poolId)'
+                                    : 'Read Full Comic (#$poolId)',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(width: 5),
+                              const Icon(Icons.arrow_forward_rounded,
+                                  size: 13, color: Colors.white),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    const SizedBox(width: 4),
+                    IconButton.filledTonal(
+                      tooltip: isRu ? 'Все страницы' : 'All pages',
+                      style: IconButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        E621PoolSheet.show(
+                          context,
+                          currentPost: post,
+                          poolId: poolId,
+                          provider: provider,
+                          onSelectPostId: (targetId) =>
+                              onOpenComic(poolId, post, targetId),
+                        );
+                      },
+                      icon: const Icon(Icons.grid_view_rounded, size: 16),
+                    ),
+                  ],
                 ),
             ],
           ),
