@@ -48,9 +48,19 @@ class E621Provider
 
   bool get isAuthorized =>
       _queryParameters.containsKey('login') ||
+      _queryParameters.containsKey('query.login') ||
       _dio.options.headers.containsKey('Authorization');
 
-  String? get login => _queryParameters['login'];
+  String? get login =>
+      _queryParameters['login'] ?? _queryParameters['query.login'];
+
+  Future<List<Post>> getFavorites({int page = 1, int limit = 50}) async {
+    final currentLogin = login?.trim();
+    final targetTag = (currentLogin != null && currentLogin.isNotEmpty)
+        ? 'fav:$currentLogin'
+        : 'fav:me';
+    return searchPosts(tags: [targetTag], page: page - 1, limit: limit);
+  }
 
   @override
   String postPageUrl(Post post) => '$baseUrl/posts/${post.id}';

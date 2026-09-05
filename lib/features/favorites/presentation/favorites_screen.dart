@@ -15,6 +15,7 @@ import '../../../shared/widgets/empty_view.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/post_masonry_grid.dart';
 import 'favorites_controller.dart';
+import 'widgets/e621_favorites_view.dart';
 
 enum FavoriteMediaType { all, video, image }
 enum OfflineSortOption { dateAddedDesc, sizeDesc, artist }
@@ -315,6 +316,17 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
+                              const ButtonSegment(
+                                value: 3,
+                                icon: Icon(Icons.hub_rounded,
+                                    size: 18, color: Color(0xFF0077EE)),
+                                label: Text(
+                                  'e621',
+                                  style: TextStyle(
+                                      fontSize: 12, fontWeight: FontWeight.w600),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
                             ],
                             selected: {_tabIndex},
                             onSelectionChanged: (value) {
@@ -333,7 +345,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
               ),
 
               // Media Type Filter Chips (for Tab 0 and Tab 1)
-              if (_tabIndex != 2)
+              if (_tabIndex != 2 && _tabIndex != 3)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   child: Row(
@@ -398,6 +410,10 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                       settings,
                       downloaded.keys.toSet(),
                       isRu,
+                    ),
+                  3 => E621FavoritesView(
+                      settings: settings,
+                      isRu: isRu,
                     ),
                   _ => _buildAllView(
                       allPosts,

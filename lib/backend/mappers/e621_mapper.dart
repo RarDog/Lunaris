@@ -6,8 +6,19 @@ class E621Mapper {
     required String providerId,
     required String providerName,
   }) {
-    final posts = data is Map ? data['posts'] : data;
-    final items = posts is List ? posts : const [];
+    if (data is Map && data['post'] is Map) {
+      return [
+        postFromJson(
+          Map<String, dynamic>.from(data['post'] as Map),
+          providerId: providerId,
+          providerName: providerName,
+        ),
+      ];
+    }
+    final posts = data is Map ? (data['posts'] ?? data['post']) : data;
+    final items = posts is List
+        ? posts
+        : (posts is Map ? [posts] : const []);
     return items
         .whereType<Map>()
         .map((item) => postFromJson(
