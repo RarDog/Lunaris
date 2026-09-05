@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' hide appBuildNumber;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1439,7 +1440,7 @@ class _SettingsIconBadge extends StatelessWidget {
   }
 }
 
-class _CategoryQuickNav extends StatelessWidget {
+class _CategoryQuickNav extends StatefulWidget {
   const _CategoryQuickNav({
     required this.categories,
     required this.onSelect,
@@ -1450,102 +1451,142 @@ class _CategoryQuickNav extends StatelessWidget {
   final ValueChanged<GlobalKey> onSelect;
 
   @override
+  State<_CategoryQuickNav> createState() => _CategoryQuickNavState();
+}
+
+class _CategoryQuickNavState extends State<_CategoryQuickNav> {
+  final ScrollController _scrollController = ScrollController();
+  bool _isHovered = false;
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return SizedBox(
-      height: 44,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        scrollDirection: Axis.horizontal,
-        itemCount: categories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final cat = categories[index];
-          return Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(22),
-              boxShadow: [
-                BoxShadow(
-                  color: isDark
-                      ? Colors.black.withValues(alpha: 0.25)
-                      : cat.color.withValues(alpha: 0.12),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2.5),
+    return MouseRegion(
+      onEnter: (_) => _isHovered = true,
+      onExit: (_) => _isHovered = false,
+      child: Listener(
+        onPointerSignal: (event) {
+          if (!_isHovered ||
+              event is! PointerScrollEvent ||
+              !_scrollController.hasClients) {
+            return;
+          }
+          final delta = event.scrollDelta.dy != 0
+              ? event.scrollDelta.dy
+              : event.scrollDelta.dx;
+          if (delta == 0) return;
+          final target = (_scrollController.offset + delta * 1.5).clamp(
+            0.0,
+            _scrollController.position.maxScrollExtent,
+          );
+          _scrollController.jumpTo(target);
+        },
+        child: SizedBox(
+          height: 44,
+          child: ListView.separated(
+            controller: _scrollController,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            scrollDirection: Axis.horizontal,
+            itemCount: widget.categories.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final cat = widget.categories[index];
+              return Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(22),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isDark
+                          ? Colors.black.withValues(alpha: 0.25)
+                          : cat.color.withValues(alpha: 0.12),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2.5),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(22),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                child: Material(
-                  color: isDark
-                      ? theme.colorScheme.surfaceContainerHigh.withValues(alpha: 0.60)
-                      : Colors.white.withValues(alpha: 0.82),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(22),
-                    onTap: () {
-                      HapticFeedback.selectionClick();
-                      onSelect(cat.key);
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                      decoration: BoxDecoration(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(22),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                    child: Material(
+                      color: isDark
+                          ? theme.colorScheme.surfaceContainerHigh
+                              .withValues(alpha: 0.60)
+                          : Colors.white.withValues(alpha: 0.82),
+                      child: InkWell(
                         borderRadius: BorderRadius.circular(22),
-                        border: Border.all(
-                          color: isDark
-                              ? Colors.white.withValues(alpha: 0.18)
-                              : Colors.white.withValues(alpha: 0.85),
-                          width: 1.1,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 24,
-                            height: 24,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  cat.color,
-                                  cat.color.withValues(alpha: 0.82),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(7),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: cat.color.withValues(alpha: 0.35),
-                                  blurRadius: 5,
-                                  offset: const Offset(0, 1.5),
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          widget.onSelect(cat.key);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 7),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(22),
+                            border: Border.all(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.18)
+                                  : Colors.white.withValues(alpha: 0.85),
+                              width: 1.1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      cat.color,
+                                      cat.color.withValues(alpha: 0.82),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(7),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: cat.color.withValues(alpha: 0.35),
+                                      blurRadius: 5,
+                                      offset: const Offset(0, 1.5),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            child: Center(
-                              child: Icon(cat.icon, size: 14, color: Colors.white),
-                            ),
+                                child: Center(
+                                  child: Icon(cat.icon,
+                                      size: 14, color: Colors.white),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                cat.label,
+                                style: theme.textTheme.labelLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          Text(
-                            cat.label,
-                            style: theme.textTheme.labelLarge?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: -0.2,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ),
-          );
-        },
+              );
+            },
+          ),
+        ),
       ),
     );
   }

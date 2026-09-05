@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -1328,7 +1329,7 @@ class _FavoriteArtistsModalState extends State<_FavoriteArtistsModal> {
   }
 }
 
-class _FavoriteArtistsSection extends ConsumerWidget {
+class _FavoriteArtistsSection extends StatefulWidget {
   const _FavoriteArtistsSection({
     required this.favorites,
     required this.selectedKey,
@@ -1344,8 +1345,23 @@ class _FavoriteArtistsSection extends ConsumerWidget {
   final ValueChanged<FavoriteArtistItem> onRemoveFavorite;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (favorites.isEmpty) {
+  State<_FavoriteArtistsSection> createState() =>
+      _FavoriteArtistsSectionState();
+}
+
+class _FavoriteArtistsSectionState extends State<_FavoriteArtistsSection> {
+  final ScrollController _scrollController = ScrollController();
+  bool _isHovered = false;
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.favorites.isEmpty) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
         child: _ArtistsLiquidCard(
@@ -1368,9 +1384,9 @@ class _FavoriteArtistsSection extends ConsumerWidget {
       );
     }
 
-    final selected = favorites.firstWhere(
-      (f) => f.key == selectedKey,
-      orElse: () => favorites.first,
+    final selected = widget.favorites.firstWhere(
+      (f) => f.key == widget.selectedKey,
+      orElse: () => widget.favorites.first,
     );
 
     return Padding(
@@ -1385,14 +1401,14 @@ class _FavoriteArtistsSection extends ConsumerWidget {
                 const Icon(Icons.star_rounded, color: Colors.amber, size: 20),
                 const SizedBox(width: 6),
                 Text(
-                  'Любимые авторы (${favorites.length})',
+                  'Любимые авторы (${widget.favorites.length})',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                 ),
                 const Spacer(),
                 TextButton(
-                  onPressed: () => onOpenArtist(selected),
+                  onPressed: () => widget.onOpenArtist(selected),
                   style: TextButton.styleFrom(
                     visualDensity: VisualDensity.compact,
                     padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -1409,113 +1425,136 @@ class _FavoriteArtistsSection extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 8),
-            SizedBox(
-              height: 88,
-              child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                scrollDirection: Axis.horizontal,
-                itemCount: favorites.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
-                itemBuilder: (context, index) {
-                  final fav = favorites[index];
-                  final isSelected = fav.key == selected.key;
-                  final sColor = _serviceColor(fav.service);
-
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () => onSelect(fav),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? Theme.of(context)
-                                .colorScheme
-                                .primaryContainer
-                                .withValues(alpha: 0.45)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: isSelected
-                              ? Theme.of(context).colorScheme.primary
-                              : Colors.transparent,
-                          width: 1.5,
-                        ),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .primary
-                                      .withValues(alpha: 0.25),
-                                  blurRadius: 8,
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: isSelected
-                                    ? Theme.of(context).colorScheme.primary
-                                    : sColor.withValues(alpha: 0.4),
-                                width: 1.2,
-                              ),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(13),
-                              child: fav.avatarUrl != null &&
-                                      fav.avatarUrl!.isNotEmpty
-                                  ? CachedNetworkImage(
-                                      imageUrl: fav.avatarUrl!,
-                                      memCacheWidth: 120,
-                                      memCacheHeight: 120,
-                                      fit: BoxFit.cover,
-                                      placeholder: (_, __) => const Icon(
-                                          Icons.person_rounded,
-                                          size: 20),
-                                      errorWidget: (_, __, ___) => const Icon(
-                                          Icons.person_rounded,
-                                          size: 20),
-                                    )
-                                  : Center(
-                                      child: Text(
-                                        fav.name.isNotEmpty
-                                            ? fav.name[0].toUpperCase()
-                                            : '?',
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          SizedBox(
-                            width: 68,
-                            child: Text(
-                              fav.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: isSelected
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+            MouseRegion(
+              onEnter: (_) => _isHovered = true,
+              onExit: (_) => _isHovered = false,
+              child: Listener(
+                onPointerSignal: (event) {
+                  if (!_isHovered ||
+                      event is! PointerScrollEvent ||
+                      !_scrollController.hasClients) {
+                    return;
+                  }
+                  final delta = event.scrollDelta.dy != 0
+                      ? event.scrollDelta.dy
+                      : event.scrollDelta.dx;
+                  if (delta == 0) return;
+                  final target = (_scrollController.offset + delta * 1.5).clamp(
+                    0.0,
+                    _scrollController.position.maxScrollExtent,
                   );
+                  _scrollController.jumpTo(target);
                 },
+                child: SizedBox(
+                  height: 88,
+                  child: ListView.separated(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: widget.favorites.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 10),
+                    itemBuilder: (context, index) {
+                      final fav = widget.favorites[index];
+                      final isSelected = fav.key == selected.key;
+                      final sColor = _serviceColor(fav.service);
+
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () => widget.onSelect(fav),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? Theme.of(context)
+                                    .colorScheme
+                                    .primaryContainer
+                                    .withValues(alpha: 0.45)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isSelected
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Colors.transparent,
+                              width: 1.5,
+                            ),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .primary
+                                          .withValues(alpha: 0.25),
+                                      blurRadius: 8,
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? Theme.of(context).colorScheme.primary
+                                        : sColor.withValues(alpha: 0.4),
+                                    width: 1.2,
+                                  ),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(13),
+                                  child: fav.avatarUrl != null &&
+                                          fav.avatarUrl!.isNotEmpty
+                                      ? CachedNetworkImage(
+                                          imageUrl: fav.avatarUrl!,
+                                          memCacheWidth: 120,
+                                          memCacheHeight: 120,
+                                          fit: BoxFit.cover,
+                                          placeholder: (_, __) => const Icon(
+                                              Icons.person_rounded,
+                                              size: 20),
+                                          errorWidget: (_, __, ___) => const Icon(
+                                              Icons.person_rounded,
+                                              size: 20),
+                                        )
+                                      : Center(
+                                          child: Text(
+                                            fav.name.isNotEmpty
+                                                ? fav.name[0].toUpperCase()
+                                                : '?',
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              SizedBox(
+                                width: 68,
+                                child: Text(
+                                  fav.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 6),
@@ -1527,18 +1566,34 @@ class _FavoriteArtistsSection extends ConsumerWidget {
   }
 }
 
-class _FavoriteArtistMediaStrip extends ConsumerWidget {
+class _FavoriteArtistMediaStrip extends ConsumerStatefulWidget {
   const _FavoriteArtistMediaStrip({required this.artist});
 
   final FavoriteArtistItem artist;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_FavoriteArtistMediaStrip> createState() =>
+      _FavoriteArtistMediaStripState();
+}
+
+class _FavoriteArtistMediaStripState
+    extends ConsumerState<_FavoriteArtistMediaStrip> {
+  final ScrollController _scrollController = ScrollController();
+  bool _isHovered = false;
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final query = ArtistWorkQuery(
-      providerId: artist.providerId,
-      service: artist.service,
-      artistId: artist.id,
-      artistName: artist.name,
+      providerId: widget.artist.providerId,
+      service: widget.artist.service,
+      artistId: widget.artist.id,
+      artistName: widget.artist.name,
     );
     final asyncPosts = ref.watch(artistPostsProvider(query));
 
@@ -1566,78 +1621,101 @@ class _FavoriteArtistMediaStrip extends ConsumerWidget {
               ),
             );
           }
-          return SizedBox(
-            height: 96,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: posts.length.clamp(0, 15),
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, index) {
-                final post = posts[index];
-                final isVideo = MediaUrlSelector.isVideo(post);
-                return InkWell(
-                  borderRadius: BorderRadius.circular(14),
-                  onTap: () => AppNavigator.openPost(
-                    context,
-                    post: post,
-                    postsList: posts,
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        width: 1.0,
-                      ),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(13),
-                      child: Stack(
-                        children: [
-                          SizedBox(
-                            width: 96,
-                            height: 96,
-                            child: CachedNetworkImage(
-                              imageUrl: post.previewUrl.isNotEmpty
-                                  ? post.previewUrl
-                                  : post.sampleUrl,
-                              memCacheWidth: 200,
-                              memCacheHeight: 200,
-                              fit: BoxFit.cover,
-                              placeholder: (_, __) => ColoredBox(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
-                              ),
-                              errorWidget: (_, __, ___) => ColoredBox(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
-                                child: const Icon(Icons.broken_image_rounded,
-                                    size: 24),
-                              ),
-                            ),
-                          ),
-                          if (isVideo)
-                            Positioned(
-                              bottom: 6,
-                              right: 6,
-                              child: Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.7),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.play_arrow_rounded,
-                                    color: Colors.white, size: 14),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
+          return MouseRegion(
+            onEnter: (_) => _isHovered = true,
+            onExit: (_) => _isHovered = false,
+            child: Listener(
+              onPointerSignal: (event) {
+                if (!_isHovered ||
+                    event is! PointerScrollEvent ||
+                    !_scrollController.hasClients) {
+                  return;
+                }
+                final delta = event.scrollDelta.dy != 0
+                    ? event.scrollDelta.dy
+                    : event.scrollDelta.dx;
+                if (delta == 0) return;
+                final target = (_scrollController.offset + delta * 1.5).clamp(
+                  0.0,
+                  _scrollController.position.maxScrollExtent,
                 );
+                _scrollController.jumpTo(target);
               },
+              child: SizedBox(
+                height: 96,
+                child: ListView.separated(
+                  controller: _scrollController,
+                  scrollDirection: Axis.horizontal,
+                  itemCount: posts.length.clamp(0, 15),
+                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                  itemBuilder: (context, index) {
+                    final post = posts[index];
+                    final isVideo = MediaUrlSelector.isVideo(post);
+                    return InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: () => AppNavigator.openPost(
+                        context,
+                        post: post,
+                        postsList: posts,
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            width: 1.0,
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(13),
+                          child: Stack(
+                            children: [
+                              SizedBox(
+                                width: 96,
+                                height: 96,
+                                child: CachedNetworkImage(
+                                  imageUrl: post.previewUrl.isNotEmpty
+                                      ? post.previewUrl
+                                      : post.sampleUrl,
+                                  memCacheWidth: 200,
+                                  memCacheHeight: 200,
+                                  fit: BoxFit.cover,
+                                  placeholder: (_, __) => ColoredBox(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .surfaceContainerHighest,
+                                  ),
+                                  errorWidget: (_, __, ___) => ColoredBox(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .surfaceContainerHighest,
+                                    child: const Icon(Icons.broken_image_rounded,
+                                        size: 24),
+                                  ),
+                                ),
+                              ),
+                              if (isVideo)
+                                Positioned(
+                                  bottom: 6,
+                                  right: 6,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.7),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(Icons.play_arrow_rounded,
+                                        color: Colors.white, size: 14),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
             ),
           );
         },

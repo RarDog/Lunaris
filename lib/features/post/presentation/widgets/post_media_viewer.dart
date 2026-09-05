@@ -448,7 +448,9 @@ class _PostMediaViewerState extends State<PostMediaViewer>
       _player!,
       configuration: VideoControllerConfiguration(
         enableHardwareAcceleration: !_softwareDecodingFallback,
-        hwdec: _softwareDecodingFallback ? 'no' : 'auto-safe',
+        hwdec: _softwareDecodingFallback
+            ? 'no'
+            : (Platform.isAndroid ? 'auto-safe' : 'auto'),
       ),
     );
     _applyVolume();
