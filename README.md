@@ -186,7 +186,7 @@ lib/
 ## ⚠️ Disclaimer & Vibe Coding
 
 > [!NOTE]
-> This project is 100% **vibe coding** built in tandem with an AI coding partner. I have zero background in Dart and Flutter — this entire project is powered purely by enthusiasm, curiosity, and vibes.
+> This project is 100% **vibe coding** built in tandem with an AI coding partner. I have zero background in Dart and Flutter — this project is built for personal use out of pure enthusiasm.
 >
 > Although every build is personally and thoroughly tested in daily use before being published, the codebase may still contain quirks, bugs, or sub-optimal patterns. This is a passion project built for personal fun and convenience, which means development could slow down or be abandoned at any moment without prior notice. Community contributions, advice, and pull requests are always welcome!
 
