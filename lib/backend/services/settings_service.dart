@@ -674,7 +674,7 @@ class SettingsService {
     return Success(
       const JsonEncoder.withIndent('  ').convert({
         'app': {
-          'name': 'Lunaris',
+          'name': 'Prisma',
           'version': appVersion,
           'build': buildNumber,
           'generatedAt': DateTime.now().toIso8601String(),

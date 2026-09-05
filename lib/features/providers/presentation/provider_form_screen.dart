@@ -494,7 +494,7 @@ class _ProviderFormScreenState extends ConsumerState<ProviderFormScreen> {
                 child: _GlassTextField(
                   controller: _headers,
                   label: isRu ? 'Пользовательские заголовки' : 'Headers JSON',
-                  hint: '{"User-Agent": "Lunaris/3.0"}',
+                  hint: '{"User-Agent": "Prisma/3.0"}',
                   icon: Icons.code_rounded,
                   minLines: 2,
                   maxLines: 5,

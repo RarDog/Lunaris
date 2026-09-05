@@ -546,7 +546,7 @@ class _PostMediaViewerState extends State<PostMediaViewer>
     }
 
     return {
-      'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
+      'User-Agent': 'Prisma/2.0.1 Flutter local booru browser',
       'Accept': '*/*',
       if (defaultReferer != null) 'Referer': defaultReferer,
       ...widget.mediaHeaders,

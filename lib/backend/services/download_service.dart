@@ -224,7 +224,7 @@ class DownloadService {
     return {
       'User-Agent': lower.contains('realbooru') || lower.contains('paheal')
           ? 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/125 Mobile Safari/537.36'
-          : 'Lunaris/2.0.1 Flutter local booru browser',
+          : 'Prisma/2.0.1 Flutter local booru browser',
       'Accept': lower.contains('realbooru') || lower.contains('paheal')
           ? 'video/webm,video/mp4,image/avif,image/webp,image/apng,image/*,*/*;q=0.8'
           : '*/*',

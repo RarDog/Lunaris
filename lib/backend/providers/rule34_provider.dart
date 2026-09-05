@@ -21,7 +21,7 @@ class Rule34Provider extends GelbooruProvider {
 
   @override
   Map<String, String> mediaHeaders(Post post) => const {
-        'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
+        'User-Agent': 'Prisma/2.0.1 Flutter local booru browser',
         'Accept': '*/*',
         'Referer': 'https://rule34.xxx/',
       };

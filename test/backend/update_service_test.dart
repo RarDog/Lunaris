@@ -13,24 +13,24 @@ void main() {
     final info = AppUpdateInfo(
       version: '2.0.2',
       tagName: 'v2.0.2',
-      name: 'Lunaris 2.0.2',
+      name: 'Prisma 2.0.2',
       body: 'Release notes',
-      htmlUrl: 'https://github.com/RarDog/Lunaris/releases/tag/v2.0.2',
+      htmlUrl: 'https://github.com/RarDog/Prisma/releases/tag/v2.0.2',
       publishedAt: DateTime.parse('2026-09-03T18:00:00Z'),
-      apkUrl: 'https://github.com/RarDog/Lunaris/releases/download/v2.0.2/Lunaris.apk',
-      linuxTarGzUrl: 'https://github.com/RarDog/Lunaris/releases/download/v2.0.2/linux.tar.gz',
+      apkUrl: 'https://github.com/RarDog/Prisma/releases/download/v2.0.2/Prisma.apk',
+      linuxTarGzUrl: 'https://github.com/RarDog/Prisma/releases/download/v2.0.2/linux.tar.gz',
     );
 
     expect(info.hasAssets, isTrue);
     expect(info.apkUrl, contains('apk'));
     expect(info.linuxTarGzUrl, contains('linux'));
     expect(
-      service.assetFileName(info, 'https://github.com/RarDog/Lunaris/releases/download/v2.0.2/Lunaris-v2.0.2.apk'),
-      'Lunaris-v2.0.2.apk',
+      service.assetFileName(info, 'https://github.com/RarDog/Prisma/releases/download/v2.0.2/Prisma-v2.0.2.apk'),
+      'Prisma-v2.0.2.apk',
     );
     expect(
-      service.assetFileName(info, 'https://github.com/RarDog/Lunaris/releases/download/v2.0.2/unknown-linux'),
-      'Lunaris-v2.0.2-linux-x64.tar.gz',
+      service.assetFileName(info, 'https://github.com/RarDog/Prisma/releases/download/v2.0.2/unknown-linux'),
+      'Prisma-v2.0.2-linux-x64.tar.gz',
     );
   });
 }

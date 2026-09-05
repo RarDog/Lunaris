@@ -97,7 +97,7 @@ class _AppOverlayState extends ConsumerState<_AppOverlay> {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('${strings.appUpdateAvailable}: Lunaris ${info.version}'),
+        title: Text('${strings.appUpdateAvailable}: Prisma ${info.version}'),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
           child: SingleChildScrollView(

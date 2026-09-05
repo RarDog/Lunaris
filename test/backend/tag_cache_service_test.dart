@@ -10,7 +10,7 @@ void main() {
   late TagCacheService cacheService;
 
   setUp(() async {
-    tempDir = await Directory.systemTemp.createTemp('lunaris_test_tag_cache');
+    tempDir = await Directory.systemTemp.createTemp('prisma_test_tag_cache');
     cacheFilePath = '${tempDir.path}/test_tags.json';
     cacheService = TagCacheService(customPath: cacheFilePath);
     await cacheService.init();

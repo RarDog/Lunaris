@@ -111,7 +111,7 @@ class UpdateService {
               'Authorization': 'token 1c744d6044d756759d7b1f693c94c80cf70d75fa',
             }
           : {
-              'User-Agent': 'Lunaris-App',
+              'User-Agent': 'Prisma-App',
               'Accept': 'application/vnd.github+json',
             },
     );
@@ -239,10 +239,10 @@ class UpdateService {
     final fromUrl =
         parsed?.pathSegments.isEmpty ?? true ? '' : parsed!.pathSegments.last;
     if (fromUrl.contains('.')) return fromUrl;
-    if (Platform.isAndroid) return 'Lunaris-v${info.version}.apk';
-    if (Platform.isLinux) return 'Lunaris-v${info.version}-linux-x64.tar.gz';
-    if (Platform.isWindows) return 'LunarisSetup-v${info.version}.exe';
-    return 'LunarisPortable-v${info.version}.zip';
+    if (Platform.isAndroid) return 'Prisma-v${info.version}.apk';
+    if (Platform.isLinux) return 'Prisma-v${info.version}-linux-x64.tar.gz';
+    if (Platform.isWindows) return 'PrismaSetup-v${info.version}.exe';
+    return 'PrismaPortable-v${info.version}.zip';
   }
 
   static String _versionFromTag(String tag) {

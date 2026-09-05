@@ -94,7 +94,7 @@ class PawchiveSyncService {
           followRedirects: false,
           validateStatus: (status) => status != null && status < 500,
           headers: const {
-            'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
+            'User-Agent': 'Prisma/2.0.1 Flutter local booru browser',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
           },
         ),
@@ -231,7 +231,7 @@ class PawchiveSyncService {
         headers: {
           'Cookie': 'session=$cleanCookie',
           'Accept': 'application/json',
-          'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
+          'User-Agent': 'Prisma/2.0.1 Flutter local booru browser',
         },
         validateStatus: (status) => status != null && status < 500,
       ),
@@ -509,7 +509,7 @@ class PawchiveSyncService {
     final options = Options(
       headers: {
         'Cookie': 'session=$cleanCookie',
-        'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
+        'User-Agent': 'Prisma/2.0.1 Flutter local booru browser',
       },
       validateStatus: (status) =>
           status != null && (status == 200 || status == 201 || status == 204),

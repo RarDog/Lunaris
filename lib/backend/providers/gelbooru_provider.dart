@@ -46,7 +46,7 @@ class GelbooruProvider
   Map<String, String> mediaHeaders(Post post) {
     final host = Uri.tryParse(baseUrl)?.host;
     return {
-      'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
+      'User-Agent': 'Prisma/2.0.1 Flutter local booru browser',
       'Accept': '*/*',
       if (host != null && host.isNotEmpty) 'Referer': '$baseUrl/',
     };

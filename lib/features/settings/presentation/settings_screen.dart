@@ -403,7 +403,7 @@ class _SettingsContentState extends ConsumerState<_SettingsContent> {
                               ? 'Beta и экспериментальные обновления'
                               : 'Receive beta & experimental updates',
                           subtitle: isRu
-                              ? 'Проверка и уведомление о prerelease сборках Lunaris'
+                              ? 'Проверка и уведомление о prerelease сборках Prisma'
                               : 'Include prerelease builds when checking for updates',
                           value: settings.allowExperimentalUpdates,
                           onChanged: (val) => _update(
@@ -1278,7 +1278,7 @@ class _SettingsContentState extends ConsumerState<_SettingsContent> {
       messenger.showSnackBar(
         SnackBar(
           content: Text(
-            isRu ? 'У вас установлена последняя версия Lunaris' : 'Lunaris is up to date',
+            isRu ? 'У вас установлена последняя версия Prisma' : 'Prisma is up to date',
           ),
         ),
       );
@@ -1295,7 +1295,7 @@ class _SettingsContentState extends ConsumerState<_SettingsContent> {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Lunaris ${info.version} is available'),
+        title: Text('Prisma ${info.version} is available'),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
           child: SingleChildScrollView(
@@ -1356,7 +1356,7 @@ class _SettingsContentState extends ConsumerState<_SettingsContent> {
     return showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Lunaris changelog'),
+        title: const Text('Prisma changelog'),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 560),
           child: SingleChildScrollView(
@@ -1364,7 +1364,7 @@ class _SettingsContentState extends ConsumerState<_SettingsContent> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                for (final change in lunarisChangelog) ...[
+                for (final change in prismaChangelog) ...[
                   Text(
                     '${change.version} - ${change.title}',
                     style: Theme.of(context).textTheme.titleMedium,
@@ -2341,7 +2341,7 @@ class _ColorSwatches extends StatelessWidget {
   final ValueChanged<int> onChanged;
 
   static const colors = <(int, String)>[
-    (0xFFE84D8A, 'Lunaris pink'),
+    (0xFFE84D8A, 'Prisma pink'),
     (0xFF8B5CF6, 'Violet'),
     (0xFF3B82F6, 'Azure'),
     (0xFF0EA5E9, 'Sky'),
@@ -2565,7 +2565,7 @@ class _HeroBrandBanner extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(
-            'Lunaris',
+            'Prisma',
             style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w800,
               letterSpacing: -0.5,
@@ -2619,7 +2619,7 @@ class _HeroBrandBanner extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: () async {
                   final url = Uri.parse(
-                    'https://github.com/RarDog/Lunaris',
+                    'https://github.com/RarDog/Prisma',
                   );
                   await launchUrl(url, mode: LaunchMode.externalApplication);
                 },

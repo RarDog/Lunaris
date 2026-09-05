@@ -1057,7 +1057,7 @@ class _MobilePostPagerState extends State<_MobilePostPager> {
 
   Map<String, String> _headersFor(Post post) {
     return const {
-      'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
+      'User-Agent': 'Prisma/2.0.1 Flutter local booru browser',
       'Accept': '*/*',
     };
   }

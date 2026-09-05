@@ -52,13 +52,13 @@ class BackupService {
   Future<bool> exportBackup() async {
     final json = await createBackupJson();
     final fileName =
-        'lunaris_backup_${DateTime.now().millisecondsSinceEpoch}.json';
+        'prisma_backup_${DateTime.now().millisecondsSinceEpoch}.json';
 
     if (Platform.isAndroid) {
       final tempDir = await getTemporaryDirectory();
       final file = File('${tempDir.path}/$fileName');
       await file.writeAsString(json);
-      await Share.shareXFiles([XFile(file.path)], text: 'Lunaris Backup');
+      await Share.shareXFiles([XFile(file.path)], text: 'Prisma Backup');
       return true;
     }
 

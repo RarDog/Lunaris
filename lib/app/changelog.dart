@@ -1,5 +1,14 @@
-const lunarisChangelog = [
-  LunarisChange(
+const prismaChangelog = [
+  PrismaChange(
+    version: '3.4.1',
+    title: 'Полный ребрендинг интерфейса: заголовок ленты, окно «О приложении» и системные службы',
+    bullets: [
+      'Полное обновление названия в интерфейсе: заголовок в шапке ленты заменен на Prisma, обновлен логотип и карточка в диалоге «О приложении».',
+      'Окна обновлений и чейнджлогов: все диалоги проверки обновлений, чейнджлога и бета-версий теперь используют имя Prisma.',
+      'Системные службы и User-Agent: сетевой стек, экспорт резервных копий и кэш тегов переведены на Prisma с автоматической миграцией сохраненных данных.',
+    ],
+  ),
+  PrismaChange(
     version: '3.4.0',
     title: 'Ребрендинг в Prisma: новое имя, комфортная прокрутка анонсов и обновленные репозитории',
     bullets: [
@@ -8,7 +17,7 @@ const lunarisChangelog = [
       'Синхронизация репозиториев: репозитории на GitHub и Gitea переведены на Prisma, ссылки внутри приложения и служба автообновления переключены на новые адреса.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '3.3.1',
     title: 'Улучшенное разделение текстовых постов и облачных зеркал',
     bullets: [
@@ -17,7 +26,7 @@ const lunarisChangelog = [
       'Чистый и нативный вид карточек: если у медиапоста есть только ссылки или только описание, отображается аккуратная монолитная секция с соответствующим заголовком и иконкой без лишних переключателей.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '3.3.0',
     title: 'Редизайн личных сообщений и рассылок артиста, нативная поддержка текстовых публикаций',
     bullets: [
@@ -28,7 +37,7 @@ const lunarisChangelog = [
       'Поддержка анонсов в Kemono и Coomer: API анонсов и персональных сообщений теперь полноценно работает для всех поддерживаемых провайдеров.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '3.2.0',
     title: 'Стабильный полноэкранный режим: сохранение воспроизведения, устранение вылетов плеера и чистый интерфейс',
     bullets: [
@@ -38,7 +47,7 @@ const lunarisChangelog = [
       'Быстрое скрытие и показ контролов: касание свободной области видео плавно переключает видимость панели управления, а при нажатии на кнопки таймер автоскрытия автоматически обновляется.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '3.1.9',
     title: 'Полноэкранный плеер 2.0: мгновенный переход без задержек, жесты яркости и скраббинг с превью',
     bullets: [
@@ -48,7 +57,7 @@ const lunarisChangelog = [
       'Сброс яркости: при выходе из полноэкранного режима системный уровень яркости экрана аккуратно восстанавливается.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '3.1.8',
     title: 'Безупречный полноэкранный плеер: устранение остановки при развертывании и отзывчивые кнопки управления',
     bullets: [
@@ -58,7 +67,7 @@ const lunarisChangelog = [
       'Синхронизация состояния при сворачивании: плеер точно запоминает состояние паузы/воспроизведения при выходе из полноэкранного режима обратно в пост.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '3.1.7',
     title: 'Устранение критического сбоя при открытии видеопоста (SIGSEGV в libmpv)',
     bullets: [
@@ -67,7 +76,7 @@ const lunarisChangelog = [
       'Надежный фоллбэк при редких ошибках кодека: при несовместимости аппаратного декодера плеер бесшовно переключается на программный FFmpeg-декодер без риска краша.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '3.1.6',
     title: 'Надежный полноэкранный плеер, сохранение провайдеров в поиске, громкость и устранение ошибки кодека',
     bullets: [
@@ -77,7 +86,7 @@ const lunarisChangelog = [
       'Автоматический fallback для ошибки Could not open codec: видеоплеер получил безопасные профили декодирования и автопереключение на программный лавк-декодер (FFmpeg software fallback) при редких сбоях аппаратного ускорения.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '3.1.5',
     title: 'Сохранение громкости видео, исправление полноэкранного плеера, фильтрации и удобства комментариев',
     bullets: [
@@ -88,7 +97,7 @@ const lunarisChangelog = [
       'Удобный доступ к комментариям в посте: увеличен отступ снизу в деталях поста и расширена зона клика блока комментариев, позволяя комфортно прокрутить их выше системных жестов навигации.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '3.1.4',
     title: 'Оптимизация видеоплеера — адаптивная высота и идеальное прилегание полосы воспроизведения',
     bullets: [
@@ -97,7 +106,7 @@ const lunarisChangelog = [
       'Компактные элементы управления: выровнены буферный трек и слайдер прокрутки, оптимизирован градиент затенения для максимальной видимости и удобства управления.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '3.1.3',
     title: 'iPhone Liquid Glass — Источники, Проверка сети и Навигация назад по вкладкам',
     bullets: [
@@ -107,7 +116,7 @@ const lunarisChangelog = [
       'Liquid Glass редизайн проверки состояния источников (Provider Check): карточка общих метрик сети (онлайн/офлайн, средний пинг), раскрывающиеся аккордеоны детальной диагностики, живые светодиодные LED-индикаторы статуса и кнопка одновременной проверки всех провайдеров.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '3.1.2',
     title: 'Оптимизация производительности: устранение лагов при скролле к тегам',
     bullets: [
@@ -117,7 +126,7 @@ const lunarisChangelog = [
       'Интеллектуальный лимит начального отображения: оптимизировано первоначальное количество отображаемых тегов в огромных категориях с удобной кнопкой быстрого раскрытия.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '3.1.1',
     title: 'Деление тегов по стилю e621/Gelbooru/Rule34 и исправление поиска тегов со скобками',
     bullets: [
@@ -129,7 +138,7 @@ const lunarisChangelog = [
       'Liquid Glass оформление блока тегов в детальном просмотре поста на мобильных и десктоп устройствах.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '3.1.0',
     title: 'iPhone Liquid Glass — Поиск, Избранное, История и исправление доступности',
     bullets: [
@@ -139,7 +148,7 @@ const lunarisChangelog = [
       'Тактильный отклик и стеклянные пилюли: быстрые операторы, категории, недавние запросы, фильтры медиа и переключатели разделов получили матовое оформление и вибрационный отклик Haptic Feedback.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '3.0.9',
     title: 'Коррекция позиции кнопки настроек и отображения кнопок JSON и бэкапа',
     bullets: [
@@ -148,7 +157,7 @@ const lunarisChangelog = [
       'Улучшенный дизайн и сетка кнопок экспорта/импорта: кнопки бэкапа и JSON организованы в симметричные аккуратные строки с яркими акцентными бейджами.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '3.0.8',
     title: 'iPhone Liquid Glass — раздел «Настройки» и парящая стеклянная кнопка',
     bullets: [
@@ -158,7 +167,7 @@ const lunarisChangelog = [
       'Стеклянная быстрая навигация по категориям: зафиксированная панель категорий с размытием фона и тактильным откликом при переключении разделов.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '3.0.7',
     title: 'Liquid Glass Navigation Bar — парящая стеклянная панель и анимированная пилюля',
     bullets: [
@@ -168,7 +177,7 @@ const lunarisChangelog = [
       'Глубина контента: контент ленты, поиска и галереи плавно просвечивает и размывается под стеклянной панелью при прокрутке.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '3.0.6',
     title: 'Улучшение недавних запросов и отображения тегов',
     bullets: [
@@ -178,7 +187,7 @@ const lunarisChangelog = [
       'Удобное удаление: увеличенная область нажатия для кнопки удаления (крестика) предотвращает случайные нажатия на сам запрос.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '3.0.5',
     title: 'Интерактивные ссылки на соцсети и авторов в объявлениях и описаниях',
     bullets: [
@@ -187,7 +196,7 @@ const lunarisChangelog = [
       'Корректная очистка пунктуации: знаки препинания в конце URL (!, ?, :, ., ,, ;, >) больше не ломают ссылки.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '3.0.0',
     title: 'Lunaris 3.0 — Глобальное обновление: Дизайн 2.0, Интеграция Pawchive и умная синхронизация',
     bullets: [
@@ -200,7 +209,7 @@ const lunarisChangelog = [
       'Исправление вёрстки: устранены переносы текста в заголовке окна аккаунтов и карточках пользователей на экранах смартфонов.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.3.10',
     title: 'Выгрузка локального избранного в Pawchive и двусторонняя синхронизация',
     bullets: [
@@ -210,7 +219,7 @@ const lunarisChangelog = [
       'Синхронизация в реальном времени с любых провайдеров: при добавлении автора в избранное в лентах Kemono, Coomer или Pawchive изменение мгновенно передаётся на сервер Pawchive.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.3.9',
     title: 'Исправление входа и синхронизации аккаунтов Pawchive',
     bullets: [
@@ -219,7 +228,7 @@ const lunarisChangelog = [
       'Информативные ошибки: понятные сообщения на русском при неверном пароле или сбое сети вместо сырых исключений Dio.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.3.8',
     title: 'ABI-Aware Auto-Update — правильный APK для вашего процессора',
     bullets: [
@@ -229,7 +238,7 @@ const lunarisChangelog = [
       'Кеш ABI: архитектура определяется один раз за сеанс.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.3.7',
     title: 'Lazy Media Dimensions for Pawchive & Unknown-Size Providers',
     bullets: [
@@ -238,7 +247,7 @@ const lunarisChangelog = [
       'Session Cache: resolved image dimensions are cached in memory for the lifetime of the app so repeated visits to the same post do not trigger re-downloads.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.3.6',
     title: 'Pawchive Accounts Integration & Favorites Synchronization',
     bullets: [
@@ -249,7 +258,7 @@ const lunarisChangelog = [
       'Dedicated UI & Quick Access: manage connected accounts, view sync stats, and trigger synchronization from the Artists screen, Favorites modal, and Settings screen.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.3.5',
     title: 'Fullscreen Video Auto-Rotation & Orientation Controls',
     bullets: [
@@ -258,7 +267,7 @@ const lunarisChangelog = [
       'Clean Orientation Recovery: exiting fullscreen seamlessly restores system navigation bars (Edge-to-Edge) and restores unrestricted device sensor orientations.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.3.4',
     title: 'OverlayPortal Architecture & Search UI Unblocking',
     bullets: [
@@ -269,7 +278,7 @@ const lunarisChangelog = [
       'Non-Blocking Outside Tap: tapping outside the suggestion dropdown smoothly dismisses suggestions while allowing the touch event to pass through directly to the underlying button or post.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.3.3',
     title: 'Tag Suggestions Overlay Fix & Rule34 API Alignment',
     bullets: [
@@ -279,7 +288,7 @@ const lunarisChangelog = [
       'Rule34 Authentication & Outage Handling: added detection for "missing authentication", rate limits, and server overload/search down ("success": false) with informative guidance to enter API Key & User ID.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.3.2',
     title: 'Gelbooru DAPI Compliance & Tag Query Optimization',
     bullets: [
@@ -289,7 +298,7 @@ const lunarisChangelog = [
       'Throttling & Auth Guidance: enhanced API credentials helper text and informative error messages with direct instructions to configure API Key & User ID from Gelbooru account options.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.3.1',
     title: 'Cloud Mirrors & Author Announcements Fixes',
     bullets: [
@@ -298,7 +307,7 @@ const lunarisChangelog = [
       'Author Announcements HTML Cleaning: stripped all raw <p style="">, <strong>, and formatting artifacts from artist announcements, rendering clean readable text and clickable service link chips.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.3.0',
     title: 'Artist Cloud Drives & External Video Mirrors',
     bullets: [
@@ -310,7 +319,7 @@ const lunarisChangelog = [
       'Artist Commentary Card: formatted display of author notes, instructions, and text below post details.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.2.0',
     title: 'Offline Mode Overhaul & Post Details Screen Redesign',
     bullets: [
@@ -321,7 +330,7 @@ const lunarisChangelog = [
       'Unified Neighbor Strip & Tags Card: post neighbor thumbnail strip now available on both mobile and desktop, alongside modern rounded tag blocks and chat-bubble comments.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.1.0',
     title: '4-Tab Major Redesign: Search, Favorites, History & Collections',
     bullets: [
@@ -331,7 +340,7 @@ const lunarisChangelog = [
       'Collections Tab Redesign: Pinterest-style collection cards with 2x2 thumbnail mosaic covers and glassmorphism post counters, modernized collection details screen with description banner, and elegant squircle creation dialog.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.0.15',
     title: 'Settings 2.0 Layout Fixes & Pinned Quick Navigation',
     bullets: [
@@ -342,7 +351,7 @@ const lunarisChangelog = [
       'Header text overflow protections: wrapped title texts in Expanded across all settings cards.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.0.14',
     title: 'Settings 2.0: Modern Grouped Design & Quick Ergonomics',
     bullets: [
@@ -354,7 +363,7 @@ const lunarisChangelog = [
       'Hero Brand Banner: polished app presentation card in About section with glowing icon, version build badge, update checker, and GitHub repository link.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.0.13',
     title: 'Toolbar Section Dividers & Post Card Badge Stacking Fix',
     bullets: [
@@ -364,7 +373,7 @@ const lunarisChangelog = [
       'Expanded Bottom Gradient: increased bottom cinematic gradient height to 64dp for clean text and badge contrast.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.0.12',
     title: 'Feed 2.0: Pinterest Modern Redesign & Sleek Cards',
     bullets: [
@@ -377,7 +386,7 @@ const lunarisChangelog = [
       'Polished Search Presets: stylish bookmark capsules for quick access to saved search queries.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.0.11',
     title: 'Mobile Video Player Redesign & Format Recognition Fix',
     bullets: [
@@ -391,7 +400,7 @@ const lunarisChangelog = [
       'Sleek Neon Seekbar with live network buffer progress indicator.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.0.10',
     title: 'Fix "and" Tag Operator Retention, Suggestion Preceding Drafts & AND Chip Styling',
     bullets: [
@@ -401,7 +410,7 @@ const lunarisChangelog = [
       'Distinct visual styling for AND separator chips with secondary theme container and alt-route icon.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.0.9',
     title: 'Instant Tag Suggestions, Persistent Disk Cache, Expanded History & Match Highlighting',
     bullets: [
@@ -415,7 +424,7 @@ const lunarisChangelog = [
       'Dedicated Clear Tag Cache actions in Settings and Cache Manager.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.0.8',
     title: 'Shared Context Modifiers for Multi-Tag Search & Clean Tag Filtering',
     bullets: [
@@ -424,7 +433,7 @@ const lunarisChangelog = [
       'Resolved "No posts yet" bug by adapting client post validation to multi-tag stream groups and stripping operator keywords from booru queries.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.0.7',
     title: 'Independent Multi-Tag Search Streams, Local "and" Connector, Pawchive in Main Feed & Reverts',
     bullets: [
@@ -435,7 +444,7 @@ const lunarisChangelog = [
       'Removed external linked accounts bar from artist posts screen.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.0.6',
     title: 'Pawchive Deep Integration: Global Posts Feed, Artist Tags, Announcements, Links & Server Media Filter',
     bullets: [
@@ -446,7 +455,7 @@ const lunarisChangelog = [
       'Server-side media filtering (Photos, Videos, GIFs) querying the entire author archive through the API.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.0.5',
     title: '10 QoL Super-Update: AMOLED, Dynamic Colors, Grid switch, Share, Presets, Cache & Backup',
     bullets: [
@@ -461,7 +470,7 @@ const lunarisChangelog = [
       'Full JSON backup export and import for seamless configuration sync.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.0.4',
     title: 'Platform service selection & media type filtering in artist posts',
     bullets: [
@@ -470,7 +479,7 @@ const lunarisChangelog = [
       'Full-screen post pager respects active media type filters during swiping.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.0.3',
     title: 'Infinite artist pagination, favorite artists modal, and card layout polish',
     bullets: [
@@ -480,7 +489,7 @@ const lunarisChangelog = [
       'Removed mapping truncation in Pawchive provider to deliver all post attachments cleanly.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.0.2',
     title: 'Swipeable media pager, favorite artists, performance and Pawchive',
     bullets: [
@@ -492,7 +501,7 @@ const lunarisChangelog = [
       'In-app update checks and downloads connected directly to RarDog GitHub releases.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.0.1',
     title: 'Localization, zoom and favorite downloads',
     bullets: [
@@ -503,7 +512,7 @@ const lunarisChangelog = [
       'Favorites can optionally auto-download media in the background, with local files tracked separately from favorites.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '2.0.0',
     title: 'Customization and provider polish',
     bullets: [
@@ -514,7 +523,7 @@ const lunarisChangelog = [
       'Kemono and Coomer creator search uses the current mbahArip keyword endpoints with public API fallbacks.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '1.1.2',
     title: 'Experimental tag and Artists update',
     bullets: [
@@ -524,7 +533,7 @@ const lunarisChangelog = [
       'This is an experimental release for checking the new tag and Artists behavior.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '1.1.1',
     title: 'Artists and in-app updates',
     bullets: [
@@ -534,7 +543,7 @@ const lunarisChangelog = [
       'Tag input keeps its scroll position steadier while typing and committing chips.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '1.1.0',
     title: 'Lunaris rebrand and providers',
     bullets: [
@@ -544,7 +553,7 @@ const lunarisChangelog = [
       'Video player UI preferences are saved across fullscreen, details and restarts.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '1.0.2',
     title: 'Provider safety fix',
     bullets: [
@@ -553,7 +562,7 @@ const lunarisChangelog = [
       'Existing enabled legacy configs are disabled so the main feed is not polluted by known-offline APIs.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '1.0.1',
     title: 'Mobile polish',
     bullets: [
@@ -562,7 +571,7 @@ const lunarisChangelog = [
       'Tag chip input no longer jumps while typing.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '1.0.0',
     title: 'Stable 1.0',
     bullets: [
@@ -572,7 +581,7 @@ const lunarisChangelog = [
       'Windows portable package is published alongside APK and installer.',
     ],
   ),
-  LunarisChange(
+  PrismaChange(
     version: '0.4.3',
     title: 'Bugfixes',
     bullets: [
@@ -584,8 +593,8 @@ const lunarisChangelog = [
   ),
 ];
 
-class LunarisChange {
-  const LunarisChange({
+class PrismaChange {
+  const PrismaChange({
     required this.version,
     required this.title,
     required this.bullets,
@@ -595,3 +604,6 @@ class LunarisChange {
   final String title;
   final List<String> bullets;
 }
+
+const lunarisChangelog = prismaChangelog;
+typedef LunarisChange = PrismaChange;

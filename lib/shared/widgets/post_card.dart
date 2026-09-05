@@ -478,7 +478,7 @@ class _PostCardState extends ConsumerState<PostCard>
             '${post.previewUrl} ${post.sampleUrl} ${post.fileUrl}'
         .toLowerCase();
     return {
-      'User-Agent': 'Lunaris/2.0.1 Flutter local booru browser',
+      'User-Agent': 'Prisma/2.0.1 Flutter local booru browser',
       'Accept': '*/*',
       if (lower.contains('gelbooru')) 'Referer': 'https://gelbooru.com/',
       if (lower.contains('realbooru'))

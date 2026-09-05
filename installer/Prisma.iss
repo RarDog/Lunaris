@@ -1,4 +1,4 @@
-#define MyAppName "Lunaris"
+#define MyAppName "Prisma"
 #define MyAppVersion "2.0.1"
 #define MyAppPublisher "RarDog"
 #define MyAppExeName "gel_rule_app.exe"
@@ -13,7 +13,7 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 OutputDir=..\dist
-OutputBaseFilename=LunarisSetup
+OutputBaseFilename=PrismaSetup
 SetupIconFile=..\windows\runner\resources\app_icon.ico
 Compression=lzma2
 SolidCompression=yes

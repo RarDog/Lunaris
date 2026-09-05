@@ -25,7 +25,14 @@ class TagCacheService {
       return _resolvedPath!;
     }
     final dir = await getApplicationDocumentsDirectory();
-    _resolvedPath = '${dir.path}/lunaris_tag_cache.json';
+    final newFile = File('${dir.path}/prisma_tag_cache.json');
+    final oldFile = File('${dir.path}/lunaris_tag_cache.json');
+    if (!newFile.existsSync() && oldFile.existsSync()) {
+      try {
+        oldFile.copySync(newFile.path);
+      } catch (_) {}
+    }
+    _resolvedPath = newFile.path;
     return _resolvedPath!;
   }
 
