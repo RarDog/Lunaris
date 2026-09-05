@@ -48,6 +48,18 @@ final postProviderInstanceProvider =
   return ref.watch(providerManagerProvider).getProviderInstance(providerId);
 });
 
+/// Fetches up to 6 recent posts from the same artist.
+final artistPostsProvider =
+    FutureProvider.family<List<Post>, String>((ref, artistTag) async {
+  if (artistTag.isEmpty) return const [];
+  final result = await ref.watch(feedServiceProvider).refresh(
+        tags: [artistTag],
+        limit: 7,
+      );
+  if (result is! Success<List<Post>>) return const [];
+  return (result as Success<List<Post>>).data.take(6).toList(growable: false);
+});
+
 class PostDetailsScreen extends ConsumerWidget {
   const PostDetailsScreen({
     required this.providerId,
@@ -377,6 +389,7 @@ class PostDetailsScreen extends ConsumerWidget {
                       fileSizeBytes: fileSizeBytes,
                       e621Provider: e621Provider,
                     ),
+                    _ArtistPostsCard(post: post),
                     if (post.hasRelations) ...[
                       const SizedBox(height: 16),
                       PostRelationsCard(
@@ -638,6 +651,7 @@ class PostDetailsScreen extends ConsumerWidget {
             fileSizeBytes: fileSizeBytes,
             e621Provider: e621Provider,
           ),
+          _ArtistPostsCard(post: post),
           if (post.hasRelations) ...[
             const SizedBox(height: 12),
             PostRelationsCard(
@@ -1204,7 +1218,10 @@ class _MobilePostPagerState extends State<_MobilePostPager> {
 
     if (widget.posts.length <= 1) return pager;
 
+    // Show the page indicator overlay only for comic/pool lists.
     final isComic = widget.posts.first.hasPools;
+    if (!isComic) return pager;
+
     return Stack(
       children: [
         pager,
@@ -1232,15 +1249,11 @@ class _MobilePostPagerState extends State<_MobilePostPager> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (isComic) ...[
-                          const Icon(Icons.auto_stories_rounded,
-                              size: 14, color: Colors.white),
-                          const SizedBox(width: 6),
-                        ],
+                        const Icon(Icons.auto_stories_rounded,
+                            size: 14, color: Colors.white),
+                        const SizedBox(width: 6),
                         Text(
-                          isComic
-                              ? 'Комикс • Стр. ${_currentPage + 1} из ${widget.posts.length}'
-                              : '${_currentPage + 1} / ${widget.posts.length}',
+                          'Комикс • Стр. ${_currentPage + 1} из ${widget.posts.length}',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 12,
@@ -1394,6 +1407,163 @@ class _CloseIntent extends Intent {
 
 class _DownloadIntent extends Intent {
   const _DownloadIntent();
+}
+
+// ---------------------------------------------------------------------------
+// Artist posts card
+// ---------------------------------------------------------------------------
+
+class _ArtistPostsCard extends ConsumerWidget {
+  const _ArtistPostsCard({required this.post});
+
+  final Post post;
+
+  String _artistTag(Post post) {
+    final artists = post.tagGroups['artist'] ??
+        post.tags
+            .where((t) => t.startsWith('artist:'))
+            .map((t) => t.replaceFirst('artist:', ''))
+            .toList();
+    if (artists.isEmpty) return '';
+    return 'artist:${artists.first}';
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tag = _artistTag(post);
+    if (tag.isEmpty) return const SizedBox.shrink();
+
+    final artistPosts = ref.watch(artistPostsProvider(tag));
+    final isRu = Localizations.maybeLocaleOf(context)?.languageCode == 'ru';
+    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final artistName = tag.replaceFirst('artist:', '');
+
+    return artistPosts.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (posts) {
+        if (posts.isEmpty) return const SizedBox.shrink();
+        // exclude the current post
+        final filtered =
+            posts.where((p) => p.cacheKey != post.cacheKey).take(6).toList();
+        if (filtered.isEmpty) return const SizedBox.shrink();
+
+        return Padding(
+          padding: const EdgeInsets.only(top: 12),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark
+                  ? scheme.surfaceContainerHigh.withValues(alpha: 0.70)
+                  : scheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.12)
+                    : scheme.outlineVariant.withValues(alpha: 0.40),
+                width: 1.1,
+              ),
+            ),
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.palette_rounded,
+                        size: 18, color: scheme.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        isRu
+                            ? 'Ещё от $artistName'
+                            : 'More by $artistName',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    InkWell(
+                      onTap: () => context.push(
+                        '/search?q=${Uri.encodeComponent(tag)}',
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              isRu ? 'Все' : 'See all',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: scheme.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 3),
+                            Icon(Icons.arrow_forward_ios_rounded,
+                                size: 11, color: scheme.primary),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 110,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 8),
+                    itemBuilder: (context, index) {
+                      final p = filtered[index];
+                      return InkWell(
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => PostDetailsScreen(
+                              providerId: p.providerId,
+                              postId: p.id,
+                              initialPost: p,
+                            ),
+                          ),
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: CachedNetworkImage(
+                            imageUrl: p.previewUrl.isNotEmpty
+                                ? p.previewUrl
+                                : p.sampleUrl,
+                            width: 110,
+                            height: 110,
+                            fit: BoxFit.cover,
+                            memCacheWidth: 220,
+                            memCacheHeight: 220,
+                            errorWidget: (_, __, ___) => Container(
+                              width: 110,
+                              height: 110,
+                              color: scheme.surfaceContainerHigh,
+                              child: Icon(Icons.broken_image_rounded,
+                                  color: scheme.onSurfaceVariant),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _CommentsSection extends ConsumerStatefulWidget {
